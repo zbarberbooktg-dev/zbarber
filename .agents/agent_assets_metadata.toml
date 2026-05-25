@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "w_dMFBwn4y8cCQN4MYk7K"
+uri = "file://artifacts/vitrine/public/hero-bg.png"
+type = "image"
+title = "African barbershop interior"
+
+[[generated]]
+id = "NuFpTZdK0WpbNQ5w49K9l"
+uri = "file://artifacts/vitrine/public/barber-work.png"
+type = "image"
+title = "Barber at work"
+
+[[generated]]
+id = "g2Z1EPAG7-q_ImZd7dUWL"
+uri = "file://artifacts/vitrine/public/app-mockup.png"
+type = "image"
+title = "App UI mockup"

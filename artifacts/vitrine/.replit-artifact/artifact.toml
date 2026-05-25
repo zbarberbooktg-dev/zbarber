@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Global Barber Corp — Vitrine"
+version = "1.0.0"
+id = "artifacts/vitrine"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21235
+
+[services.development]
+run = "pnpm --filter @workspace/vitrine run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vitrine", "run", "build" ]
+publicDir = "artifacts/vitrine/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21235"
+BASE_PATH = "/"

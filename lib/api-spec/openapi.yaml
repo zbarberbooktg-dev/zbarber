@@ -1,22 +1,49 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Global Barber Corp API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: barbers
+    description: Barber profiles
+  - name: salons
+    description: Salon management
+  - name: services
+    description: Barber services
+  - name: reservations
+    description: Booking system
+  - name: reviews
+    description: Reviews and ratings
+  - name: subscriptions
+    description: Subscription plans
+  - name: financing
+    description: Financing requests
+  - name: conferences
+    description: Barber conferences
+  - name: notifications
+    description: Push notifications
+  - name: gallery
+    description: Photo gallery
+  - name: stats
+    description: Statistics and analytics
+  - name: admin
+    description: Admin operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +51,1140 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── AUTH ──────────────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ── USERS ─────────────────────────────────────────────────────────────
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users (admin)
+      parameters:
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [client, barber, admin]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, suspended, pending]
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete user (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /users/{id}/suspend:
+    patch:
+      operationId: suspendUser
+      tags: [users]
+      summary: Suspend a user account (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User suspended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}/activate:
+    patch:
+      operationId: activateUser
+      tags: [users]
+      summary: Activate a user account (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ── BARBERS ───────────────────────────────────────────────────────────
+  /barbers:
+    get:
+      operationId: listBarbers
+      tags: [barbers]
+      summary: List barbers
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, rejected, suspended]
+        - in: query
+          name: city
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of barbers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberListResponse"
+    post:
+      operationId: createBarber
+      tags: [barbers]
+      summary: Create barber profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarberInput"
+      responses:
+        "201":
+          description: Created barber
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+
+  /barbers/{id}:
+    get:
+      operationId: getBarber
+      tags: [barbers]
+      summary: Get barber by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Barber
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+    patch:
+      operationId: updateBarber
+      tags: [barbers]
+      summary: Update barber profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarberUpdate"
+      responses:
+        "200":
+          description: Updated barber
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+
+  /barbers/{id}/approve:
+    patch:
+      operationId: approveBarber
+      tags: [barbers]
+      summary: Approve barber account (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Barber approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+
+  /barbers/{id}/reject:
+    patch:
+      operationId: rejectBarber
+      tags: [barbers]
+      summary: Reject barber account (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectInput"
+      responses:
+        "200":
+          description: Barber rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+
+  /barbers/{id}/schedule:
+    get:
+      operationId: getBarberSchedule
+      tags: [barbers]
+      summary: Get barber availability schedule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Barber schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+    put:
+      operationId: updateBarberSchedule
+      tags: [barbers]
+      summary: Update barber schedule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleInput"
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+
+  /barbers/{id}/stats:
+    get:
+      operationId: getBarberStats
+      tags: [barbers]
+      summary: Get barber analytics
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Barber stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberStats"
+
+  # ── GALLERY ───────────────────────────────────────────────────────────
+  /barbers/{id}/gallery:
+    get:
+      operationId: getBarberGallery
+      tags: [gallery]
+      summary: Get barber gallery
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Gallery photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GalleryPhoto"
+    post:
+      operationId: addGalleryPhoto
+      tags: [gallery]
+      summary: Add photo to barber gallery
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GalleryPhotoInput"
+      responses:
+        "201":
+          description: Photo added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GalleryPhoto"
+
+  /barbers/{barberId}/gallery/{photoId}:
+    delete:
+      operationId: deleteGalleryPhoto
+      tags: [gallery]
+      summary: Delete gallery photo
+      parameters:
+        - in: path
+          name: barberId
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: photoId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── SERVICES ──────────────────────────────────────────────────────────
+  /barbers/{id}/services:
+    get:
+      operationId: listBarberServices
+      tags: [services]
+      summary: List services for a barber
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Services list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Service"
+    post:
+      operationId: createService
+      tags: [services]
+      summary: Create a service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceInput"
+      responses:
+        "201":
+          description: Created service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+
+  /services/{id}:
+    get:
+      operationId: getService
+      tags: [services]
+      summary: Get service by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+    patch:
+      operationId: updateService
+      tags: [services]
+      summary: Update a service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceUpdate"
+      responses:
+        "200":
+          description: Updated service
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+    delete:
+      operationId: deleteService
+      tags: [services]
+      summary: Delete a service
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /services/categories:
+    get:
+      operationId: listServiceCategories
+      tags: [services]
+      summary: List service categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceCategory"
+    post:
+      operationId: createServiceCategory
+      tags: [services]
+      summary: Create service category (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceCategoryInput"
+      responses:
+        "201":
+          description: Created category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceCategory"
+
+  # ── RESERVATIONS ──────────────────────────────────────────────────────
+  /reservations:
+    get:
+      operationId: listReservations
+      tags: [reservations]
+      summary: List reservations (admin)
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, confirmed, cancelled, completed]
+        - in: query
+          name: barberId
+          schema:
+            type: integer
+        - in: query
+          name: clientId
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reservations list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationListResponse"
+    post:
+      operationId: createReservation
+      tags: [reservations]
+      summary: Create a reservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReservationInput"
+      responses:
+        "201":
+          description: Created reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+
+  /reservations/{id}:
+    get:
+      operationId: getReservation
+      tags: [reservations]
+      summary: Get reservation by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+    patch:
+      operationId: updateReservationStatus
+      tags: [reservations]
+      summary: Update reservation status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReservationStatusUpdate"
+      responses:
+        "200":
+          description: Updated reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+
+  # ── REVIEWS ───────────────────────────────────────────────────────────
+  /reviews:
+    get:
+      operationId: listReviews
+      tags: [reviews]
+      summary: List reviews (admin)
+      parameters:
+        - in: query
+          name: barberId
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reviews list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewListResponse"
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Create a review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Created review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  /reviews/{id}:
+    delete:
+      operationId: deleteReview
+      tags: [reviews]
+      summary: Delete review (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── SUBSCRIPTIONS ─────────────────────────────────────────────────────
+  /subscription-plans:
+    get:
+      operationId: listSubscriptionPlans
+      tags: [subscriptions]
+      summary: List subscription plans
+      responses:
+        "200":
+          description: Plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubscriptionPlan"
+    post:
+      operationId: createSubscriptionPlan
+      tags: [subscriptions]
+      summary: Create subscription plan (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionPlanInput"
+      responses:
+        "201":
+          description: Created plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlan"
+
+  /subscription-plans/{id}:
+    patch:
+      operationId: updateSubscriptionPlan
+      tags: [subscriptions]
+      summary: Update subscription plan (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionPlanUpdate"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPlan"
+    delete:
+      operationId: deleteSubscriptionPlan
+      tags: [subscriptions]
+      summary: Delete subscription plan (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /subscriptions:
+    get:
+      operationId: listSubscriptions
+      tags: [subscriptions]
+      summary: List active subscriptions (admin)
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, expired, cancelled]
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionListResponse"
+    post:
+      operationId: createSubscription
+      tags: [subscriptions]
+      summary: Subscribe barber to a plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionInput"
+      responses:
+        "201":
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  # ── FINANCING ─────────────────────────────────────────────────────────
+  /financing-requests:
+    get:
+      operationId: listFinancingRequests
+      tags: [financing]
+      summary: List financing requests
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, reviewing, approved, rejected]
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Financing requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancingListResponse"
+    post:
+      operationId: createFinancingRequest
+      tags: [financing]
+      summary: Submit financing request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancingInput"
+      responses:
+        "201":
+          description: Request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancingRequest"
+
+  /financing-requests/{id}:
+    get:
+      operationId: getFinancingRequest
+      tags: [financing]
+      summary: Get financing request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Financing request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancingRequest"
+    patch:
+      operationId: updateFinancingStatus
+      tags: [financing]
+      summary: Update financing request status (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinancingStatusUpdate"
+      responses:
+        "200":
+          description: Updated request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinancingRequest"
+
+  # ── CONFERENCES ───────────────────────────────────────────────────────
+  /conferences:
+    get:
+      operationId: listConferences
+      tags: [conferences]
+      summary: List conferences
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConferenceListResponse"
+    post:
+      operationId: createConference
+      tags: [conferences]
+      summary: Create conference (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConferenceInput"
+      responses:
+        "201":
+          description: Created conference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conference"
+
+  /conferences/{id}:
+    get:
+      operationId: getConference
+      tags: [conferences]
+      summary: Get conference
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conference"
+    patch:
+      operationId: updateConference
+      tags: [conferences]
+      summary: Update conference (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConferenceUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conference"
+    delete:
+      operationId: deleteConference
+      tags: [conferences]
+      summary: Delete conference (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── NOTIFICATIONS ─────────────────────────────────────────────────────
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for current user
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+    post:
+      operationId: sendNotification
+      tags: [notifications]
+      summary: Send notification (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationInput"
+      responses:
+        "201":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark notification as read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  # ── ADMIN STATS ───────────────────────────────────────────────────────
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get global platform statistics
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/stats/monthly:
+    get:
+      operationId: getMonthlyStats
+      tags: [admin]
+      summary: Get monthly reservation and revenue trends
+      responses:
+        "200":
+          description: Monthly trends
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonthlyStatPoint"
+
+  /admin/stats/top-barbers:
+    get:
+      operationId: getTopBarbers
+      tags: [admin]
+      summary: Get top barbers by reservations
+      responses:
+        "200":
+          description: Top barbers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TopBarber"
+
+  /admin/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [admin]
+      summary: Get recent platform activity feed
+      responses:
+        "200":
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +1192,909 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    # ── AUTH ──────────────────────────────────────────────────────────
+    RegisterInput:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        role:
+          type: string
+          enum: [client, barber]
+        phone:
+          type: ["string", "null"]
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    # ── USER ──────────────────────────────────────────────────────────
+    User:
+      type: object
+      required: [id, name, email, role, status, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [client, barber, admin]
+        status:
+          type: string
+          enum: [active, suspended, pending]
+        phone:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+
+    UserListResponse:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    RejectInput:
+      type: object
+      properties:
+        reason:
+          type: ["string", "null"]
+
+    # ── BARBER ────────────────────────────────────────────────────────
+    Barber:
+      type: object
+      required: [id, userId, salonName, city, status, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        salonName:
+          type: string
+        bio:
+          type: ["string", "null"]
+        logoUrl:
+          type: ["string", "null"]
+        city:
+          type: string
+        neighborhood:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        whatsapp:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        status:
+          type: string
+          enum: [pending, approved, rejected, suspended]
+        profileViews:
+          type: integer
+        subscriptionPlanId:
+          type: ["integer", "null"]
+        rating:
+          type: ["number", "null"]
+        reviewCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    BarberInput:
+      type: object
+      required: [salonName, city]
+      properties:
+        salonName:
+          type: string
+        bio:
+          type: ["string", "null"]
+        logoUrl:
+          type: ["string", "null"]
+        city:
+          type: string
+        neighborhood:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        whatsapp:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+
+    BarberUpdate:
+      type: object
+      properties:
+        salonName:
+          type: string
+        bio:
+          type: ["string", "null"]
+        logoUrl:
+          type: ["string", "null"]
+        city:
+          type: string
+        neighborhood:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        whatsapp:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+
+    BarberListResponse:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Barber"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    BarberStats:
+      type: object
+      required: [profileViews, totalClicks, monthlyReservations, totalReservations, popularServices]
+      properties:
+        profileViews:
+          type: integer
+        totalClicks:
+          type: integer
+        monthlyReservations:
+          type: integer
+        totalReservations:
+          type: integer
+        popularServices:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceStat"
+
+    ServiceStat:
+      type: object
+      required: [serviceId, serviceName, count]
+      properties:
+        serviceId:
+          type: integer
+        serviceName:
+          type: string
+        count:
+          type: integer
+
+    # ── SCHEDULE ──────────────────────────────────────────────────────
+    Schedule:
+      type: object
+      required: [barberId, workDays]
+      properties:
+        barberId:
+          type: integer
+        workDays:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkDay"
+        daysOff:
+          type: array
+          items:
+            type: string
+            format: date
+
+    ScheduleInput:
+      type: object
+      required: [workDays]
+      properties:
+        workDays:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkDay"
+        daysOff:
+          type: array
+          items:
+            type: string
+            format: date
+
+    WorkDay:
+      type: object
+      required: [day, isWorking]
+      properties:
+        day:
+          type: string
+          enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+        isWorking:
+          type: boolean
+        startTime:
+          type: ["string", "null"]
+        endTime:
+          type: ["string", "null"]
+        breakStart:
+          type: ["string", "null"]
+        breakEnd:
+          type: ["string", "null"]
+
+    # ── GALLERY ───────────────────────────────────────────────────────
+    GalleryPhoto:
+      type: object
+      required: [id, barberId, photoUrl, createdAt]
+      properties:
+        id:
+          type: integer
+        barberId:
+          type: integer
+        photoUrl:
+          type: string
+        caption:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    GalleryPhotoInput:
+      type: object
+      required: [photoUrl]
+      properties:
+        photoUrl:
+          type: string
+        caption:
+          type: ["string", "null"]
+
+    # ── SERVICE ───────────────────────────────────────────────────────
+    Service:
+      type: object
+      required: [id, barberId, name, price, durationMinutes, isActive, createdAt]
+      properties:
+        id:
+          type: integer
+        barberId:
+          type: integer
+        categoryId:
+          type: ["integer", "null"]
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        durationMinutes:
+          type: integer
+        photoUrl:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ServiceInput:
+      type: object
+      required: [name, price, durationMinutes]
+      properties:
+        categoryId:
+          type: ["integer", "null"]
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        durationMinutes:
+          type: integer
+        photoUrl:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+
+    ServiceUpdate:
+      type: object
+      properties:
+        categoryId:
+          type: ["integer", "null"]
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        durationMinutes:
+          type: integer
+        photoUrl:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+
+    ServiceCategory:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        icon:
+          type: ["string", "null"]
+
+    ServiceCategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        icon:
+          type: ["string", "null"]
+
+    # ── RESERVATION ───────────────────────────────────────────────────
+    Reservation:
+      type: object
+      required: [id, clientId, barberId, serviceId, scheduledAt, status, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        barberId:
+          type: integer
+        serviceId:
+          type: integer
+        scheduledAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled, completed]
+        notes:
+          type: ["string", "null"]
+        clientName:
+          type: ["string", "null"]
+        barberName:
+          type: ["string", "null"]
+        serviceName:
+          type: ["string", "null"]
+        servicePrice:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    ReservationInput:
+      type: object
+      required: [barberId, serviceId, scheduledAt]
+      properties:
+        barberId:
+          type: integer
+        serviceId:
+          type: integer
+        scheduledAt:
+          type: string
+          format: date-time
+        notes:
+          type: ["string", "null"]
+
+    ReservationStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, cancelled, completed]
+
+    ReservationListResponse:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reservation"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # ── REVIEW ────────────────────────────────────────────────────────
+    Review:
+      type: object
+      required: [id, clientId, barberId, rating, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        barberId:
+          type: integer
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: ["string", "null"]
+        clientName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    ReviewInput:
+      type: object
+      required: [barberId, rating]
+      properties:
+        barberId:
+          type: integer
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: ["string", "null"]
+
+    ReviewListResponse:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Review"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # ── SUBSCRIPTION ──────────────────────────────────────────────────
+    SubscriptionPlan:
+      type: object
+      required: [id, name, price, billingCycle, features, isActive]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        billingCycle:
+          type: string
+          enum: [monthly, yearly]
+        features:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        maxPhotos:
+          type: ["integer", "null"]
+        hasAnalytics:
+          type: boolean
+        hasPriority:
+          type: boolean
+        hasFinancing:
+          type: boolean
+        hasConferences:
+          type: boolean
+
+    SubscriptionPlanInput:
+      type: object
+      required: [name, price, billingCycle, features]
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        billingCycle:
+          type: string
+          enum: [monthly, yearly]
+        features:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        maxPhotos:
+          type: ["integer", "null"]
+        hasAnalytics:
+          type: boolean
+        hasPriority:
+          type: boolean
+        hasFinancing:
+          type: boolean
+        hasConferences:
+          type: boolean
+
+    SubscriptionPlanUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        billingCycle:
+          type: string
+          enum: [monthly, yearly]
+        features:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+
+    Subscription:
+      type: object
+      required: [id, barberId, planId, status, startDate, endDate, createdAt]
+      properties:
+        id:
+          type: integer
+        barberId:
+          type: integer
+        planId:
+          type: integer
+        planName:
+          type: ["string", "null"]
+        barberName:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, expired, cancelled]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        paymentMethod:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    SubscriptionInput:
+      type: object
+      required: [barberId, planId]
+      properties:
+        barberId:
+          type: integer
+        planId:
+          type: integer
+        paymentMethod:
+          type: ["string", "null"]
+
+    SubscriptionListResponse:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Subscription"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # ── FINANCING ─────────────────────────────────────────────────────
+    FinancingRequest:
+      type: object
+      required: [id, barberId, amount, purpose, status, createdAt]
+      properties:
+        id:
+          type: integer
+        barberId:
+          type: integer
+        barberName:
+          type: ["string", "null"]
+        amount:
+          type: number
+        purpose:
+          type: string
+          enum: [renovation, tools, products, other]
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, reviewing, approved, rejected]
+        adminNote:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    FinancingInput:
+      type: object
+      required: [amount, purpose, description]
+      properties:
+        amount:
+          type: number
+        purpose:
+          type: string
+          enum: [renovation, tools, products, other]
+        description:
+          type: string
+
+    FinancingStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, reviewing, approved, rejected]
+        adminNote:
+          type: ["string", "null"]
+
+    FinancingListResponse:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/FinancingRequest"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # ── CONFERENCE ────────────────────────────────────────────────────
+    Conference:
+      type: object
+      required: [id, title, topic, scheduledAt, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        topic:
+          type: string
+        description:
+          type: ["string", "null"]
+        scheduledAt:
+          type: string
+          format: date-time
+        participationChannel:
+          type: ["string", "null"]
+        joinLink:
+          type: ["string", "null"]
+        instructions:
+          type: ["string", "null"]
+        isPublished:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ConferenceInput:
+      type: object
+      required: [title, topic, scheduledAt]
+      properties:
+        title:
+          type: string
+        topic:
+          type: string
+        description:
+          type: ["string", "null"]
+        scheduledAt:
+          type: string
+          format: date-time
+        participationChannel:
+          type: ["string", "null"]
+        joinLink:
+          type: ["string", "null"]
+        instructions:
+          type: ["string", "null"]
+        isPublished:
+          type: boolean
+
+    ConferenceUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        topic:
+          type: string
+        description:
+          type: ["string", "null"]
+        scheduledAt:
+          type: string
+          format: date-time
+        participationChannel:
+          type: ["string", "null"]
+        joinLink:
+          type: ["string", "null"]
+        instructions:
+          type: ["string", "null"]
+        isPublished:
+          type: boolean
+
+    ConferenceListResponse:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Conference"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # ── NOTIFICATION ──────────────────────────────────────────────────
+    Notification:
+      type: object
+      required: [id, type, title, isRead, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        type:
+          type: string
+          enum: [new_reservation, confirmation, reminder, admin_announcement, subscription_expiry]
+        title:
+          type: string
+        message:
+          type: ["string", "null"]
+        isRead:
+          type: boolean
+        relatedId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    NotificationInput:
+      type: object
+      required: [type, title]
+      properties:
+        userId:
+          type: ["integer", "null"]
+        type:
+          type: string
+          enum: [new_reservation, confirmation, reminder, admin_announcement, subscription_expiry]
+        title:
+          type: string
+        message:
+          type: ["string", "null"]
+        targetRole:
+          type: ["string", "null"]
+
+    # ── ADMIN STATS ───────────────────────────────────────────────────
+    AdminStats:
+      type: object
+      required: [totalUsers, totalBarbers, totalSalons, totalReservations, activeSubscriptions, pendingFinancing, pendingBarbers, averageRating]
+      properties:
+        totalUsers:
+          type: integer
+        totalBarbers:
+          type: integer
+        totalSalons:
+          type: integer
+        totalReservations:
+          type: integer
+        activeSubscriptions:
+          type: integer
+        pendingFinancing:
+          type: integer
+        pendingBarbers:
+          type: integer
+        averageRating:
+          type: number
+
+    MonthlyStatPoint:
+      type: object
+      required: [month, reservations]
+      properties:
+        month:
+          type: string
+        reservations:
+          type: integer
+        newBarbers:
+          type: integer
+        newUsers:
+          type: integer
+
+    TopBarber:
+      type: object
+      required: [barberId, salonName, reservations, rating]
+      properties:
+        barberId:
+          type: integer
+        salonName:
+          type: string
+        city:
+          type: string
+        reservations:
+          type: integer
+        rating:
+          type: number
+
+    ActivityItem:
+      type: object
+      required: [id, type, description, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [new_barber, new_reservation, new_review, financing_request, subscription]
+        description:
+          type: string
+        actorName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time

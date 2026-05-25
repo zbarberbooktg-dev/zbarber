@@ -1,0 +1,322 @@
+Faut lire ce prompt voir si on peut le soumettre à Replit
+
+
+Voici un prompt complet et bien structuré que tu peux coller dans Replit pour créer l’application Global Barber Corp :
+
+Créer une application complète appelée Global Barber Corp, composée de trois parties principales :
+
+1. Une application mobile iOS et Android pour les clients et les barbers.
+2. Une plateforme web admin pour gérer l’ensemble du système.
+3. Une base de données sécurisée pour centraliser les salons, services, réservations, abonnements et demandes de financement.
+4. Un site web vitrine de l’appli mobile avec la description, les objectifs de l’appli, les liens de téléchargement 
+
+Objectif général
+
+Global Barber Corp est une plateforme destinée à centraliser les barbers en Afrique afin de donner plus de visibilité à leurs salons, faciliter la prise de rendez-vous pour les clients et offrir aux barbers des outils professionnels pour développer leur activité.
+
+L’application doit permettre aux utilisateurs de trouver facilement les salons de coiffure les plus proches, consulter les services proposés, voir les avis, réserver un service et partager les profils de salons.
+
+Pour les barbers, la plateforme doit leur permettre de créer un profil professionnel, gérer leurs salons, ajouter leurs services, afficher leur localisation, gérer leurs réservations, souscrire à un abonnement et éventuellement faire une demande de financement pour améliorer leur salon, leurs outils ou leurs services.
+
+Rôles utilisateurs
+
+1. Client / utilisateur simple
+
+L’utilisateur peut :
+
+* consulter les salons sans créer de compte
+* voir les services proposés par chaque salon
+* rechercher un salon par nom, ville, quartier, prix ou service
+* voir les salons proches grâce à la géolocalisation
+* créer un compte
+* se connecter
+* réserver un service
+* mettre un salon ou barber en favori
+* laisser un avis et une note
+* partager le lien d’un salon
+* voir l’historique de ses réservations
+* recevoir des notifications de rappel de rendez-vous
+
+La création de compte n’est pas obligatoire pour consulter les salons et services, mais elle est obligatoire pour réserver, mettre en favori, noter ou laisser un avis.
+
+2. Barber / salon
+
+Le barber peut :
+
+* créer un compte professionnel
+* créer un profil barber
+* ajouter le logo ou la photo de son salon
+* ajouter les informations du salon : nom, adresse, ville, quartier, téléphone, WhatsApp, horaires, description
+* ajouter une localisation précise sur la carte
+* créer, modifier et supprimer ses services
+* ajouter les prix, durée, description et photos des services
+* gérer les réservations reçues
+* accepter, refuser ou confirmer un rendez-vous
+* modifier son profil
+* souscrire à un abonnement
+* voir son statut d’abonnement
+* faire une demande de financement pour optimiser son salon
+* voir les conférences ou annonces publiées par l’administration
+* recevoir des notifications importantes
+
+3. Administrateur
+
+La plateforme web admin doit permettre de :
+
+* valider ou refuser les comptes barbers
+* gérer tous les comptes clients
+* gérer tous les barbers et salons
+* suivre les services proposés par les salons
+* gérer les réservations
+* gérer les abonnements barbers
+* gérer les barbers éligibles au programme de financement
+* valider, refuser ou suivre les demandes de financement
+* publier des annonces et conférences pour les barbers
+* gérer les catégories de services
+* gérer les avis et signalements
+* voir les statistiques globales
+* gérer les contenus affichés dans l’application
+* suspendre ou supprimer un compte si nécessaire
+
+Fonctionnalités principales de l’application mobile
+
+Page d’accueil
+
+* Afficher les salons populaires
+* Afficher les salons proches de l’utilisateur
+* Afficher les salons les mieux notés
+* Barre de recherche rapide
+* Catégories de services
+* Bouton pour devenir barber partenaire
+
+Recherche
+
+Permettre de rechercher par :
+
+* ville
+* quartier
+* nom du salon
+* type de service
+* prix
+* note
+* distance
+
+Page détail d’un salon
+
+Afficher :
+
+* nom du salon
+* logo ou photo
+* adresse
+* localisation sur carte
+* numéro de téléphone
+* WhatsApp
+* horaires d’ouverture
+* description
+* services proposés
+* prix des services
+* photos
+* avis et notes
+* bouton réserver
+* bouton favori
+* bouton partager
+
+Réservation
+
+Le client peut :
+
+* choisir un service
+* choisir une date
+* choisir une heure disponible
+* confirmer la réservation
+* recevoir une notification ou confirmation
+* annuler une réservation selon les règles définies
+
+Favoris et avis
+
+* Ajouter un salon en favori
+* Noter un salon
+* Laisser un avis après un service
+* Signaler un problème
+
+Fonctionnalités pour les barbers
+
+Dashboard Barber mobile
+
+Le barber doit voir :
+
+* nombre de réservations
+* réservations du jour
+* revenus estimés si paiement intégré plus tard
+* statut d’abonnement
+* notifications admin
+* statut du compte : en attente, validé, suspendu
+
+Gestion du salon
+
+Le barber peut :
+
+* créer un salon
+* modifier le salon
+* supprimer le salon
+* ajouter plusieurs photos
+* ajouter ou modifier la localisation
+
+Gestion des services
+
+Le barber peut :
+
+* créer un service
+* modifier un service
+* supprimer un service
+* définir le prix
+* définir la durée
+* ajouter une photo
+* activer ou désactiver un service
+
+Programme de financement
+
+Créer une section “Financement” où le barber peut :
+
+* voir les conditions d’éligibilité
+* remplir une demande
+* indiquer le montant souhaité
+* expliquer le besoin : rénovation, outils, produits, amélioration du salon
+* ajouter des documents si nécessaire
+* suivre le statut : en attente, en étude, approuvé, refusé
+
+Conférences et communauté barber
+
+L’application doit avoir une section spéciale pour les barbers inscrits.
+L’administrateur pourra publier des annonces concernant des conférences périodiques.
+
+Les conférences porteront sur :
+
+* hygiène dans les salons
+* utilisation des produits
+* amélioration du service client
+* gestion d’un salon
+* marketing et visibilité
+* échanges de connaissances entre barbers
+* création de connexions professionnelles
+
+L’admin pourra publier :
+
+* le thème
+* la date
+* l’heure
+* le canal de participation
+* le lien ou les instructions
+
+Abonnements barbers
+
+Prévoir un système d’abonnement pour les barbers avec différents plans.
+
+Exemple :
+
+Plan gratuit
+
+* création de profil
+* visibilité limitée
+* ajout de quelques services
+
+Plan premium
+
+* meilleure visibilité
+* plus de photos
+* accès aux statistiques
+* mise en avant du salon
+* accès aux conférences
+* possibilité de demander un financement
+
+L’admin doit pouvoir créer, modifier ou supprimer les plans d’abonnement.
+
+Plateforme web admin
+
+Créer une interface web moderne, propre et responsive pour l’administrateur.
+
+Pages admin nécessaires :
+
+* Dashboard principal
+* Gestion des utilisateurs
+* Gestion des barbers
+* Gestion des salons
+* Gestion des services
+* Gestion des réservations
+* Gestion des abonnements
+* Gestion des demandes de financement
+* Gestion des conférences
+* Gestion des avis
+* Gestion des signalements
+* Statistiques
+* Paramètres
+
+Dashboard admin
+
+Afficher :
+
+* nombre total d’utilisateurs
+* nombre total de barbers
+* nombre de salons actifs
+* nombre de réservations
+* abonnements actifs
+* demandes de financement en attente
+* avis récents
+* salons en attente de validation
+
+Design
+
+Créer un design moderne, professionnel, africain et premium.
+
+Style souhaité :
+
+* propre
+* rapide
+* simple à utiliser
+* adapté aux utilisateurs en Afrique
+* responsive
+* facile pour les barbers qui ne sont pas très habitués aux applications
+
+Couleurs recommandées :
+
+* noir ou bleu foncé pour le côté premium
+* blanc pour la clarté
+* or ou jaune pour l’élégance
+* vert léger pour rappeler la croissance et l’opportunité
+
+L’interface doit être claire, fluide et adaptée aux connexions internet faibles.
+
+Créer une architecture moderne avec :
+
+* application mobile cross-platform iOS et Android
+* backend sécurisé
+* base de données
+* dashboard web admin
+* authentification
+* stockage d’images
+* notifications push
+* géolocalisation
+* système de réservation
+
+Sécurité
+
+Prévoir :
+
+* authentification sécurisée
+* validation des comptes barbers par admin
+* protection des données utilisateurs
+* rôles et permissions
+* accès séparé client, barber et admin
+* système de signalement
+* suppression ou suspension de compte
+
+Objectif final
+
+Créer une plateforme complète, moderne et fiable qui permet :
+
+* aux clients de trouver facilement un bon barber proche d’eux
+* aux barbers d’avoir plus de visibilité
+* aux salons de mieux gérer leurs services et réservations
+* à l’administration de contrôler la qualité de la plateforme
+* de créer une communauté professionnelle de barbers en Afrique
+* de soutenir les barbers à travers les conférences, la visibilité et le programme de financement
