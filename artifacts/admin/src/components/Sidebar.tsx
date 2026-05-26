@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Users, Scissors, Calendar, CreditCard,
   Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight,
 } from "lucide-react";
+import { useClerk, useUser } from "@clerk/react";
 import { useTheme } from "@/lib/theme";
 import { useT, LanguageToggle } from "@/lib/i18n";
 
@@ -10,6 +11,12 @@ export function Sidebar() {
   const [location] = useLocation();
   const { theme, toggle } = useTheme();
   const { t } = useT();
+  const { signOut } = useClerk();
+  const { user } = useUser();
+
+  const handleSignOut = async () => {
+    await signOut({ redirectUrl: "/admin/sign-in" });
+  };
 
   const nav = [
     { path: "/",              label: t.nav.dashboard,     icon: LayoutDashboard },
@@ -65,7 +72,13 @@ export function Sidebar() {
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           <span>{theme === "dark" ? t.common.lightMode : t.common.darkMode}</span>
         </button>
+        {user && (
+          <div className="px-3 py-2 text-xs truncate" style={{ color: "hsl(var(--sidebar-fg))" }}>
+            {user.primaryEmailAddress?.emailAddress ?? user.username ?? ""}
+          </div>
+        )}
         <button
+          onClick={handleSignOut}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-150 hover:bg-white/5"
           style={{ color: "hsl(var(--sidebar-fg))" }}
         >
