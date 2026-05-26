@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Card, EmptyState, Pill, SectionTitle, StatBlock } from "@/components/UI";
+import { CreateSalonModal } from "@/components/CreateSalonModal";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
@@ -34,6 +35,7 @@ export default function BarberDashboard() {
   const fetcher = useAuthedFetch();
   const [period, setPeriod] = useState<Period>("today");
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const { data: salons, isLoading: barberLoading, error: barberError, refetch: refetchBarber } = useQuery<MyBarbers>({
     queryKey: ["barbersMe"],
@@ -83,21 +85,24 @@ export default function BarberDashboard() {
   // No salon yet — prompt to create one
   if (!barberLoading && salons && salons.length === 0) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background, padding: 32, gap: 16 }}>
-        <Feather name="scissors" size={40} color={c.primary} />
-        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 20, textAlign: "center" }}>
-          Créez votre premier salon
-        </Text>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 22 }}>
-          Publiez votre salon pour commencer à recevoir des réservations.
-        </Text>
-        <Pressable
-          onPress={() => router.push("/(barber)/profile")}
-          style={{ paddingVertical: 12, paddingHorizontal: 28, borderRadius: 999, backgroundColor: c.primary }}
-        >
-          <Text style={{ color: c.primaryForeground, fontFamily: "Inter_700Bold", fontSize: 14 }}>Créer un salon</Text>
-        </Pressable>
-      </View>
+      <>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background, padding: 32, gap: 16 }}>
+          <Feather name="scissors" size={40} color={c.primary} />
+          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 20, textAlign: "center" }}>
+            Créez votre premier salon
+          </Text>
+          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 22 }}>
+            Publiez votre salon pour commencer à recevoir des réservations.
+          </Text>
+          <Pressable
+            onPress={() => setCreateOpen(true)}
+            style={{ paddingVertical: 12, paddingHorizontal: 28, borderRadius: 999, backgroundColor: c.primary }}
+          >
+            <Text style={{ color: c.primaryForeground, fontFamily: "Inter_700Bold", fontSize: 14 }}>Créer un salon</Text>
+          </Pressable>
+        </View>
+        <CreateSalonModal visible={createOpen} onClose={() => setCreateOpen(false)} />
+      </>
     );
   }
 
@@ -212,8 +217,13 @@ export default function BarberDashboard() {
       {/* Shortcuts */}
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="clock" label="Horaires" onPress={() => router.push("/(barber)/hours")} />
-        <Shortcut c={c} icon="scissors" label="Services" onPress={() => router.push("/(barber)/services")} />
+        <Shortcut c={c} icon="calendar" label="Créneaux" onPress={() => router.push("/(barber)/slots")} />
       </View>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Shortcut c={c} icon="scissors" label="Services" onPress={() => router.push("/(barber)/services")} />
+        <Shortcut c={c} icon="plus-circle" label="Nouveau salon" onPress={() => setCreateOpen(true)} />
+      </View>
+      <CreateSalonModal visible={createOpen} onClose={() => setCreateOpen(false)} />
 
       <View>
         <SectionTitle title="Prochains rendez-vous" action={{ label: "Tout voir", onPress: () => router.push("/(barber)/schedule") }} />

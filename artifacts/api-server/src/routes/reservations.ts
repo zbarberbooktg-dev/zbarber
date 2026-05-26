@@ -7,10 +7,10 @@ import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 const router = Router();
 
 async function enrichReservation(r: typeof reservationsTable.$inferSelect) {
-  const [client] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, r.clientId)).limit(1);
+  const [client] = await db.select({ name: usersTable.name, phone: usersTable.phone }).from(usersTable).where(eq(usersTable.id, r.clientId)).limit(1);
   const [barber] = await db.select({ salonName: barbersTable.salonName, userId: barbersTable.userId }).from(barbersTable).where(eq(barbersTable.id, r.barberId)).limit(1);
   const [service] = await db.select({ name: servicesTable.name, price: servicesTable.price }).from(servicesTable).where(eq(servicesTable.id, r.serviceId)).limit(1);
-  return { ...r, clientName: client?.name, barberName: barber?.salonName, serviceName: service?.name, servicePrice: service?.price };
+  return { ...r, clientName: client?.name, clientPhone: client?.phone ?? null, barberName: barber?.salonName, serviceName: service?.name, servicePrice: service?.price };
 }
 
 router.get("/reservations", requireAuth, async (req: AuthedRequest, res) => {
