@@ -311,7 +311,17 @@ export default function PublicSalonDetail() {
         )}
 
         {/* Services */}
-        {services.length > 0 && (
+        {services.length === 0 ? (
+          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border, alignItems: "center", gap: 10 }}>
+            <Feather name="scissors" size={28} color={PALETTE.textDim} />
+            <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 14, textAlign: "center" }}>
+              Ce salon n'a pas encore publié ses services
+            </Text>
+            <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
+              Contactez-le directement {barber.phone ? `au ${barber.phone}` : "pour réserver"}.
+            </Text>
+          </View>
+        ) : (
           <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
             <SectionTitle title="Services" />
             {services.map((s) => (
@@ -429,42 +439,66 @@ export default function PublicSalonDetail() {
         )}
       </ScrollView>
 
-      {/* Fixed booking CTA */}
-      <View style={{
-        position: "absolute", bottom: 0, left: 0, right: 0,
-        paddingBottom: insets.bottom + 16,
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        backgroundColor: PALETTE.bg,
-        borderTopWidth: 1,
-        borderTopColor: PALETTE.border,
-        gap: 8,
-      }}>
-        {selectedService && selectedSlot && (
-          <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, textAlign: "center" }}>
-            {services.find((s) => s.id === selectedService)?.name} —{" "}
-            {slots.find((sl) => sl.iso === selectedSlot)?.label}
-          </Text>
-        )}
-        <Pressable
-          onPress={handleBook}
-          disabled={booking}
-          style={({ pressed }) => ({
-            backgroundColor: booking ? PALETTE.border : PALETTE.gold,
-            paddingVertical: 16,
-            alignItems: "center",
-            opacity: pressed ? 0.88 : 1,
-          })}
-        >
-          {booking ? (
-            <ActivityIndicator color="#000" />
-          ) : (
-            <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 15 }}>
-              {isSignedIn ? "Réserver" : "Se connecter pour réserver"}
+      {/* Fixed booking CTA — only when this salon has bookable services */}
+      {services.length > 0 && (
+        <View style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          paddingBottom: insets.bottom + 16,
+          paddingHorizontal: 20,
+          paddingTop: 16,
+          backgroundColor: PALETTE.bg,
+          borderTopWidth: 1,
+          borderTopColor: PALETTE.border,
+          gap: 8,
+        }}>
+          {selectedService && selectedSlot && (
+            <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, textAlign: "center" }}>
+              {services.find((s) => s.id === selectedService)?.name} —{" "}
+              {slots.find((sl) => sl.iso === selectedSlot)?.label}
             </Text>
           )}
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={handleBook}
+            disabled={booking}
+            style={({ pressed }) => ({
+              backgroundColor: booking ? PALETTE.border : PALETTE.gold,
+              paddingVertical: 16,
+              alignItems: "center",
+              opacity: pressed ? 0.88 : 1,
+            })}
+          >
+            {booking ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 15 }}>
+                {isSignedIn ? "Réserver" : "Se connecter pour réserver"}
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      )}
+      {services.length === 0 && barber.phone && (
+        <View style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          paddingBottom: insets.bottom + 16, paddingHorizontal: 20, paddingTop: 16,
+          backgroundColor: PALETTE.bg, borderTopWidth: 1, borderTopColor: PALETTE.border,
+        }}>
+          <Pressable
+            onPress={() => Linking.openURL(`tel:${barber.phone}`)}
+            style={({ pressed }) => ({
+              paddingVertical: 16, alignItems: "center",
+              borderWidth: 1, borderColor: PALETTE.gold,
+              flexDirection: "row", justifyContent: "center", gap: 8,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <Feather name="phone" size={16} color={PALETTE.gold} />
+            <Text style={{ color: PALETTE.gold, fontFamily: "Inter_700Bold", fontSize: 14 }}>
+              Appeler le salon
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }

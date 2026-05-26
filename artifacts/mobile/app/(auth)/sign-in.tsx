@@ -14,6 +14,7 @@ import {
 
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { consumeAuthIntent } from "@/lib/authIntent";
 
 export default function SignInScreen() {
   const c = useColors();
@@ -24,6 +25,11 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [intent] = useState(() => consumeAuthIntent());
+
+  if (intent === "signup") {
+    return <Redirect href="/(auth)/sign-up" />;
+  }
 
   if (isSignedIn) {
     return <Redirect href="/" />;

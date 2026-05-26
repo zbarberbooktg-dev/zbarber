@@ -10,6 +10,7 @@ import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
+import { setAuthIntent } from "@/lib/authIntent";
 
 export default function ClientProfile() {
   const c = useColors();
@@ -212,8 +213,9 @@ export default function ClientProfile() {
             variant="secondary"
             icon="refresh-cw"
             onPress={async () => {
+              setAuthIntent("signup");
               await signOut();
-              router.replace("/role-select");
+              router.replace("/(auth)/sign-up");
             }}
           />
           <Button

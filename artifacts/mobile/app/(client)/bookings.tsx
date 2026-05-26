@@ -1,8 +1,9 @@
-import { useListReservations } from "@workspace/api-client-react";
+import { useListReservations, useUpdateReservationStatus } from "@workspace/api-client-react";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -24,8 +25,51 @@ export default function Bookings() {
   const { data, isLoading, refetch, isRefetching } = useListReservations(
     filter === "all" ? undefined : { status: filter },
   );
+  const updateStatus = useUpdateReservationStatus();
 
   const items = data?.data ?? [];
+
+  const handleCancel = (id: number, scheduledAt: string, barberId?: number | null) => {
+    const hours = (new Date(scheduledAt).getTime() - Date.now()) / 36e5;
+    if (hours < 24) {
+      Alert.alert(
+        "Annulation impossible",
+        "Vous ne pouvez annuler une réservation que jusqu'à 24h avant le rendez-vous. Contactez directement le salon.",
+      );
+      return;
+    }
+    Alert.alert(
+      "Annuler la réservation ?",
+      "Cette action est définitive. Vous pourrez réserver à nouveau.",
+      [
+        { text: "Non", style: "cancel" },
+        {
+          text: "Annuler le rdv",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await updateStatus.mutateAsync({ id, data: { status: "cancelled" } });
+              refetch();
+            } catch (e: any) {
+              Alert.alert("Erreur", e?.message ?? "Impossible d'annuler.");
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleReschedule = (barberId?: number | null) => {
+    if (!barberId) return;
+    Alert.alert(
+      "Modifier le rendez-vous",
+      "Pour modifier, annulez ce rendez-vous puis prenez-en un nouveau sur la page du salon.",
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Voir le salon", onPress: () => router.push(`/salon/${barberId}` as never) },
+      ],
+    );
+  };
 
   const STATUS_LABEL: Record<Status, string> = {
     pending: t.statusPending,
@@ -108,12 +152,15 @@ export default function Bookings() {
           renderItem={({ item }) => {
             const status = (item.status ?? "pending") as Status;
             const date = new Date(item.scheduledAt);
+            const canModify =
+              (status === "pending" || status === "confirmed") &&
+              (date.getTime() - Date.now()) / 36e5 >= 24;
             return (
-              <Pressable
-                onPress={() => item.barberId && router.push(`/salon/${item.barberId}` as never)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-              >
-                <Card>
+              <Card>
+                <Pressable
+                  onPress={() => item.barberId && router.push(`/salon/${item.barberId}` as never)}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                >
                   <View
                     style={{
                       flexDirection: "row",
@@ -151,8 +198,41 @@ export default function Bookings() {
                       {item.notes}
                     </Text>
                   ) : null}
-                </Card>
-              </Pressable>
+                </Pressable>
+                {canModify && (
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 12, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 }}>
+                    <Pressable
+                      onPress={() => handleReschedule(item.barberId)}
+                      style={({ pressed }) => ({
+                        flex: 1, paddingVertical: 9, borderRadius: c.radius - 4,
+                        backgroundColor: c.muted, alignItems: "center", opacity: pressed ? 0.7 : 1,
+                      })}
+                    >
+                      <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                        Modifier
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleCancel(item.id, item.scheduledAt, item.barberId)}
+                      disabled={updateStatus.isPending}
+                      style={({ pressed }) => ({
+                        flex: 1, paddingVertical: 9, borderRadius: c.radius - 4,
+                        borderWidth: 1, borderColor: c.destructive, alignItems: "center",
+                        opacity: pressed || updateStatus.isPending ? 0.6 : 1,
+                      })}
+                    >
+                      <Text style={{ color: c.destructive, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                        Annuler
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+                {(status === "pending" || status === "confirmed") && !canModify && (
+                  <Text style={{ marginTop: 10, color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11, fontStyle: "italic" }}>
+                    Modification/annulation indisponible (moins de 24h avant).
+                  </Text>
+                )}
+              </Card>
             );
           }}
         />
