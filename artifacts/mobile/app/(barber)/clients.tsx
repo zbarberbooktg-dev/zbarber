@@ -1,24 +1,43 @@
 import { Feather } from "@expo/vector-icons";
-import { useListReviews } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import React from "react";
-import { ActivityIndicator, FlatList, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Linking,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
 
 import { Avatar, Card, EmptyState } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useAuthedFetch } from "@/lib/api";
 
-const BARBER_ID = 1;
+type Client = {
+  clientId: number;
+  name: string;
+  phone: string | null;
+  email: string;
+  totalBookings: number;
+  completedBookings: number;
+  totalSpent: number;
+  lastVisit: string | null;
+};
 
-export default function BarberReviews() {
+export default function BarberClients() {
   const c = useColors();
-  const { t } = useApp();
-  const { data, isLoading } = useListReviews({ barberId: BARBER_ID });
-  const reviews = data?.data ?? [];
+  const { locale } = useApp();
+  const fetcher = useAuthedFetch();
 
-  const avg =
-    reviews.length > 0
-      ? reviews.reduce((acc, r) => acc + (r.rating ?? 0), 0) / reviews.length
-      : 0;
+  const { data, isLoading, refetch, isRefetching } = useQuery<{ data: Client[]; total: number }>({
+    queryKey: ["myClients"],
+    queryFn: () => fetcher<{ data: Client[]; total: number }>("/api/barbers/me/clients"),
+  });
+
+  const clients = data?.data ?? [];
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -28,89 +47,72 @@ export default function BarberReviews() {
         </View>
       ) : (
         <FlatList
-          data={reviews}
-          keyExtractor={(r) => String(r.id)}
+          data={clients}
+          keyExtractor={(c2) => String(c2.clientId)}
           contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 10 }}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={c.primary} />}
           ListHeaderComponent={
-            <Card style={{ marginBottom: 8 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-                <View style={{ alignItems: "center" }}>
-                  <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 32 }}>
-                    {avg.toFixed(1)}
-                  </Text>
-                  <View style={{ flexDirection: "row", gap: 2 }}>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <Feather
-                        key={n}
-                        name="star"
-                        size={12}
-                        color={n <= Math.round(avg) ? c.primary : c.muted}
-                      />
-                    ))}
-                  </View>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}
-                  >
-                    {t.reviewsCount(reviews.length)}
-                  </Text>
-                  <Text
-                    style={{
-                      color: c.mutedForeground,
-                      fontFamily: "Inter_400Regular",
-                      fontSize: 12,
-                      marginTop: 2,
-                    }}
-                  >
-                    {t.avgRating}
-                  </Text>
-                </View>
+            clients.length > 0 ? (
+              <View style={{ marginBottom: 8 }}>
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 13 }}>
+                  {data?.total ?? clients.length} client{(data?.total ?? clients.length) > 1 ? "s" : ""} au total
+                </Text>
               </View>
-            </Card>
+            ) : null
           }
           ListEmptyComponent={
-            <EmptyState icon="star" title={t.noReviews} description={t.noReviewsDesc} />
+            <EmptyState icon="users" title="Aucun client" description="Vos clients apparaîtront ici dès la première réservation." />
           }
-          renderItem={({ item }) => (
-            <Card>
-              <View style={{ flexDirection: "row", gap: 12, marginBottom: 8 }}>
-                <Avatar name={`${t.clientN}${item.clientId}`} size={40} />
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}
-                  >
-                    {t.clientN}
-                    {item.clientId}
-                  </Text>
-                  <View style={{ flexDirection: "row", gap: 2, marginTop: 4 }}>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <Feather
-                        key={n}
-                        name="star"
-                        size={11}
-                        color={n <= (item.rating ?? 0) ? c.primary : c.muted}
-                      />
-                    ))}
+          renderItem={({ item }) => {
+            const last = item.lastVisit ? new Date(item.lastVisit) : null;
+            return (
+              <Card>
+                <View style={{ flexDirection: "row", gap: 12 }}>
+                  <Avatar name={item.name} size={48} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>{item.name}</Text>
+                    {item.phone && (
+                      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
+                        {item.phone}
+                      </Text>
+                    )}
+                    <View style={{ flexDirection: "row", gap: 14, marginTop: 8 }}>
+                      <Stat label="Visites" value={item.completedBookings} c={c} />
+                      <Stat label="Total" value={`${item.totalSpent.toLocaleString()} FC`} c={c} />
+                    </View>
+                    {last && (
+                      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11, marginTop: 8 }}>
+                        Dernier rdv : {last.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })}
+                      </Text>
+                    )}
                   </View>
+                  {item.phone && (
+                    <Pressable
+                      onPress={() => Linking.openURL(`tel:${item.phone}`).catch(() => {})}
+                      hitSlop={10}
+                      style={{
+                        width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center",
+                        backgroundColor: c.accent,
+                      }}
+                    >
+                      <Feather name="phone" size={16} color={c.primary} />
+                    </Pressable>
+                  )}
                 </View>
-              </View>
-              {item.comment ? (
-                <Text
-                  style={{
-                    color: c.mutedForeground,
-                    fontFamily: "Inter_400Regular",
-                    fontSize: 13,
-                    lineHeight: 18,
-                  }}
-                >
-                  {item.comment}
-                </Text>
-              ) : null}
-            </Card>
-          )}
+              </Card>
+            );
+          }}
         />
       )}
+    </View>
+  );
+}
+
+function Stat({ label, value, c }: { label: string; value: string | number; c: ReturnType<typeof useColors> }) {
+  return (
+    <View>
+      <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 14 }}>{value}</Text>
+      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
     </View>
   );
 }
