@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { EditProfileModal } from "@/components/EditProfileModal";
 import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
@@ -11,7 +12,8 @@ import { useColors } from "@/hooks/useColors";
 export default function ClientProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, signOut, t } = useApp();
+  const { themePref, setThemePref, lang, setLang, signOut, t, user } = useApp();
+  const [editOpen, setEditOpen] = useState(false);
 
   const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
     { key: "system", label: t.themeAuto, icon: "smartphone" },
@@ -47,17 +49,35 @@ export default function ClientProfile() {
     >
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <Avatar name={t.myAccount} size={56} />
+          <Avatar name={user?.name ?? t.myAccount} size={56} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>
-              {t.myAccount}
+              {user?.name ?? t.myAccount}
             </Text>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13 }}>
-              {t.clientAccount}
+              {user?.email ?? t.clientAccount}
             </Text>
           </View>
+          <Pressable
+            onPress={() => setEditOpen(true)}
+            hitSlop={10}
+            style={({ pressed }) => ({
+              padding: 8,
+              borderRadius: c.radius - 4,
+              backgroundColor: pressed ? c.accent : "transparent",
+            })}
+          >
+            <Feather name="edit-2" size={18} color={c.primary} />
+          </Pressable>
         </View>
       </Card>
+
+      <EditProfileModal
+        visible={editOpen}
+        onClose={() => setEditOpen(false)}
+        initialName={user?.name ?? ""}
+        initialPhone={user?.phone ?? ""}
+      />
 
       <View>
         <SectionLabel label={t.appearance} />
