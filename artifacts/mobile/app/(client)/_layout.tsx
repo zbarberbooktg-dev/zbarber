@@ -40,6 +40,7 @@ export default function ClientTabs() {
         name="index"
         options={{
           title: t.tabDiscover,
+          headerShown: false,
           tabBarIcon: ({ color, size }) => <Feather name="search" size={size - 2} color={color} />,
         }}
       />
