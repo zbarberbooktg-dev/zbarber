@@ -43,6 +43,9 @@ import type {
   GetMyClientsParams,
   GetMyRevenueParams,
   HealthStatus,
+  HomeGalleryPhoto,
+  HomeGalleryPhotoInput,
+  HomeGalleryPhotoUpdate,
   ListBarbersParams,
   ListConferencesParams,
   ListFinancingRequestsParams,
@@ -81,6 +84,7 @@ import type {
   SuspendInput,
   SyncAuthInput,
   TopBarber,
+  UpdateLocationInput,
   UploadUrlRequest,
   UploadUrlResponse,
   User,
@@ -465,6 +469,148 @@ export const useSyncAuth = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSyncAuthMutationOptions(options));
+    }
+
+export const getUpdateMeUrl = () => {
+
+
+
+
+  return `/api/users/me`
+}
+
+/**
+ * @summary Update own profile (name, phone, avatar, city, country)
+ */
+export const updateMe = async (userUpdate: UserUpdate, options?: RequestInit): Promise<User> => {
+
+  return customFetch<User>(getUpdateMeUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      userUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateMeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMe>>, TError,{data: BodyType<UserUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMe>>, TError,{data: BodyType<UserUpdate>}, TContext> => {
+
+const mutationKey = ['updateMe'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMe>>, {data: BodyType<UserUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMe(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMeMutationResult = NonNullable<Awaited<ReturnType<typeof updateMe>>>
+    export type UpdateMeMutationBody = BodyType<UserUpdate>
+    export type UpdateMeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update own profile (name, phone, avatar, city, country)
+ */
+export const useUpdateMe = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMe>>, TError,{data: BodyType<UserUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMe>>,
+        TError,
+        {data: BodyType<UserUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateMeMutationOptions(options));
+    }
+
+export const getUpdateMyLocationUrl = () => {
+
+
+
+
+  return `/api/users/me/location`
+}
+
+/**
+ * @summary Update current user's geographic position
+ */
+export const updateMyLocation = async (updateLocationInput: UpdateLocationInput, options?: RequestInit): Promise<User> => {
+
+  return customFetch<User>(getUpdateMyLocationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateLocationInput,)
+  }
+);}
+
+
+
+
+export const getUpdateMyLocationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyLocation>>, TError,{data: BodyType<UpdateLocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMyLocation>>, TError,{data: BodyType<UpdateLocationInput>}, TContext> => {
+
+const mutationKey = ['updateMyLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyLocation>>, {data: BodyType<UpdateLocationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMyLocation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMyLocationMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyLocation>>>
+    export type UpdateMyLocationMutationBody = BodyType<UpdateLocationInput>
+    export type UpdateMyLocationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update current user's geographic position
+ */
+export const useUpdateMyLocation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyLocation>>, TError,{data: BodyType<UpdateLocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMyLocation>>,
+        TError,
+        {data: BodyType<UpdateLocationInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateMyLocationMutationOptions(options));
     }
 
 export const getListUsersUrl = (params?: ListUsersParams,) => {
@@ -2258,6 +2404,296 @@ export function useGetBarberStats<TData = Awaited<ReturnType<typeof getBarberSta
 
 
 
+
+export const getListHomeGalleryPhotosUrl = () => {
+
+
+
+
+  return `/api/home-gallery`
+}
+
+/**
+ * @summary List homepage gallery photos (public)
+ */
+export const listHomeGalleryPhotos = async ( options?: RequestInit): Promise<HomeGalleryPhoto[]> => {
+
+  return customFetch<HomeGalleryPhoto[]>(getListHomeGalleryPhotosUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListHomeGalleryPhotosQueryKey = () => {
+    return [
+    `/api/home-gallery`
+    ] as const;
+    }
+
+
+export const getListHomeGalleryPhotosQueryOptions = <TData = Awaited<ReturnType<typeof listHomeGalleryPhotos>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHomeGalleryPhotos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListHomeGalleryPhotosQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listHomeGalleryPhotos>>> = ({ signal }) => listHomeGalleryPhotos({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listHomeGalleryPhotos>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListHomeGalleryPhotosQueryResult = NonNullable<Awaited<ReturnType<typeof listHomeGalleryPhotos>>>
+export type ListHomeGalleryPhotosQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List homepage gallery photos (public)
+ */
+
+export function useListHomeGalleryPhotos<TData = Awaited<ReturnType<typeof listHomeGalleryPhotos>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listHomeGalleryPhotos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListHomeGalleryPhotosQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAddHomeGalleryPhotoUrl = () => {
+
+
+
+
+  return `/api/home-gallery`
+}
+
+/**
+ * @summary Add a homepage gallery photo (admin)
+ */
+export const addHomeGalleryPhoto = async (homeGalleryPhotoInput: HomeGalleryPhotoInput, options?: RequestInit): Promise<HomeGalleryPhoto> => {
+
+  return customFetch<HomeGalleryPhoto>(getAddHomeGalleryPhotoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      homeGalleryPhotoInput,)
+  }
+);}
+
+
+
+
+export const getAddHomeGalleryPhotoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addHomeGalleryPhoto>>, TError,{data: BodyType<HomeGalleryPhotoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addHomeGalleryPhoto>>, TError,{data: BodyType<HomeGalleryPhotoInput>}, TContext> => {
+
+const mutationKey = ['addHomeGalleryPhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addHomeGalleryPhoto>>, {data: BodyType<HomeGalleryPhotoInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  addHomeGalleryPhoto(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddHomeGalleryPhotoMutationResult = NonNullable<Awaited<ReturnType<typeof addHomeGalleryPhoto>>>
+    export type AddHomeGalleryPhotoMutationBody = BodyType<HomeGalleryPhotoInput>
+    export type AddHomeGalleryPhotoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a homepage gallery photo (admin)
+ */
+export const useAddHomeGalleryPhoto = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addHomeGalleryPhoto>>, TError,{data: BodyType<HomeGalleryPhotoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addHomeGalleryPhoto>>,
+        TError,
+        {data: BodyType<HomeGalleryPhotoInput>},
+        TContext
+      > => {
+      return useMutation(getAddHomeGalleryPhotoMutationOptions(options));
+    }
+
+export const getUpdateHomeGalleryPhotoUrl = (id: number,) => {
+
+
+
+
+  return `/api/home-gallery/${id}`
+}
+
+/**
+ * @summary Update a homepage gallery photo (admin)
+ */
+export const updateHomeGalleryPhoto = async (id: number,
+    homeGalleryPhotoUpdate: HomeGalleryPhotoUpdate, options?: RequestInit): Promise<HomeGalleryPhoto> => {
+
+  return customFetch<HomeGalleryPhoto>(getUpdateHomeGalleryPhotoUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      homeGalleryPhotoUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateHomeGalleryPhotoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHomeGalleryPhoto>>, TError,{id: number;data: BodyType<HomeGalleryPhotoUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateHomeGalleryPhoto>>, TError,{id: number;data: BodyType<HomeGalleryPhotoUpdate>}, TContext> => {
+
+const mutationKey = ['updateHomeGalleryPhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateHomeGalleryPhoto>>, {id: number;data: BodyType<HomeGalleryPhotoUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateHomeGalleryPhoto(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateHomeGalleryPhotoMutationResult = NonNullable<Awaited<ReturnType<typeof updateHomeGalleryPhoto>>>
+    export type UpdateHomeGalleryPhotoMutationBody = BodyType<HomeGalleryPhotoUpdate>
+    export type UpdateHomeGalleryPhotoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a homepage gallery photo (admin)
+ */
+export const useUpdateHomeGalleryPhoto = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateHomeGalleryPhoto>>, TError,{id: number;data: BodyType<HomeGalleryPhotoUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateHomeGalleryPhoto>>,
+        TError,
+        {id: number;data: BodyType<HomeGalleryPhotoUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateHomeGalleryPhotoMutationOptions(options));
+    }
+
+export const getDeleteHomeGalleryPhotoUrl = (id: number,) => {
+
+
+
+
+  return `/api/home-gallery/${id}`
+}
+
+/**
+ * @summary Delete a homepage gallery photo (admin)
+ */
+export const deleteHomeGalleryPhoto = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteHomeGalleryPhotoUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteHomeGalleryPhotoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteHomeGalleryPhoto>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteHomeGalleryPhoto>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteHomeGalleryPhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteHomeGalleryPhoto>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteHomeGalleryPhoto(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteHomeGalleryPhotoMutationResult = NonNullable<Awaited<ReturnType<typeof deleteHomeGalleryPhoto>>>
+
+    export type DeleteHomeGalleryPhotoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a homepage gallery photo (admin)
+ */
+export const useDeleteHomeGalleryPhoto = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteHomeGalleryPhoto>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteHomeGalleryPhoto>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteHomeGalleryPhotoMutationOptions(options));
+    }
 
 export const getGetBarberGalleryUrl = (id: number,) => {
 

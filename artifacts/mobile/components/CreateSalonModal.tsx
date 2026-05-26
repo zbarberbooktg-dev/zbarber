@@ -1,7 +1,9 @@
+import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,6 +16,7 @@ import {
 
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
+import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 
 type Props = {
   visible: boolean;
@@ -33,15 +36,30 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [bio, setBio] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoLocalUri, setLogoLocalUri] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (visible) {
       setSalonName(""); setCity(""); setNeighborhood(""); setAddress("");
-      setPhone(""); setWhatsapp(""); setBio(""); setErr(null);
+      setPhone(""); setWhatsapp(""); setBio(""); setLogoUrl(null); setLogoLocalUri(null); setErr(null);
     }
   }, [visible]);
+
+  const handlePickLogo = async () => {
+    setUploadingLogo(true);
+    try {
+      const res = await pickAndUploadImage(fetcher);
+      if (res) { setLogoUrl(res.objectPath); setLogoLocalUri(res.uri); }
+    } catch (e: any) {
+      setErr(e?.message ?? "Échec de l'envoi de la photo");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const handleSave = async () => {
     setErr(null);
@@ -59,6 +77,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
           phone: phone.trim() || undefined,
           whatsapp: whatsapp.trim() || undefined,
           bio: bio.trim() || undefined,
+          logoUrl: logoUrl || undefined,
         }),
       });
       await qc.invalidateQueries({ queryKey: ["barbersMe"] });
@@ -90,6 +109,29 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
             Renseignez les informations de base de votre salon. Vous pourrez tout modifier ensuite. Votre salon sera vérifié par l'équipe avant publication.
           </Text>
+
+          <View style={{ alignItems: "center", marginVertical: 6 }}>
+            <Pressable
+              onPress={handlePickLogo}
+              disabled={uploadingLogo}
+              style={{
+                width: 96, height: 96, borderRadius: 12, borderWidth: 2,
+                borderColor: c.border, alignItems: "center", justifyContent: "center",
+                overflow: "hidden", backgroundColor: c.card,
+              }}
+            >
+              {(logoLocalUri ?? resolveObjectUrl(logoUrl)) ? (
+                <Image source={{ uri: logoLocalUri ?? resolveObjectUrl(logoUrl)! }} style={{ width: "100%", height: "100%" }} />
+              ) : uploadingLogo ? (
+                <ActivityIndicator color={c.primary} />
+              ) : (
+                <Feather name="image" size={28} color={c.mutedForeground} />
+              )}
+            </Pressable>
+            <Text style={{ marginTop: 8, color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+              {logoUrl ? "Changer la photo du salon" : "Photo du salon (optionnel)"}
+            </Text>
+          </View>
 
           <Field label="Nom du salon *">
             <TextInput value={salonName} onChangeText={setSalonName} placeholder="Salon Élégance" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />

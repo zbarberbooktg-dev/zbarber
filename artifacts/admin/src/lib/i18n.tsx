@@ -36,6 +36,7 @@ export const translations = {
       conferences: "Conférences",
       notifications: "Notifications",
       reviews: "Avis",
+      gallery: "Galerie d'accueil",
     },
     dashboard: {
       title: "Tableau de bord",
@@ -372,6 +373,7 @@ export const translations = {
       conferences: "Conferences",
       notifications: "Notifications",
       reviews: "Reviews",
+      gallery: "Home gallery",
     },
     dashboard: {
       title: "Dashboard",

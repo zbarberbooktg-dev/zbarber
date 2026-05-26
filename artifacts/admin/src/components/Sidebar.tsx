@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, Scissors, Calendar, CreditCard,
-  Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight,
+  Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight, Image as ImageIcon,
 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/react";
 import { useTheme } from "@/lib/theme";
@@ -28,6 +28,7 @@ export function Sidebar() {
     { path: "/conferences",   label: t.nav.conferences,   icon: Video },
     { path: "/notifications", label: t.nav.notifications, icon: Bell },
     { path: "/reviews",       label: t.nav.reviews,       icon: Star },
+    { path: "/gallery",       label: t.nav.gallery,       icon: ImageIcon },
   ];
 
   return (

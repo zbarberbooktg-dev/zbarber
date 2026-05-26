@@ -1,7 +1,9 @@
 import { useUser } from "@clerk/expo";
+import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,6 +16,8 @@ import {
 
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useAuthedFetch } from "@/lib/api";
+import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 
 type Props = {
   visible: boolean;
@@ -26,9 +30,15 @@ type Props = {
 export function EditProfileModal({ visible, onClose, initialName, initialPhone, onSaved }: Props) {
   const c = useColors();
   const { user: clerkUser } = useUser();
-  const { syncAuth } = useApp();
+  const { syncAuth, user } = useApp();
+  const fetcher = useAuthedFetch();
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone);
+  const [city, setCity] = useState(user?.city ?? "");
+  const [country, setCountry] = useState(user?.country ?? "");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatarUrl ?? null);
+  const [avatarLocalUri, setAvatarLocalUri] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [saving, setSaving] = useState(false);
@@ -39,12 +49,28 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
     if (visible) {
       setName(initialName);
       setPhone(initialPhone);
+      setCity(user?.city ?? "");
+      setCountry(user?.country ?? "");
+      setAvatarUrl(user?.avatarUrl ?? null);
+      setAvatarLocalUri(null);
       setCurrentPwd("");
       setNewPwd("");
       setErr(null);
       setOk(null);
     }
-  }, [visible, initialName, initialPhone]);
+  }, [visible, initialName, initialPhone, user]);
+
+  const handlePickAvatar = async () => {
+    setUploadingAvatar(true);
+    try {
+      const res = await pickAndUploadImage(fetcher);
+      if (res) { setAvatarUrl(res.objectPath); setAvatarLocalUri(res.uri); }
+    } catch (e: any) {
+      setErr(e?.message ?? "Échec de l'envoi de la photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSave = async () => {
     setErr(null);
@@ -53,12 +79,23 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
     try {
       const trimmedName = name.trim();
       const trimmedPhone = phone.trim();
-      const changedProfile = trimmedName !== initialName || trimmedPhone !== initialPhone;
+      const trimmedCity = city.trim();
+      const trimmedCountry = country.trim();
 
-      if (changedProfile) {
+      const changed =
+        trimmedName !== initialName ||
+        trimmedPhone !== initialPhone ||
+        trimmedCity !== (user?.city ?? "") ||
+        trimmedCountry !== (user?.country ?? "") ||
+        avatarUrl !== (user?.avatarUrl ?? null);
+
+      if (changed) {
         const u = await syncAuth({
           name: trimmedName || undefined,
           phone: trimmedPhone || undefined,
+          city: trimmedCity || undefined,
+          country: trimmedCountry || undefined,
+          avatarUrl: avatarUrl || undefined,
         });
         if (!u) throw new Error("Échec de la mise à jour du profil");
 
@@ -69,9 +106,7 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
               firstName: firstName || undefined,
               lastName: rest.join(" ") || undefined,
             });
-          } catch {
-            // Non-blocking: local DB is the source of truth for display name
-          }
+          } catch { /* non-blocking */ }
         }
       }
 
@@ -95,48 +130,67 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
     }
   };
 
+  const avatarDisplay = avatarLocalUri ?? resolveObjectUrl(avatarUrl);
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: c.background }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={{ flexDirection: "row", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border, alignItems: "center", justifyContent: "space-between" }}>
           <Pressable onPress={onClose} hitSlop={10}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>Annuler</Text>
           </Pressable>
           <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>Modifier mon profil</Text>
           <Pressable onPress={handleSave} disabled={saving} hitSlop={10}>
-            {saving ? (
-              <ActivityIndicator color={c.primary} size="small" />
-            ) : (
-              <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Enregistrer</Text>
-            )}
+            {saving
+              ? <ActivityIndicator color={c.primary} size="small" />
+              : <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Enregistrer</Text>}
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
+          <View style={{ alignItems: "center", marginVertical: 6 }}>
+            <Pressable
+              onPress={handlePickAvatar}
+              disabled={uploadingAvatar}
+              style={{
+                width: 96, height: 96, borderRadius: 48, borderWidth: 2,
+                borderColor: c.border, alignItems: "center", justifyContent: "center",
+                overflow: "hidden", backgroundColor: c.card,
+              }}
+            >
+              {avatarDisplay ? (
+                <Image source={{ uri: avatarDisplay }} style={{ width: "100%", height: "100%" }} />
+              ) : uploadingAvatar ? (
+                <ActivityIndicator color={c.primary} />
+              ) : (
+                <Feather name="camera" size={28} color={c.mutedForeground} />
+              )}
+            </Pressable>
+            <Text style={{ marginTop: 8, color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+              {avatarDisplay ? "Changer la photo" : "Ajouter une photo"}
+            </Text>
+          </View>
+
           <Field label="Nom complet">
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-              placeholder="Prénom Nom"
-              placeholderTextColor={c.mutedForeground}
-              style={inputStyle(c)}
-            />
+            <TextInput value={name} onChangeText={setName} autoCapitalize="words" placeholder="Prénom Nom" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>
 
           <Field label="Téléphone">
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              placeholder="+243 ..."
-              placeholderTextColor={c.mutedForeground}
-              style={inputStyle(c)}
-            />
+            <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+243 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>
+
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flex: 1.4 }}>
+              <Field label="Ville">
+                <TextInput value={city} onChangeText={setCity} autoCapitalize="words" placeholder="Kinshasa" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+              </Field>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field label="Pays">
+                <TextInput value={country} onChangeText={setCountry} autoCapitalize="characters" placeholder="RDC" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+              </Field>
+            </View>
+          </View>
 
           <View style={{ marginTop: 8 }}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
@@ -146,33 +200,15 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
               Laissez vide si vous ne souhaitez pas le modifier.
             </Text>
             <Field label="Mot de passe actuel">
-              <TextInput
-                value={currentPwd}
-                onChangeText={setCurrentPwd}
-                secureTextEntry
-                placeholder="••••••••"
-                placeholderTextColor={c.mutedForeground}
-                style={inputStyle(c)}
-              />
+              <TextInput value={currentPwd} onChangeText={setCurrentPwd} secureTextEntry placeholder="••••••••" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
             </Field>
             <Field label="Nouveau mot de passe">
-              <TextInput
-                value={newPwd}
-                onChangeText={setNewPwd}
-                secureTextEntry
-                placeholder="Min. 8 caractères"
-                placeholderTextColor={c.mutedForeground}
-                style={inputStyle(c)}
-              />
+              <TextInput value={newPwd} onChangeText={setNewPwd} secureTextEntry placeholder="Min. 8 caractères" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
             </Field>
           </View>
 
-          {err && (
-            <Text style={{ color: c.destructive, fontFamily: "Inter_400Regular", fontSize: 13 }}>{err}</Text>
-          )}
-          {ok && (
-            <Text style={{ color: c.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>{ok}</Text>
-          )}
+          {err && <Text style={{ color: c.destructive, fontFamily: "Inter_400Regular", fontSize: 13 }}>{err}</Text>}
+          {ok && <Text style={{ color: c.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>{ok}</Text>}
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -191,12 +227,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function inputStyle(c: ReturnType<typeof useColors>) {
   return {
-    backgroundColor: c.card,
-    color: c.foreground,
-    borderWidth: 1,
-    borderColor: c.border,
-    borderRadius: c.radius,
-    padding: 14,
-    fontFamily: "Inter_400Regular" as const,
+    backgroundColor: c.card, color: c.foreground, borderWidth: 1, borderColor: c.border,
+    borderRadius: c.radius, padding: 14, fontFamily: "Inter_400Regular" as const,
   };
 }

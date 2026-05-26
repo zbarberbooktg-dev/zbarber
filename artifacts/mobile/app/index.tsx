@@ -7,12 +7,14 @@ import {
   useFonts,
 } from "@expo-google-fonts/playfair-display";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useListBarbers } from "@workspace/api-client-react";
+import { useListBarbers, useListHomeGalleryPhotos } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
+import * as Location from "expo-location";
 import { Redirect, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ImageBackground,
   ImageSourcePropType,
@@ -27,6 +29,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/contexts/AppContext";
+import { useAuthedFetch } from "@/lib/api";
+import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ONBOARDING_KEY } from "./onboarding";
 
 const PALETTE = {
@@ -57,11 +61,16 @@ export default function PublicHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isSignedIn, isLoaded } = useAuth();
-  const { ready, syncing, user, role, lang } = useApp();
+  const { ready, syncing, user, role, lang, syncAuth } = useApp();
+  const fetcher = useAuthedFetch();
   const [query, setQuery] = useState("");
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const [locationRefreshing, setLocationRefreshing] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const featuredYRef = useRef(0);
 
   const { data, isLoading, refetch, isRefetching } = useListBarbers({ status: "approved" });
+  const { data: homeGallery } = useListHomeGalleryPhotos();
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_500Medium,
@@ -104,6 +113,35 @@ export default function PublicHome() {
 
   const featured = list.slice(0, 6);
   const nearby = list.slice(0, 4);
+
+  const handleRefreshLocation = async () => {
+    if (!isSignedIn) {
+      Alert.alert("Connexion requise", "Connectez-vous pour partager votre position.", [
+        { text: "Annuler", style: "cancel" },
+        { text: "Se connecter", onPress: () => router.push("/(auth)/sign-in") },
+      ]);
+      return;
+    }
+    setLocationRefreshing(true);
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission refusée", "Autorisez la géolocalisation dans vos réglages.");
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      await fetcher("/api/users/me/location", {
+        method: "POST",
+        body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      });
+      await syncAuth();
+      Alert.alert("Position mise à jour", "Vos suggestions seront affinées.");
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message ?? "Impossible d'actualiser la position.");
+    } finally {
+      setLocationRefreshing(false);
+    }
+  };
   const serif = fontsLoaded ? "PlayfairDisplay_500Medium" : "Inter_700Bold";
   const serifBold = fontsLoaded ? "PlayfairDisplay_600SemiBold" : "Inter_700Bold";
   const serifItalic = fontsLoaded ? "PlayfairDisplay_400Regular_Italic" : "Inter_400Regular";
@@ -126,7 +164,17 @@ export default function PublicHome() {
         </View>
 
         {isSignedIn && user ? (
-          <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+            <Pressable
+              onPress={handleRefreshLocation}
+              disabled={locationRefreshing}
+              style={{ width: 36, height: 36, borderWidth: 1, borderColor: PALETTE.border, alignItems: "center", justifyContent: "center" }}
+              hitSlop={6}
+            >
+              {locationRefreshing
+                ? <ActivityIndicator size="small" color={PALETTE.gold} />
+                : <Feather name="map-pin" size={14} color={PALETTE.gold} />}
+            </Pressable>
             <Pressable
               onPress={() => router.push("/(client)/bookings")}
               style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: PALETTE.border }}
@@ -155,6 +203,7 @@ export default function PublicHome() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PALETTE.gold} />}
@@ -200,11 +249,14 @@ export default function PublicHome() {
         )}
 
         {/* Featured salons */}
+        <View onLayout={(e) => { featuredYRef.current = e.nativeEvent.layout.y; }}>
         <SectionHeader
           title={query ? `${list.length} résultat${list.length !== 1 ? "s" : ""}` : "Salons en Vedette"}
           action={query ? "" : "Tout voir"}
           serifFont={serif}
+          onPressAction={() => scrollRef.current?.scrollTo({ y: featuredYRef.current, animated: true })}
         />
+        </View>
         {isLoading ? (
           <View style={{ paddingVertical: 40, alignItems: "center" }}>
             <ActivityIndicator color={PALETTE.gold} />
@@ -248,15 +300,27 @@ export default function PublicHome() {
         {/* Style inspiration */}
         {!query && (
           <>
-            <SectionHeader title="L'Inspiration" action="Galerie" serifFont={serif} />
+            <SectionHeader
+              title="L'Inspiration"
+              action="Galerie"
+              serifFont={serif}
+              onPressAction={() => router.push("/gallery")}
+            />
             <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-                {styleImages.map((s) => (
-                  <View key={s.label} style={{ width: "48%", aspectRatio: 1, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
-                    <Image source={s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                {(homeGallery && homeGallery.length > 0
+                  ? homeGallery.slice(0, 4).map((p) => ({
+                      key: `db-${p.id}`,
+                      uri: resolveObjectUrl(p.imageUrl),
+                      label: p.caption ?? "",
+                    }))
+                  : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
+                ).map((s: any) => (
+                  <Pressable key={s.key} onPress={() => router.push("/gallery")} style={{ width: "48%", aspectRatio: 1, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
+                    <Image source={s.uri ? { uri: s.uri } : s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                     <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
-                    <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text>
-                  </View>
+                    {s.label ? <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text> : null}
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -325,12 +389,12 @@ export default function PublicHome() {
   );
 }
 
-function SectionHeader({ title, action, serifFont }: { title: string; action: string; serifFont: string }) {
+function SectionHeader({ title, action, serifFont, onPressAction }: { title: string; action: string; serifFont: string; onPressAction?: () => void }) {
   return (
     <View style={{ paddingHorizontal: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
       <Text style={{ color: PALETTE.text, fontFamily: serifFont, fontSize: 22 }}>{title}</Text>
       {action ? (
-        <Pressable>
+        <Pressable onPress={onPressAction} hitSlop={8}>
           <Text style={{ color: PALETTE.gold, fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, textTransform: "uppercase" }}>{action}</Text>
         </Pressable>
       ) : null}

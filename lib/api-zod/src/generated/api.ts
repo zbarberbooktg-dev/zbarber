@@ -52,6 +52,11 @@ export const LoginResponse = zod.object({
   "status": zod.enum(['active', 'suspended', 'pending']),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 })
@@ -68,6 +73,11 @@ export const GetMeResponse = zod.object({
   "status": zod.enum(['active', 'suspended', 'pending']),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -78,7 +88,10 @@ export const GetMeResponse = zod.object({
 export const SyncAuthBody = zod.object({
   "role": zod.enum(['client', 'barber']).optional(),
   "name": zod.string().optional(),
-  "phone": zod.string().optional()
+  "phone": zod.string().optional(),
+  "city": zod.string().optional(),
+  "country": zod.string().optional(),
+  "avatarUrl": zod.string().optional()
 })
 
 export const SyncAuthResponse = zod.object({
@@ -90,6 +103,11 @@ export const SyncAuthResponse = zod.object({
   "status": zod.enum(['active', 'suspended', 'pending']),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 }),
   "barber": zod.object({
@@ -118,6 +136,60 @@ export const SyncAuthResponse = zod.object({
 
 
 /**
+ * @summary Update own profile (name, phone, avatar, city, country)
+ */
+export const UpdateMeBody = zod.object({
+  "name": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "role": zod.enum(['client', 'barber', 'admin']).optional()
+})
+
+export const UpdateMeResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['client', 'barber', 'admin']),
+  "status": zod.enum(['active', 'suspended', 'pending']),
+  "phone": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update current user's geographic position
+ */
+export const UpdateMyLocationBody = zod.object({
+  "latitude": zod.number(),
+  "longitude": zod.number()
+})
+
+export const UpdateMyLocationResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['client', 'barber', 'admin']),
+  "status": zod.enum(['active', 'suspended', 'pending']),
+  "phone": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List all users (admin)
  */
 export const ListUsersQueryParams = zod.object({
@@ -136,6 +208,11 @@ export const ListUsersResponse = zod.object({
   "status": zod.enum(['active', 'suspended', 'pending']),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })),
   "total": zod.number(),
@@ -159,6 +236,11 @@ export const GetUserResponse = zod.object({
   "status": zod.enum(['active', 'suspended', 'pending']),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -174,6 +256,8 @@ export const UpdateUserBody = zod.object({
   "name": zod.string().optional(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
   "role": zod.enum(['client', 'barber', 'admin']).optional()
 })
 
@@ -185,6 +269,11 @@ export const UpdateUserResponse = zod.object({
   "status": zod.enum(['active', 'suspended', 'pending']),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -212,6 +301,11 @@ export const SuspendUserResponse = zod.object({
   "status": zod.enum(['active', 'suspended', 'pending']),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -231,6 +325,11 @@ export const ActivateUserResponse = zod.object({
   "status": zod.enum(['active', 'suspended', 'pending']),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "locationUpdatedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -762,6 +861,59 @@ export const GetBarberStatsResponse = zod.object({
   "serviceName": zod.string(),
   "count": zod.number()
 }))
+})
+
+
+/**
+ * @summary List homepage gallery photos (public)
+ */
+export const ListHomeGalleryPhotosResponseItem = zod.object({
+  "id": zod.number(),
+  "imageUrl": zod.string(),
+  "caption": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+export const ListHomeGalleryPhotosResponse = zod.array(ListHomeGalleryPhotosResponseItem)
+
+
+/**
+ * @summary Add a homepage gallery photo (admin)
+ */
+export const AddHomeGalleryPhotoBody = zod.object({
+  "imageUrl": zod.string(),
+  "caption": zod.string().optional(),
+  "sortOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Update a homepage gallery photo (admin)
+ */
+export const UpdateHomeGalleryPhotoParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateHomeGalleryPhotoBody = zod.object({
+  "imageUrl": zod.string().optional(),
+  "caption": zod.string().optional(),
+  "sortOrder": zod.number().optional()
+})
+
+export const UpdateHomeGalleryPhotoResponse = zod.object({
+  "id": zod.number(),
+  "imageUrl": zod.string(),
+  "caption": zod.string().nullish(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a homepage gallery photo (admin)
+ */
+export const DeleteHomeGalleryPhotoParams = zod.object({
+  "id": zod.coerce.number()
 })
 
 
