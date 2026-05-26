@@ -98,26 +98,61 @@ export default function Financing() {
           <div className="bg-card rounded-2xl border w-full max-w-lg p-6 shadow-2xl">
             <h2 className="font-bold text-lg mb-1">{f.requestN}{selected.id}</h2>
             <p className="text-xs text-muted-foreground mb-5">{f.colBarber}: {selected.barberName}</p>
-            <dl className="space-y-3 text-sm mb-5">
+            <dl className="space-y-3 text-sm mb-5 max-h-[55vh] overflow-y-auto pr-1">
               <div className="flex gap-3">
-                <dt className="text-muted-foreground w-28">{f.colAmount}</dt>
-                <dd className="font-semibold text-primary">{selected.amount?.toLocaleString()} F CFA</dd>
+                <dt className="text-muted-foreground w-32 shrink-0">{f.colAmount}</dt>
+                <dd className="font-semibold text-primary">{selected.amount?.toLocaleString()} FC</dd>
               </div>
               <div className="flex gap-3">
-                <dt className="text-muted-foreground w-28">{f.colPurpose}</dt>
+                <dt className="text-muted-foreground w-32 shrink-0">{f.colPurpose}</dt>
                 <dd>{f.purposes[selected.purpose] ?? selected.purpose}</dd>
               </div>
               <div className="flex gap-3">
-                <dt className="text-muted-foreground w-28">Description</dt>
+                <dt className="text-muted-foreground w-32 shrink-0">{f.repaymentDuration}</dt>
+                <dd>{selected.repaymentMonths} {f.months}</dd>
+              </div>
+              <div className="flex gap-3">
+                <dt className="text-muted-foreground w-32 shrink-0">{f.monthlyRevenue}</dt>
+                <dd>{Number(selected.monthlyRevenue ?? 0).toLocaleString()} FC</dd>
+              </div>
+              <div className="flex gap-3">
+                <dt className="text-muted-foreground w-32 shrink-0">{f.yearsActive}</dt>
+                <dd>{selected.yearsActive} {f.years}</dd>
+              </div>
+              <div className="flex gap-3">
+                <dt className="text-muted-foreground w-32 shrink-0">Description</dt>
                 <dd className="break-words">{selected.description}</dd>
               </div>
               <div className="flex gap-3">
-                <dt className="text-muted-foreground w-28">{f.currentStatus}</dt>
+                <dt className="text-muted-foreground w-32 shrink-0">{f.documents}</dt>
+                <dd className="flex flex-wrap gap-2">
+                  {(selected.documents ?? []).length === 0 && <span className="text-muted-foreground">—</span>}
+                  {(selected.documents ?? []).map((d: string, i: number) => (
+                    <a
+                      key={i}
+                      href={`/api/storage${d}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs hover:bg-secondary/70 transition-colors"
+                    >
+                      📎 Doc {i + 1}
+                    </a>
+                  ))}
+                </dd>
+              </div>
+              <div className="flex gap-3">
+                <dt className="text-muted-foreground w-32 shrink-0">{f.currentStatus}</dt>
                 <dd><StatusBadge status={selected.status} /></dd>
               </div>
+              {selected.reviewedAt && (
+                <div className="flex gap-3">
+                  <dt className="text-muted-foreground w-32 shrink-0">{f.reviewedAt}</dt>
+                  <dd>{new Date(selected.reviewedAt).toLocaleString(locale)}</dd>
+                </div>
+              )}
               {selected.adminNote && (
                 <div className="flex gap-3">
-                  <dt className="text-muted-foreground w-28">{f.adminNote}</dt>
+                  <dt className="text-muted-foreground w-32 shrink-0">{f.adminNote}</dt>
                   <dd>{selected.adminNote}</dd>
                 </div>
               )}

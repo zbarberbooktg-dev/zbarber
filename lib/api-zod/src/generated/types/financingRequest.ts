@@ -16,8 +16,14 @@ export interface FinancingRequest {
   amount: number;
   purpose: FinancingRequestPurpose;
   description?: string;
+  monthlyRevenue: number;
+  yearsActive: number;
+  repaymentMonths: number;
+  documents: string[];
   status: FinancingRequestStatus;
   /** @nullable */
   adminNote?: string | null;
+  /** @nullable */
+  reviewedAt?: Date | null;
   createdAt: Date;
 }

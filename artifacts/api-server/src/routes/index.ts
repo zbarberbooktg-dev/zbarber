@@ -11,6 +11,7 @@ import financingRouter from "./financing";
 import conferencesRouter from "./conferences";
 import notificationsRouter from "./notifications";
 import adminRouter from "./admin";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(financingRouter);
 router.use(conferencesRouter);
 router.use(notificationsRouter);
 router.use(adminRouter);
+router.use(storageRouter);
 
 export default router;

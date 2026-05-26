@@ -76,6 +76,7 @@ export default function BarberTabs() {
       <Tabs.Screen name="pending" options={{ href: null }} />
       <Tabs.Screen name="hours" options={{ href: null }} />
       <Tabs.Screen name="slots" options={{ href: null }} />
+      <Tabs.Screen name="financing" options={{ href: null }} />
     </Tabs>
   );
 }
