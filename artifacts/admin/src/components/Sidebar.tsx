@@ -4,37 +4,38 @@ import {
   Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight,
 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
-
-const nav = [
-  { path: "/",             label: "Tableau de bord",    icon: LayoutDashboard },
-  { path: "/barbers",      label: "Barbiers",            icon: Scissors },
-  { path: "/users",        label: "Utilisateurs",        icon: Users },
-  { path: "/reservations", label: "Réservations",        icon: Calendar },
-  { path: "/subscriptions",label: "Abonnements",         icon: CreditCard },
-  { path: "/financing",    label: "Financements",        icon: Banknote },
-  { path: "/conferences",  label: "Conférences",         icon: Video },
-  { path: "/notifications",label: "Notifications",       icon: Bell },
-  { path: "/reviews",      label: "Avis",                icon: Star },
-];
+import { useT, LanguageToggle } from "@/lib/i18n";
 
 export function Sidebar() {
   const [location] = useLocation();
   const { theme, toggle } = useTheme();
+  const { t } = useT();
+
+  const nav = [
+    { path: "/",              label: t.nav.dashboard,     icon: LayoutDashboard },
+    { path: "/barbers",       label: t.nav.barbers,       icon: Scissors },
+    { path: "/users",         label: t.nav.users,         icon: Users },
+    { path: "/reservations",  label: t.nav.reservations,  icon: Calendar },
+    { path: "/subscriptions", label: t.nav.subscriptions, icon: CreditCard },
+    { path: "/financing",     label: t.nav.financing,     icon: Banknote },
+    { path: "/conferences",   label: t.nav.conferences,   icon: Video },
+    { path: "/notifications", label: t.nav.notifications, icon: Bell },
+    { path: "/reviews",       label: t.nav.reviews,       icon: Star },
+  ];
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col" style={{ backgroundColor: "hsl(var(--sidebar-bg))", borderRight: "1px solid hsl(var(--sidebar-border))" }}>
-      {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-5 border-b" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
         <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: "hsl(var(--sidebar-accent))" }}>
           <Scissors className="h-4 w-4 text-black" />
         </div>
-        <div>
-          <p className="text-sm font-bold text-white">Global Barber</p>
-          <p className="text-xs" style={{ color: "hsl(var(--sidebar-fg))" }}>Admin</p>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-white">{t.brand.name}</p>
+          <p className="text-xs" style={{ color: "hsl(var(--sidebar-fg))" }}>{t.brand.role}</p>
         </div>
+        <LanguageToggle />
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
         {nav.map(({ path, label, icon: Icon }) => {
           const active = path === "/" ? location === "/" : location.startsWith(path);
@@ -55,7 +56,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
       <div className="border-t px-3 py-4 space-y-1" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
         <button
           onClick={toggle}
@@ -63,14 +63,14 @@ export function Sidebar() {
           style={{ color: "hsl(var(--sidebar-fg))" }}
         >
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          <span>{theme === "dark" ? "Mode clair" : "Mode sombre"}</span>
+          <span>{theme === "dark" ? t.common.lightMode : t.common.darkMode}</span>
         </button>
         <button
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-150 hover:bg-white/5"
           style={{ color: "hsl(var(--sidebar-fg))" }}
         >
           <LogOut className="h-4 w-4" />
-          <span>Déconnexion</span>
+          <span>{t.common.logout}</span>
         </button>
       </div>
     </aside>

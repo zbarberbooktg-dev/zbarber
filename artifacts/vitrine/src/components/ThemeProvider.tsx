@@ -13,7 +13,7 @@ type ThemeProviderState = {
   setTheme: (theme: Theme) => void
 }
 
-const ThemeProviderContext = createContext<ThemeProviderState | initialState>({
+const ThemeProviderContext = createContext<ThemeProviderState>({
   theme: "dark",
   setTheme: () => null,
 })

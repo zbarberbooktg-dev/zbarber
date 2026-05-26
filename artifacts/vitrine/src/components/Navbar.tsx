@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Moon, Sun, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LanguageToggle, useT } from "@/lib/i18n";
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();
+  const { t } = useT();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleTheme = () => {
@@ -14,10 +16,10 @@ export function Navbar() {
   };
 
   const navLinks = [
-    { name: "Features", href: "/#features" },
-    { name: "For Barbers", href: "/#barbers" },
-    { name: "Pricing", href: "/#pricing" },
-    { name: "FAQ", href: "/#faq" },
+    { name: t.nav.features, href: "/#features" },
+    { name: t.nav.forBarbers, href: "/#barbers" },
+    { name: t.nav.pricing, href: "/#pricing" },
+    { name: t.nav.faq, href: "/#faq" },
   ];
 
   return (
@@ -30,9 +32,9 @@ export function Navbar() {
               GLOBAL BARBER
             </Link>
           </div>
-          
+
           <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
+            <div className="ml-10 flex items-baseline space-x-6">
               {navLinks.map((link) => (
                 <a
                   key={link.name}
@@ -42,27 +44,29 @@ export function Navbar() {
                   {link.name}
                 </a>
               ))}
+              <LanguageToggle />
               <Button onClick={toggleTheme} variant="ghost" size="icon" className="rounded-full">
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
+                <span className="sr-only">{t.nav.toggleTheme}</span>
               </Button>
               <a href="#appstore">
                 <Button className="font-semibold px-6 bg-primary text-primary-foreground hover:bg-primary/90">
-                  Download App
+                  {t.nav.download}
                 </Button>
               </a>
             </div>
           </div>
-          
-          <div className="md:hidden flex items-center">
-            <Button onClick={toggleTheme} variant="ghost" size="icon" className="mr-2 rounded-full">
+
+          <div className="md:hidden flex items-center gap-2">
+            <LanguageToggle />
+            <Button onClick={toggleTheme} variant="ghost" size="icon" className="rounded-full">
               <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -93,7 +97,7 @@ export function Navbar() {
               <div className="pt-4 pb-2">
                 <a href="#appstore" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button className="w-full justify-center bg-primary text-primary-foreground">
-                    Download App
+                    {t.nav.download}
                   </Button>
                 </a>
               </div>
