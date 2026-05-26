@@ -37,12 +37,26 @@ async function barberWithDetails(id: number) {
 
 // ── Public: list approved barbers (for clients browsing) ───
 router.get("/barbers", async (req, res) => {
-  const { page = "1", limit = "20", search = "", status, city } = req.query as Record<string, string>;
+  const { page = "1", limit = "20", search = "", status, city, categoryId, service } = req.query as Record<string, string>;
   const offset = (parseInt(page) - 1) * parseInt(limit);
   let rows = await db.select().from(barbersTable);
   if (search) rows = rows.filter(b => b.salonName.toLowerCase().includes(search.toLowerCase()) || b.city?.toLowerCase().includes(search.toLowerCase()));
   if (status) rows = rows.filter(b => b.status === status);
   if (city) rows = rows.filter(b => b.city === city);
+  if (categoryId) {
+    const catId = parseInt(categoryId);
+    if (!Number.isNaN(catId)) {
+      const svc = await db.select({ barberId: servicesTable.barberId }).from(servicesTable).where(eq(servicesTable.categoryId, catId));
+      const ids = new Set(svc.map(s => s.barberId));
+      rows = rows.filter(b => ids.has(b.id));
+    }
+  }
+  if (service) {
+    const q = service.toLowerCase();
+    const svc = await db.select({ barberId: servicesTable.barberId, name: servicesTable.name }).from(servicesTable);
+    const ids = new Set(svc.filter(s => s.name.toLowerCase().includes(q)).map(s => s.barberId));
+    rows = rows.filter(b => ids.has(b.id));
+  }
   const enriched = await Promise.all(rows.map(async b => {
     const ratingRes = await db.select({ avg: avg(reviewsTable.rating), count: count() }).from(reviewsTable).where(eq(reviewsTable.barberId, b.id));
     const [user] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, b.userId)).limit(1);

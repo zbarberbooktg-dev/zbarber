@@ -232,6 +232,16 @@ export default function PublicHome() {
                 <Feather name="x" size={14} color={PALETTE.textMuted} />
               </Pressable>
             )}
+            <Pressable
+              onPress={() => router.push("/map" as never)}
+              hitSlop={10}
+              style={{ marginLeft: 8, paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: PALETTE.border, flexDirection: "row", alignItems: "center", gap: 5 }}
+            >
+              <Feather name="map" size={14} color={PALETTE.gold} />
+              <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
+                {lang === "fr" ? "Carte" : "Map"}
+              </Text>
+            </Pressable>
           </View>
         </View>
 
