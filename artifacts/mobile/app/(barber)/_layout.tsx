@@ -9,7 +9,7 @@ import { useColors } from "@/hooks/useColors";
 
 export default function BarberTabs() {
   const c = useColors();
-  const { role, status, ready, syncing, user, t } = useApp();
+  const { role, ready, syncing, user, barberProfile, t } = useApp();
   const { isSignedIn } = useAuth();
   const isWeb = Platform.OS === "web";
 
@@ -17,7 +17,8 @@ export default function BarberTabs() {
   if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
   if (role === "client") return <Redirect href="/(client)" />;
   if (role !== "barber" && role !== "admin") return <Redirect href="/(auth)/sign-in" />;
-  if (role === "barber" && status !== "active") return <Redirect href="/(barber)/pending" />;
+  // Redirect to pending screen if no approved salon yet (check barber profile status, not user account status)
+  if (role === "barber" && barberProfile && barberProfile.status !== "approved") return <Redirect href="/(barber)/pending" />;
 
   return (
     <Tabs

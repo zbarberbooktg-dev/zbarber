@@ -11,7 +11,8 @@ import { useAuthedFetch } from "@/lib/api";
 
 type Bucket = { revenue: number; completedCount: number; upcomingCount: number; totalCount: number };
 type RevenueData = { today: Bucket; week: Bucket; month: Bucket; year: Bucket; allTime: Bucket };
-type MyBarber = { id: number; salonName: string; status: string } | null;
+type MyBarber = { id: number; salonName: string; status: string };
+type MyBarbers = MyBarber[];
 type Reservation = {
   id: number; scheduledAt: string; status: "pending" | "confirmed" | "completed" | "cancelled";
   clientName?: string | null; serviceName?: string | null; servicePrice?: number | null;
@@ -32,11 +33,14 @@ export default function BarberDashboard() {
   const { t, locale } = useApp();
   const fetcher = useAuthedFetch();
   const [period, setPeriod] = useState<Period>("today");
+  const [selectedIdx, setSelectedIdx] = useState(0);
 
-  const { data: barber, isLoading: barberLoading, error: barberError, refetch: refetchBarber } = useQuery<MyBarber>({
+  const { data: salons, isLoading: barberLoading, error: barberError, refetch: refetchBarber } = useQuery<MyBarbers>({
     queryKey: ["barbersMe"],
-    queryFn: () => fetcher<MyBarber>("/api/barbers/me"),
+    queryFn: () => fetcher<MyBarbers>("/api/barbers/me"),
   });
+
+  const barber = salons && salons.length > 0 ? salons[selectedIdx] ?? salons[0] : null;
 
   const { data: revenue } = useQuery<RevenueData>({
     queryKey: ["myRevenue"],
@@ -56,7 +60,7 @@ export default function BarberDashboard() {
     );
   }
 
-  if (barberError || !barber) {
+  if (barberError) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background, padding: 24, gap: 12 }}>
         <Feather name="alert-circle" size={32} color={c.destructive} />
@@ -75,6 +79,29 @@ export default function BarberDashboard() {
       </View>
     );
   }
+
+  // No salon yet — prompt to create one
+  if (!barberLoading && salons && salons.length === 0) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background, padding: 32, gap: 16 }}>
+        <Feather name="scissors" size={40} color={c.primary} />
+        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 20, textAlign: "center" }}>
+          Créez votre premier salon
+        </Text>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", lineHeight: 22 }}>
+          Publiez votre salon pour commencer à recevoir des réservations.
+        </Text>
+        <Pressable
+          onPress={() => router.push("/(barber)/profile")}
+          style={{ paddingVertical: 12, paddingHorizontal: 28, borderRadius: 999, backgroundColor: c.primary }}
+        >
+          <Text style={{ color: c.primaryForeground, fontFamily: "Inter_700Bold", fontSize: 14 }}>Créer un salon</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!barber) return null;
 
   const periodData = revenue?.[period];
   const allTime = revenue?.allTime;
@@ -100,6 +127,36 @@ export default function BarberDashboard() {
           />
         </View>
       </View>
+
+      {/* Multi-salon selector — shown when barber owns more than one salon */}
+      {salons && salons.length > 1 && (
+        <View>
+          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 11, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 8 }}>
+            Mes salons
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {salons.map((s, idx) => {
+              const active = idx === selectedIdx;
+              return (
+                <Pressable
+                  key={s.id}
+                  onPress={() => setSelectedIdx(idx)}
+                  style={{
+                    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+                    backgroundColor: active ? c.primary : c.muted,
+                    borderWidth: 1,
+                    borderColor: active ? c.primary : c.border,
+                  }}
+                >
+                  <Text style={{ color: active ? c.primaryForeground : c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                    {s.salonName}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       {/* Period selector */}
       <View style={{ flexDirection: "row", gap: 6 }}>

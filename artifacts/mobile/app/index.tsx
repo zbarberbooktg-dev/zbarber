@@ -1,59 +1,339 @@
-import { Redirect } from "expo-router";
-import React from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import {
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_500Medium,
+  PlayfairDisplay_600SemiBold,
+  PlayfairDisplay_400Regular_Italic,
+  useFonts,
+} from "@expo-google-fonts/playfair-display";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useListBarbers } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
+import { Redirect, useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  ImageBackground,
+  ImageSourcePropType,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { ONBOARDING_KEY } from "./onboarding";
 
-export default function Index() {
-  const c = useColors();
-  const { isSignedIn } = useAuth();
-  const { ready, syncing, user, signOut } = useApp();
+const PALETTE = {
+  bg: "#0A0A0A",
+  surface: "#141414",
+  surfaceAlt: "#1A1A1A",
+  border: "#2A2A2A",
+  text: "#F3F0E9",
+  textMuted: "#A09D94",
+  textDim: "#5A5A5A",
+  gold: "#D4AF37",
+};
 
-  if (!ready || (isSignedIn && syncing && !user)) {
+const heroImage = require("../assets/images/client-home/hero.png");
+const salonFallbacks: ImageSourcePropType[] = [
+  require("../assets/images/client-home/salon1.png"),
+  require("../assets/images/client-home/salon2.png"),
+  require("../assets/images/client-home/salon3.png"),
+];
+const styleImages = [
+  { src: require("../assets/images/client-home/style1.png"), label: "Le Dégradé" },
+  { src: require("../assets/images/client-home/style2.png"), label: "La Barbe" },
+  { src: require("../assets/images/client-home/style3.png"), label: "Le Taper" },
+  { src: require("../assets/images/client-home/style4.png"), label: "Classique" },
+];
+
+export default function PublicHome() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { isSignedIn, isLoaded } = useAuth();
+  const { ready, syncing, user, role, lang } = useApp();
+  const [query, setQuery] = useState("");
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+
+  const { data, isLoading, refetch, isRefetching } = useListBarbers({ status: "approved" });
+  const [fontsLoaded] = useFonts({
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_500Medium,
+    PlayfairDisplay_600SemiBold,
+    PlayfairDisplay_400Regular_Italic,
+  });
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY).then((val) => setOnboardingDone(!!val));
+  }, []);
+
+  // While Clerk or AppContext loads, or onboarding state unknown — show spinner
+  if (!isLoaded || onboardingDone === null || (!isSignedIn ? false : !ready || (syncing && !user))) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background }}>
-        <ActivityIndicator color={c.primary} />
+      <View style={{ flex: 1, backgroundColor: PALETTE.bg, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={PALETTE.gold} />
       </View>
     );
   }
 
-  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
+  // First-time user: show onboarding
+  if (!onboardingDone) return <Redirect href="/onboarding" />;
 
-  // Signed in on Clerk but the server refused to sync the local profile
-  // (e.g. account suspended). Don't bounce back to sign-in — that creates an
-  // infinite loop because sign-in sees isSignedIn=true and redirects here.
-  if (!user) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background, padding: 24, gap: 16 }}>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 18, textAlign: "center" }}>
-          Compte indisponible
-        </Text>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", textAlign: "center" }}>
-          Impossible de charger votre profil. Votre compte est peut-être suspendu ou en attente. Contactez le support.
-        </Text>
-        <Pressable
-          onPress={() => signOut()}
-          style={({ pressed }) => ({
-            backgroundColor: c.primary,
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            borderRadius: c.radius,
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          <Text style={{ color: c.primaryForeground, fontFamily: "Inter_600SemiBold" }}>Se déconnecter</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  if (user.role === "admin" || user.role === "barber") {
-    if (user.role === "barber" && user.status !== "active") {
-      return <Redirect href="/(barber)/pending" />;
-    }
+  // Signed-in barber/admin → dashboard
+  if (isSignedIn && user && (role === "barber" || role === "admin")) {
     return <Redirect href="/(barber)" />;
   }
-  return <Redirect href="/(client)" />;
+
+  const list = useMemo(() => {
+    const items = data?.data ?? [];
+    if (!query.trim()) return items;
+    const q = query.trim().toLowerCase();
+    return items.filter(
+      (b) =>
+        b.salonName.toLowerCase().includes(q) ||
+        (b.city ?? "").toLowerCase().includes(q) ||
+        (b.neighborhood ?? "").toLowerCase().includes(q),
+    );
+  }, [data, query]);
+
+  const featured = list.slice(0, 6);
+  const nearby = list.slice(0, 4);
+  const serif = fontsLoaded ? "PlayfairDisplay_500Medium" : "Inter_700Bold";
+  const serifBold = fontsLoaded ? "PlayfairDisplay_600SemiBold" : "Inter_700Bold";
+  const serifItalic = fontsLoaded ? "PlayfairDisplay_400Regular_Italic" : "Inter_400Regular";
+
+  return (
+    <View style={{ flex: 1, backgroundColor: PALETTE.bg }}>
+      {/* Top bar */}
+      <View style={{
+        paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 12,
+        flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+        backgroundColor: PALETTE.bg,
+      }}>
+        <View>
+          <Text style={{ color: PALETTE.gold, fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase" }}>
+            Global Barber
+          </Text>
+          <Text style={{ color: PALETTE.textDim, fontFamily: "Inter_400Regular", fontSize: 9, letterSpacing: 1.5, textTransform: "uppercase", marginTop: 1 }}>
+            Corp.
+          </Text>
+        </View>
+
+        {isSignedIn && user ? (
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Pressable
+              onPress={() => router.push("/(client)/bookings")}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: PALETTE.border }}
+            >
+              <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                {lang === "fr" ? "Mes réservations" : "My bookings"}
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Pressable
+              onPress={() => router.push("/(auth)/sign-in")}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: PALETTE.border }}
+            >
+              <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>Connexion</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/(auth)/sign-up")}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: PALETTE.gold }}
+            >
+              <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 12 }}>Inscription</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 48 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PALETTE.gold} />}
+      >
+        {/* Hero + search */}
+        <View style={{ paddingHorizontal: 20, marginTop: 8, marginBottom: 24 }}>
+          <Text style={{ color: "#fff", fontFamily: serifBold, fontSize: 36, lineHeight: 42 }}>
+            {isSignedIn && user ? `Bonjour,\n${user.name?.split(" ")[0] ?? "vous"}.` : "Découvrez\nl'excellence."}
+          </Text>
+          <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 6, marginBottom: 20 }}>
+            Les meilleurs barbiers, à portée de main.
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, paddingHorizontal: 14 }}>
+            <Feather name="search" size={16} color={PALETTE.gold} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Salon, ville, quartier..."
+              placeholderTextColor={PALETTE.textDim}
+              style={{ flex: 1, paddingVertical: 14, paddingHorizontal: 10, color: PALETTE.text, fontFamily: "Inter_400Regular", fontSize: 13 }}
+            />
+            {query.length > 0 && (
+              <Pressable onPress={() => setQuery("")} hitSlop={10}>
+                <Feather name="x" size={14} color={PALETTE.textMuted} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+        {/* Hero image */}
+        {!query && (
+          <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
+            <ImageBackground source={heroImage} style={{ width: "100%", aspectRatio: 16 / 9, justifyContent: "flex-end" }}>
+              <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(10,10,10,0.50)" }} />
+              <View style={{ padding: 16 }}>
+                <View style={{ alignSelf: "flex-start", backgroundColor: PALETTE.gold, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8 }}>
+                  <Text style={{ color: "#000", fontSize: 10, letterSpacing: 1.5, fontFamily: "Inter_700Bold", textTransform: "uppercase" }}>L'Édito</Text>
+                </View>
+                <Text style={{ color: "#fff", fontFamily: serif, fontSize: 22, lineHeight: 28 }}>La Renaissance du Rasage</Text>
+              </View>
+            </ImageBackground>
+          </View>
+        )}
+
+        {/* Featured salons */}
+        <SectionHeader
+          title={query ? `${list.length} résultat${list.length !== 1 ? "s" : ""}` : "Salons en Vedette"}
+          action={query ? "" : "Tout voir"}
+          serifFont={serif}
+        />
+        {isLoading ? (
+          <View style={{ paddingVertical: 40, alignItems: "center" }}>
+            <ActivityIndicator color={PALETTE.gold} />
+          </View>
+        ) : featured.length === 0 ? (
+          <Text style={{ paddingHorizontal: 20, color: PALETTE.textMuted, fontFamily: serifItalic, fontSize: 14, marginBottom: 32 }}>
+            {query ? "Aucun salon ne correspond." : "Bientôt — nos premiers salons partenaires."}
+          </Text>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 16, paddingBottom: 16 }}
+            style={{ marginBottom: 36 }}
+          >
+            {featured.map((b, idx) => (
+              <Pressable key={b.id} onPress={() => router.push(`/salon/${b.id}` as never)} style={{ width: 240 }}>
+                <View style={{ aspectRatio: 3 / 4, borderWidth: 1, borderColor: PALETTE.border, marginBottom: 12, overflow: "hidden" }}>
+                  <Image source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                  {b.rating && Number(b.rating) > 0 ? (
+                    <View style={{ position: "absolute", bottom: 12, left: 12, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 8, paddingVertical: 4 }}>
+                      <Feather name="star" size={11} color={PALETTE.gold} />
+                      <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 12 }}>{Number(b.rating).toFixed(1)}</Text>
+                    </View>
+                  ) : (
+                    <View style={{ position: "absolute", top: 10, left: 10, backgroundColor: PALETTE.gold, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.5, textTransform: "uppercase" }}>Nouveau</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={{ color: "#fff", fontFamily: serif, fontSize: 18, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Feather name="map-pin" size={10} color={PALETTE.textMuted} />
+                  <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 11 }} numberOfLines={1}>
+                    {b.neighborhood ? `${b.neighborhood} • ${b.city}` : b.city}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* Style inspiration */}
+        {!query && (
+          <>
+            <SectionHeader title="L'Inspiration" action="Galerie" serifFont={serif} />
+            <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                {styleImages.map((s) => (
+                  <View key={s.label} style={{ width: "48%", aspectRatio: 1, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
+                    <Image source={s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                    <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
+                    <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Nearby list */}
+            {nearby.length > 0 && (
+              <View style={{ paddingHorizontal: 20, marginBottom: 28 }}>
+                <Text style={{ color: PALETTE.text, fontFamily: serif, fontSize: 22, marginBottom: 16 }}>Près de chez vous</Text>
+                <View style={{ gap: 12 }}>
+                  {nearby.map((b, idx) => (
+                    <Pressable
+                      key={`near-${b.id}`}
+                      onPress={() => router.push(`/salon/${b.id}` as never)}
+                      style={{ flexDirection: "row", gap: 14, padding: 14, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, alignItems: "center" }}
+                    >
+                      <Image source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: 72, height: 72 }} resizeMode="cover" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: "#fff", fontFamily: serif, fontSize: 16, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>
+                          <Feather name="map-pin" size={10} color={PALETTE.textMuted} />
+                          <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 11 }} numberOfLines={1}>
+                            {b.neighborhood ? `${b.neighborhood} • ${b.city}` : b.city}
+                          </Text>
+                        </View>
+                        {b.rating && Number(b.rating) > 0 ? (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                            <Feather name="star" size={10} color={PALETTE.gold} />
+                            <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>{Number(b.rating).toFixed(1)}</Text>
+                          </View>
+                        ) : (
+                          <Text style={{ color: PALETTE.gold, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1, textTransform: "uppercase" }}>Nouveau</Text>
+                        )}
+                      </View>
+                      <View style={{ width: 36, height: 36, borderWidth: 1, borderColor: PALETTE.gold, alignItems: "center", justifyContent: "center" }}>
+                        <Feather name="chevron-right" size={16} color={PALETTE.gold} />
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Barber CTA */}
+            {!isSignedIn && (
+              <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+                <View style={{ borderWidth: 1, borderColor: `${PALETTE.gold}40`, backgroundColor: PALETTE.surface, padding: 22, flexDirection: "row", alignItems: "center", gap: 16 }}>
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${PALETTE.gold}15`, alignItems: "center", justifyContent: "center" }}>
+                    <Feather name="scissors" size={22} color={PALETTE.gold} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: "#fff", fontFamily: serif, fontSize: 17, marginBottom: 4 }}>Vous êtes barbier ?</Text>
+                    <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18 }}>
+                      Publiez votre salon, gérez vos rdv.
+                    </Text>
+                  </View>
+                  <Pressable onPress={() => router.push("/(auth)/sign-up")} style={{ paddingHorizontal: 14, paddingVertical: 10, backgroundColor: PALETTE.gold }}>
+                    <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 12 }}>Démarrer</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+function SectionHeader({ title, action, serifFont }: { title: string; action: string; serifFont: string }) {
+  return (
+    <View style={{ paddingHorizontal: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
+      <Text style={{ color: PALETTE.text, fontFamily: serifFont, fontSize: 22 }}>{title}</Text>
+      {action ? (
+        <Pressable>
+          <Text style={{ color: PALETTE.gold, fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, textTransform: "uppercase" }}>{action}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
 }

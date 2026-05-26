@@ -30,9 +30,9 @@ async function getMyBarberOr404(req: AuthedRequest, res: import("express").Respo
 async function barberWithDetails(id: number) {
   const [barber] = await db.select().from(barbersTable).where(eq(barbersTable.id, id)).limit(1);
   if (!barber) return null;
-  const [user] = await db.select({ name: usersTable.name, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, barber.userId)).limit(1);
+  const [user] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, barber.userId)).limit(1);
   const ratingRes = await db.select({ avg: avg(reviewsTable.rating), count: count() }).from(reviewsTable).where(eq(reviewsTable.barberId, id));
-  return { ...barber, ownerName: user?.name, ownerEmail: user?.email, rating: ratingRes[0]?.avg ? parseFloat(ratingRes[0].avg) : 0, reviewCount: ratingRes[0]?.count ?? 0 };
+  return { ...barber, ownerName: user?.name, rating: ratingRes[0]?.avg ? parseFloat(ratingRes[0].avg) : 0, reviewCount: ratingRes[0]?.count ?? 0 };
 }
 
 // ── Public: list approved barbers (for clients browsing) ───
@@ -51,13 +51,19 @@ router.get("/barbers", async (req, res) => {
   res.json({ data: enriched.slice(offset, offset + parseInt(limit)), total: enriched.length, page: parseInt(page), limit: parseInt(limit) });
 });
 
-// ── Barber: get my own profile (any status) ───
+// ── Barber: get all my salons (array; barber can own multiple) ───
 router.get("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
-  if (req.localUser!.role !== "barber") { res.status(403).json({ error: "Barber account required" }); return; }
-  const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, req.localUser!.id)).limit(1);
-  if (!b) { res.json(null); return; }
-  await archiveExpiredForBarber(b.id);
-  res.json(await barberWithDetails(b.id));
+  if (req.localUser!.role !== "barber" && req.localUser!.role !== "admin") {
+    res.status(403).json({ error: "Barber account required" }); return;
+  }
+  const rows = await db.select().from(barbersTable)
+    .where(eq(barbersTable.userId, req.localUser!.id))
+    .orderBy(barbersTable.id);
+  if (rows.length === 0) { res.json([]); return; }
+  // Archive expired for each owned salon
+  await Promise.all(rows.map((b) => archiveExpiredForBarber(b.id)));
+  const enriched = await Promise.all(rows.map((b) => barberWithDetails(b.id)));
+  res.json(enriched.filter(Boolean));
 });
 
 // ── Barber: revenue dashboard (today / week / month / year / all) ───
@@ -202,8 +208,6 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
     longitude: z.number().optional(),
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
-  const [existing] = await db.select().from(barbersTable).where(eq(barbersTable.userId, req.localUser!.id)).limit(1);
-  if (existing) { res.status(409).json({ error: "Profile already exists" }); return; }
   const [barber] = await db.insert(barbersTable).values({ ...body.data, userId: req.localUser!.id, status: "pending" }).returning();
   res.status(201).json(barber);
 });
@@ -329,10 +333,12 @@ router.post("/barbers/:id/gallery", requireAuth, async (req: AuthedRequest, res)
 });
 
 router.delete("/barbers/:barberId/gallery/:photoId", requireAuth, async (req: AuthedRequest, res) => {
-  const id = parseInt(String(req.params.barberId));
-  const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, id)).limit(1);
+  const barberId = parseInt(String(req.params.barberId));
+  const photoId = parseInt(String(req.params.photoId));
+  const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, barberId)).limit(1);
   if (!b || (b.userId !== req.localUser!.id && req.localUser!.role !== "admin")) { res.status(403).json({ error: "Forbidden" }); return; }
-  await db.delete(galleryPhotosTable).where(eq(galleryPhotosTable.id, parseInt(String(req.params.photoId))));
+  // Scope delete by both barberId AND photoId to prevent IDOR cross-barber deletion
+  await db.delete(galleryPhotosTable).where(and(eq(galleryPhotosTable.id, photoId), eq(galleryPhotosTable.barberId, barberId)));
   res.status(204).send();
 });
 

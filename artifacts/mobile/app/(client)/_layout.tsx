@@ -37,14 +37,6 @@ export default function ClientTabs() {
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          title: t.tabDiscover,
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <Feather name="search" size={size - 2} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="bookings"
         options={{
           title: t.tabBookings,
@@ -58,7 +50,7 @@ export default function ClientTabs() {
           tabBarIcon: ({ color, size }) => <Feather name="user" size={size - 2} color={color} />,
         }}
       />
-      <Tabs.Screen name="barber/[id]" options={{ href: null, title: t.barber }} />
+      <Tabs.Screen name="index" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -68,7 +68,11 @@ router.patch("/reservations/:id", requireAuth, async (req: AuthedRequest, res) =
     const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
     if (!b || existing.barberId !== b.id) { res.status(403).json({ error: "Forbidden" }); return; }
   }
-  const body = z.object({ status: z.enum(["pending", "confirmed", "cancelled", "completed"]) }).safeParse(req.body);
+  // Clients may only cancel their own reservation; barbers/admins can set any status.
+  const allowedStatuses = user.role === "client"
+    ? (["cancelled"] as const)
+    : (["pending", "confirmed", "cancelled", "completed"] as const);
+  const body = z.object({ status: z.enum(allowedStatuses) }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [updated] = await db.update(reservationsTable).set({ status: body.data.status }).where(eq(reservationsTable.id, id)).returning();
   res.json(await enrichReservation(updated));

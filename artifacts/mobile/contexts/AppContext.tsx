@@ -18,10 +18,18 @@ export type SyncedUser = {
   status: Exclude<AppStatus, null>;
 };
 
+export type SyncedBarber = {
+  id: number;
+  salonName: string;
+  status: "pending" | "approved" | "rejected" | "suspended";
+  city: string | null;
+};
+
 type AppState = {
   role: AppRole;
   status: AppStatus;
   user: SyncedUser | null;
+  barberProfile: SyncedBarber | null;
   syncing: boolean;
   themePref: ThemePref;
   lang: Lang;
@@ -40,10 +48,12 @@ const AppContext = createContext<AppState | null>(null);
 const THEME_KEY = "gbc.theme";
 const LANG_KEY = "gbc.lang";
 
+type SyncResult = { user: SyncedUser; barber: SyncedBarber | null } | null;
+
 async function callSync(
   token: string | null,
   opts?: { role?: "client" | "barber"; name?: string; phone?: string },
-): Promise<SyncedUser | null> {
+): Promise<SyncResult> {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   const base = domain ? `https://${domain}` : "";
   const body: Record<string, string> = {};
@@ -60,7 +70,8 @@ async function callSync(
   });
   if (!res.ok) return null;
   const data = await res.json();
-  return data?.user ?? null;
+  if (!data?.user) return null;
+  return { user: data.user, barber: data.barber ?? null };
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -69,6 +80,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>("fr");
   const [storageReady, setStorageReady] = useState(false);
   const [user, setUser] = useState<SyncedUser | null>(null);
+  const [barberProfile, setBarberProfile] = useState<SyncedBarber | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [initialSyncDone, setInitialSyncDone] = useState(false);
 
@@ -97,14 +109,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (!isSignedIn) { setUser(null); setInitialSyncDone(true); return; }
+    if (!isSignedIn) { setUser(null); setBarberProfile(null); setInitialSyncDone(true); return; }
     let cancel = false;
     (async () => {
       setSyncing(true);
       try {
         const token = await getToken();
-        const u = await callSync(token);
-        if (!cancel) setUser(u);
+        const result = await callSync(token);
+        if (!cancel) {
+          setUser(result?.user ?? null);
+          setBarberProfile(result?.barber ?? null);
+        }
       } finally {
         if (!cancel) { setSyncing(false); setInitialSyncDone(true); }
       }
@@ -118,9 +133,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSyncing(true);
     try {
       const token = await getToken();
-      const u = await callSync(token, opts);
-      setUser(u);
-      return u;
+      const result = await callSync(token, opts);
+      setUser(result?.user ?? null);
+      setBarberProfile(result?.barber ?? null);
+      return result?.user ?? null;
     } finally {
       setSyncing(false);
     }
@@ -142,6 +158,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     setUser(null);
+    setBarberProfile(null);
     await clerkSignOut();
   };
 
@@ -150,6 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       role: user?.role ?? null,
       status: user?.status ?? null,
       user,
+      barberProfile,
       syncing,
       themePref,
       lang,
@@ -162,7 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       t: translations[lang],
       locale: localeMap[lang],
     }),
-    [user, syncing, themePref, lang, storageReady, isLoaded, initialSyncDone],
+    [user, barberProfile, syncing, themePref, lang, storageReady, isLoaded, initialSyncDone],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

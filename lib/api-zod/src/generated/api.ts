@@ -73,6 +73,49 @@ export const GetMeResponse = zod.object({
 
 
 /**
+ * @summary Sync Clerk identity with local profile (JIT provisioning)
+ */
+export const SyncAuthBody = zod.object({
+  "role": zod.enum(['client', 'barber']).optional(),
+  "name": zod.string().optional(),
+  "phone": zod.string().optional()
+})
+
+export const SyncAuthResponse = zod.object({
+  "user": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['client', 'barber', 'admin']),
+  "status": zod.enum(['active', 'suspended', 'pending']),
+  "phone": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}),
+  "barber": zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+}).nullish()
+})
+
+
+/**
  * @summary List all users (admin)
  */
 export const ListUsersQueryParams = zod.object({
@@ -240,6 +283,195 @@ export const CreateBarberBody = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish()
+})
+
+
+/**
+ * @summary Get all salons owned by the authenticated barber (array)
+ */
+export const GetMyBarbersResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+export const GetMyBarbersResponse = zod.array(GetMyBarbersResponseItem)
+
+
+/**
+ * @summary Create a new salon for the authenticated barber
+ */
+export const CreateMySalonBody = zod.object({
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish()
+})
+
+
+/**
+ * @summary Update the authenticated barber primary salon
+ */
+export const UpdateMySalonBody = zod.object({
+  "salonName": zod.string().optional(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string().optional(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish()
+})
+
+export const UpdateMySalonResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get revenue dashboard for authenticated barber
+ */
+export const GetMyRevenueQueryParams = zod.object({
+  "salonId": zod.coerce.number().optional().describe('Specific salon ID (for multi-salon barbers)')
+})
+
+export const GetMyRevenueResponse = zod.object({
+  "today": zod.object({
+  "revenue": zod.number(),
+  "completedCount": zod.number(),
+  "upcomingCount": zod.number(),
+  "totalCount": zod.number()
+}),
+  "week": zod.object({
+  "revenue": zod.number(),
+  "completedCount": zod.number(),
+  "upcomingCount": zod.number(),
+  "totalCount": zod.number()
+}),
+  "month": zod.object({
+  "revenue": zod.number(),
+  "completedCount": zod.number(),
+  "upcomingCount": zod.number(),
+  "totalCount": zod.number()
+}),
+  "year": zod.object({
+  "revenue": zod.number(),
+  "completedCount": zod.number(),
+  "upcomingCount": zod.number(),
+  "totalCount": zod.number()
+}),
+  "allTime": zod.object({
+  "revenue": zod.number(),
+  "completedCount": zod.number(),
+  "upcomingCount": zod.number(),
+  "totalCount": zod.number()
+})
+})
+
+
+/**
+ * @summary Get client list for authenticated barber
+ */
+export const GetMyClientsQueryParams = zod.object({
+  "salonId": zod.coerce.number().optional()
+})
+
+export const GetMyClientsResponse = zod.object({
+  "data": zod.array(zod.object({
+  "clientId": zod.number(),
+  "clientName": zod.string().nullish(),
+  "clientEmail": zod.string().nullish(),
+  "totalReservations": zod.number(),
+  "completedReservations": zod.number().optional(),
+  "lastVisit": zod.coerce.date().nullable(),
+  "totalSpent": zod.number().optional()
+})),
+  "total": zod.number()
+})
+
+
+/**
+ * @summary Get weekly schedule for authenticated barber
+ */
+export const GetMyScheduleResponse = zod.object({
+  "barberId": zod.number(),
+  "workDays": zod.array(zod.object({
+  "day": zod.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']),
+  "isWorking": zod.boolean(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "breakStart": zod.string().nullish(),
+  "breakEnd": zod.string().nullish()
+})),
+  "daysOff": zod.array(zod.coerce.date()).optional()
+})
+
+
+/**
+ * @summary Update weekly schedule for authenticated barber
+ */
+export const UpdateMyScheduleBody = zod.object({
+  "workDays": zod.array(zod.object({
+  "day": zod.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']),
+  "isWorking": zod.boolean(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "breakStart": zod.string().nullish(),
+  "breakEnd": zod.string().nullish()
+})),
+  "daysOff": zod.array(zod.coerce.date()).optional()
+})
+
+export const UpdateMyScheduleResponse = zod.object({
+  "barberId": zod.number(),
+  "workDays": zod.array(zod.object({
+  "day": zod.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']),
+  "isWorking": zod.boolean(),
+  "startTime": zod.string().nullish(),
+  "endTime": zod.string().nullish(),
+  "breakStart": zod.string().nullish(),
+  "breakEnd": zod.string().nullish()
+})),
+  "daysOff": zod.array(zod.coerce.date()).optional()
 })
 
 
