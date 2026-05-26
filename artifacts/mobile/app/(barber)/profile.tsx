@@ -11,6 +11,7 @@ import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
+import { setAuthIntent } from "@/lib/authIntent";
 
 type MyBarber = {
   id: number;
@@ -229,8 +230,8 @@ export default function BarberProfile() {
             variant="secondary"
             icon="refresh-cw"
             onPress={async () => {
+              setAuthIntent("signup");
               await signOut();
-              router.replace("/role-select");
             }}
           />
           <Button

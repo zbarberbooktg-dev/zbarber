@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { Card, EmptyState, Pill } from "@/components/UI";
+import { ReviewModal } from "@/components/ReviewModal";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -22,6 +23,7 @@ export default function Bookings() {
   const router = useRouter();
   const { t, locale } = useApp();
   const [filter, setFilter] = useState<Status | "all">("all");
+  const [reviewFor, setReviewFor] = useState<{ barberId: number; salonName?: string } | null>(null);
   const { data, isLoading, refetch, isRefetching } = useListReservations(
     filter === "all" ? undefined : { status: filter },
   );
@@ -232,9 +234,39 @@ export default function Bookings() {
                     Modification/annulation indisponible (moins de 24h avant).
                   </Text>
                 )}
+                {status === "completed" && item.barberId && (
+                  <Pressable
+                    onPress={() => setReviewFor({ barberId: item.barberId as number })}
+                    style={({ pressed }) => ({
+                      marginTop: 12,
+                      borderTopWidth: 1,
+                      borderTopColor: c.border,
+                      paddingTop: 10,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
+                    <Text style={{ fontSize: 14 }}>⭐</Text>
+                    <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                      {t.leaveReview ?? "Laisser un avis"}
+                    </Text>
+                  </Pressable>
+                )}
               </Card>
             );
           }}
+        />
+      )}
+      {reviewFor && (
+        <ReviewModal
+          visible={!!reviewFor}
+          onClose={() => setReviewFor(null)}
+          barberId={reviewFor.barberId}
+          salonName={reviewFor.salonName}
+          onSubmitted={() => refetch()}
         />
       )}
     </View>

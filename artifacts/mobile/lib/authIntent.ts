@@ -1,10 +1,16 @@
-let pending: "signup" | null = null;
+export type AuthIntent = "signup" | "signin" | null;
 
-export function setAuthIntent(intent: "signup" | null) {
+let pending: AuthIntent = null;
+
+export function setAuthIntent(intent: AuthIntent) {
   pending = intent;
 }
 
-export function consumeAuthIntent(): "signup" | null {
+export function peekAuthIntent(): AuthIntent {
+  return pending;
+}
+
+export function consumeAuthIntent(): AuthIntent {
   const v = pending;
   pending = null;
   return v;

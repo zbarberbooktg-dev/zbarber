@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { consumeAuthIntent } from "@/lib/authIntent";
 
 export default function BarberTabs() {
   const c = useColors();
@@ -14,7 +15,11 @@ export default function BarberTabs() {
   const isWeb = Platform.OS === "web";
 
   if (!ready || (isSignedIn && syncing && !user)) return null;
-  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
+  if (!isSignedIn) {
+    const intent = consumeAuthIntent();
+    if (intent === "signup") return <Redirect href="/(auth)/sign-up" />;
+    return <Redirect href="/(auth)/sign-in" />;
+  }
   if (role === "client") return <Redirect href="/(client)" />;
   if (role !== "barber" && role !== "admin") return <Redirect href="/(auth)/sign-in" />;
   // Redirect to pending screen if no approved salon yet (check barber profile status, not user account status)
