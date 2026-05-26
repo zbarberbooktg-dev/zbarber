@@ -1,7 +1,4 @@
-import {
-  useListReservations,
-  useUpdateReservationStatus,
-} from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -15,9 +12,18 @@ import {
 import { Button, Card, EmptyState, Pill } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useAuthedFetch } from "@/lib/api";
 
-const BARBER_ID = 1;
 type Status = "pending" | "confirmed" | "completed" | "cancelled";
+
+type Reservation = {
+  id: number;
+  scheduledAt: string;
+  status: Status;
+  clientName?: string | null;
+  serviceName?: string | null;
+  servicePrice?: number | null;
+};
 
 const TONE: Record<Status, "warning" | "success" | "primary" | "danger"> = {
   pending: "warning",
@@ -29,14 +35,25 @@ const TONE: Record<Status, "warning" | "success" | "primary" | "danger"> = {
 export default function BarberSchedule() {
   const c = useColors();
   const { t, locale } = useApp();
-  const [filter, setFilter] = useState<Status | "all">("all");
-  const { data, isLoading, refetch, isRefetching } = useListReservations({
-    barberId: BARBER_ID,
-    ...(filter !== "all" ? { status: filter } : {}),
-  });
-  const updateStatus = useUpdateReservationStatus();
+  const fetcher = useAuthedFetch();
+  const [filter, setFilter] = useState<Status | "all" | "today">("today");
 
-  const items = data?.data ?? [];
+  const { data, isLoading, refetch, isRefetching } = useQuery<{ data: Reservation[]; total: number }>({
+    queryKey: ["myReservations", filter === "all" || filter === "today" ? "all" : filter],
+    queryFn: () => {
+      const status = filter !== "all" && filter !== "today" ? `&status=${filter}` : "";
+      return fetcher(`/api/reservations?limit=200${status}`);
+    },
+  });
+
+  const allItems = data?.data ?? [];
+  const items = filter === "today"
+    ? allItems.filter((r) => {
+        const d = new Date(r.scheduledAt);
+        const now = new Date();
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+      })
+    : allItems;
 
   const STATUS_LABEL: Record<Status, string> = {
     pending: t.statusPending,
@@ -45,28 +62,29 @@ export default function BarberSchedule() {
     cancelled: t.statusCancelled,
   };
 
-  const filters: Array<{ key: Status | "all"; label: string }> = [
+  const filters: Array<{ key: Status | "all" | "today"; label: string }> = [
+    { key: "today", label: "Aujourd'hui" },
     { key: "all", label: t.filterAll },
     { key: "pending", label: t.filterPending },
     { key: "confirmed", label: t.filterConfirmed },
     { key: "completed", label: t.filterCompleted },
   ];
 
-  const handleUpdate = (id: number, status: Status) => {
-    updateStatus.mutate({ id, data: { status } }, { onSuccess: () => refetch() });
+  const handleUpdate = async (id: number, status: Status) => {
+    try {
+      await fetcher(`/api/reservations/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      refetch();
+    } catch {
+      // surface via refetch reload
+    }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <View
-        style={{
-          flexDirection: "row",
-          gap: 8,
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          flexWrap: "wrap",
-        }}
-      >
+      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 12, flexWrap: "wrap" }}>
         {filters.map((f) => {
           const active = filter === f.key;
           return (
@@ -74,21 +92,14 @@ export default function BarberSchedule() {
               key={f.key}
               onPress={() => setFilter(f.key)}
               style={{
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 999,
+                paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
                 backgroundColor: active ? c.primary : c.muted,
               }}
             >
-              <Text
-                style={{
-                  color: active ? c.primaryForeground : c.mutedForeground,
-                  fontFamily: "Inter_600SemiBold",
-                  fontSize: 12,
-                }}
-              >
-                {f.label}
-              </Text>
+              <Text style={{
+                color: active ? c.primaryForeground : c.mutedForeground,
+                fontFamily: "Inter_600SemiBold", fontSize: 12,
+              }}>{f.label}</Text>
             </Pressable>
           );
         })}
@@ -103,81 +114,48 @@ export default function BarberSchedule() {
           data={items}
           keyExtractor={(r) => String(r.id)}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 10 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor={c.primary}
-            />
-          }
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={c.primary} />}
           ListEmptyComponent={
-            <EmptyState
-              icon="calendar"
-              title={t.noBookingsBarber}
-              description={t.noBookingsBarberDesc}
-            />
+            <EmptyState icon="calendar" title={t.noBookingsBarber} description={t.noBookingsBarberDesc} />
           }
           renderItem={({ item }) => {
-            const status = (item.status ?? "pending") as Status;
+            const status = item.status;
             const dt = new Date(item.scheduledAt);
             return (
               <Card>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    marginBottom: 10,
-                  }}
-                >
-                  <Text
-                    style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}
-                  >
-                    {dt.toLocaleDateString(locale, {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}{" "}
-                    · {dt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                  <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>
+                    {dt.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" })}
+                    {" · "}
+                    {dt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                   </Text>
                   <Pill label={STATUS_LABEL[status]} tone={TONE[status]} />
                 </View>
-                <Text
-                  style={{
-                    color: c.mutedForeground,
-                    fontFamily: "Inter_400Regular",
-                    fontSize: 13,
-                    marginBottom: 12,
-                  }}
-                >
-                  {t.reservationN}
-                  {item.id}
+                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                  {item.clientName ?? "Client"}
+                </Text>
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2, marginBottom: 12 }}>
+                  {item.serviceName ?? "Service"}
+                  {item.servicePrice != null ? ` · ${Number(item.servicePrice).toLocaleString()} FC` : ""}
                 </Text>
                 {status === "pending" ? (
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <View style={{ flex: 1 }}>
-                      <Button
-                        label={t.confirm}
-                        icon="check"
-                        onPress={() => handleUpdate(item.id, "confirmed")}
-                      />
+                      <Button label={t.confirm} icon="check" onPress={() => handleUpdate(item.id, "confirmed")} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Button
-                        label={t.refuse}
-                        variant="ghost"
-                        icon="x"
-                        onPress={() => handleUpdate(item.id, "cancelled")}
-                      />
+                      <Button label={t.refuse} variant="ghost" icon="x" onPress={() => handleUpdate(item.id, "cancelled")} />
                     </View>
                   </View>
                 ) : status === "confirmed" ? (
-                  <Button
-                    label={t.markCompleted}
-                    variant="secondary"
-                    icon="check-circle"
-                    onPress={() => handleUpdate(item.id, "completed")}
-                    fullWidth
-                  />
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Button label={t.markCompleted} variant="secondary" icon="check-circle" onPress={() => handleUpdate(item.id, "completed")} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button label="Annuler" variant="ghost" icon="x" onPress={() => handleUpdate(item.id, "cancelled")} />
+                    </View>
+                  </View>
                 ) : null}
               </Card>
             );

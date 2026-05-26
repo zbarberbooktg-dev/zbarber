@@ -52,10 +52,17 @@ export default function BarberTabs() {
         }}
       />
       <Tabs.Screen
+        name="services"
+        options={{
+          title: "Services",
+          tabBarIcon: ({ color, size }) => <Feather name="scissors" size={size - 2} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="clients"
         options={{
-          title: t.tabReviews,
-          tabBarIcon: ({ color, size }) => <Feather name="star" size={size - 2} color={color} />,
+          title: "Clients",
+          tabBarIcon: ({ color, size }) => <Feather name="users" size={size - 2} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -66,6 +73,7 @@ export default function BarberTabs() {
         }}
       />
       <Tabs.Screen name="pending" options={{ href: null }} />
+      <Tabs.Screen name="hours" options={{ href: null }} />
     </Tabs>
   );
 }
