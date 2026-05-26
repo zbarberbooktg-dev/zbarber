@@ -122,6 +122,20 @@ export const translations = {
     clientN: "Client #",
 
     mySalon: "Mon salon",
+
+    onboarding: {
+      langLabel: "Langue",
+      themeLabel: "Thème",
+      continue: "Continuer →",
+      start: "Commencer",
+      skip: "Passer l'introduction",
+      slides: [
+        { tag: "01 — DÉCOUVERTE", title: "Trouvez\nl'excellence.", subtitle: "Parcourez les meilleurs salons certifiés près de chez vous. Photos, avis, services et tarifs — tout en un coup d'œil." },
+        { tag: "02 — RÉSERVATION", title: "Réservez\nsans effort.", subtitle: "Choisissez votre prestation, votre créneau et confirmez en quelques secondes. Rappels automatiques inclus." },
+        { tag: "03 — BARBIER PRO", title: "Développez\nvotre clientèle.", subtitle: "Publiez vos services, gérez vos horaires, confirmez ou refusez les rendez-vous. Votre salon, votre tempo." },
+        { tag: "04 — COMMUNAUTÉ", title: "Rejoignez\nle cercle.", subtitle: "Des milliers de clients et barbiers font confiance à Global Barber Corp. Élevez votre expérience grooming." },
+      ],
+    },
   },
   en: {
     appTagline: "The platform for African barbers",
@@ -244,6 +258,20 @@ export const translations = {
     clientN: "Client #",
 
     mySalon: "My shop",
+
+    onboarding: {
+      langLabel: "Language",
+      themeLabel: "Theme",
+      continue: "Continue →",
+      start: "Get started",
+      skip: "Skip intro",
+      slides: [
+        { tag: "01 — DISCOVERY", title: "Find\nexcellence.", subtitle: "Browse the best certified barbershops near you. Photos, reviews, services and prices — all at a glance." },
+        { tag: "02 — BOOKING", title: "Book\neffortlessly.", subtitle: "Pick a service, a slot, and confirm in seconds. Automatic reminders included." },
+        { tag: "03 — PRO BARBER", title: "Grow your\nclientele.", subtitle: "List your services, manage your hours, accept or decline bookings. Your shop, your tempo." },
+        { tag: "04 — COMMUNITY", title: "Join\nthe circle.", subtitle: "Thousands of clients and barbers trust Global Barber Corp. Elevate your grooming experience." },
+      ],
+    },
   },
 } as const;
 
