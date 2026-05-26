@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Image,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -13,7 +12,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Constants from "expo-constants";
 import { Feather } from "@expo/vector-icons";
 
 import { useApp } from "@/contexts/AppContext";
@@ -67,11 +65,8 @@ export default function SignUpScreen() {
     }
   };
 
-  const vitrineUrl = (Constants.expoConfig?.extra as any)?.vitrineUrl
-    ?? process.env.EXPO_PUBLIC_VITRINE_URL
-    ?? "https://globalbarber.app";
-  const openTerms = () => Linking.openURL(`${vitrineUrl}/terms`);
-  const openPrivacy = () => Linking.openURL(`${vitrineUrl}/privacy`);
+  const openTerms = () => router.push("/legal/terms");
+  const openPrivacy = () => router.push("/legal/privacy");
 
   const handleStart = async () => {
     setErr(null);

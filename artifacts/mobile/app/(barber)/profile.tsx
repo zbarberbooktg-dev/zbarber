@@ -251,6 +251,18 @@ export default function BarberProfile() {
             onPress={handleSwitchToClient}
           />
           <Button
+            label={(t as any).legalTerms ?? "Conditions d'utilisation"}
+            variant="ghost"
+            icon="file-text"
+            onPress={() => router.push("/legal/terms")}
+          />
+          <Button
+            label={(t as any).legalPrivacy ?? "Politique de confidentialité"}
+            variant="ghost"
+            icon="shield"
+            onPress={() => router.push("/legal/privacy")}
+          />
+          <Button
             label={t.signOut}
             variant="ghost"
             icon="log-out"
