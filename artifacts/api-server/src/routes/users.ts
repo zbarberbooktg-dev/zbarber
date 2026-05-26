@@ -43,7 +43,7 @@ router.delete("/users/:id", requireAuth, requireAdmin, async (req, res) => {
   res.status(204).send();
 });
 
-router.post("/users/:id/suspend", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/users/:id/suspend", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(usersTable).set({ status: "suspended" }).where(eq(usersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }
@@ -51,7 +51,7 @@ router.post("/users/:id/suspend", requireAuth, requireAdmin, async (req, res) =>
   res.json(safeUser);
 });
 
-router.post("/users/:id/activate", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/users/:id/activate", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(usersTable).set({ status: "active" }).where(eq(usersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }

@@ -57,7 +57,7 @@ router.get("/reservations/:id", requireAuth, async (req: AuthedRequest, res) => 
   res.json(await enrichReservation(r));
 });
 
-router.patch("/reservations/:id/status", requireAuth, async (req: AuthedRequest, res) => {
+router.patch("/reservations/:id", requireAuth, async (req: AuthedRequest, res) => {
   const id = parseInt(String(req.params.id));
   const [existing] = await db.select().from(reservationsTable).where(eq(reservationsTable.id, id)).limit(1);
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
