@@ -80,14 +80,10 @@ export default function SignUpScreen() {
     }
     try {
       const trimmedName = name.trim();
-      const [firstName, ...rest] = trimmedName.split(/\s+/);
-      const lastName = rest.join(" ");
       const { error } = await signUp.password({
         emailAddress: email.trim(),
         password,
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
-        unsafeMetadata: { role, phone: phone.trim() },
+        unsafeMetadata: { role, phone: phone.trim(), name: trimmedName },
       });
       if (error) { setErr(error.message ?? "Erreur d'inscription"); return; }
       await signUp.verifications.sendEmailCode();
