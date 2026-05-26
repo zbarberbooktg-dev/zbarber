@@ -1,45 +1,50 @@
 import { Router } from "express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, barbersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import crypto from "crypto";
+import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 
 const router = Router();
 
-function hashPassword(password: string) {
-  return crypto.createHash("sha256").update(password + "gbc-salt").digest("hex");
-}
-
-router.post("/auth/register", async (req, res) => {
-  const body = z.object({ name: z.string().min(2), email: z.string().email(), password: z.string().min(8), phone: z.string().optional() }).safeParse(req.body);
-  if (!body.success) return res.status(400).json({ error: "Invalid input" });
-  const { name, email, password, phone } = body.data;
-  const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-  if (existing.length) return res.status(409).json({ error: "Email already registered" });
-  const [user] = await db.insert(usersTable).values({ name, email, passwordHash: hashPassword(password), phone, role: "client", status: "active" }).returning();
+router.get("/auth/me", requireAuth, async (req: AuthedRequest, res) => {
+  const user = req.localUser!;
   const { passwordHash: _, ...safeUser } = user;
-  res.status(201).json(safeUser);
+  let barber = null;
+  if (user.role === "barber") {
+    const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
+    barber = b ?? null;
+  }
+  res.json({ user: safeUser, barber });
 });
 
-router.post("/auth/login", async (req, res) => {
-  const body = z.object({ email: z.string().email(), password: z.string() }).safeParse(req.body);
-  if (!body.success) return res.status(400).json({ error: "Invalid input" });
-  const { email, password } = body.data;
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-  if (!user || user.passwordHash !== hashPassword(password)) return res.status(401).json({ error: "Invalid credentials" });
-  if (user.status === "suspended") return res.status(403).json({ error: "Account suspended" });
-  const { passwordHash: _, ...safeUser } = user;
-  res.json({ user: safeUser, token: `gbc-token-${user.id}` });
-});
+router.post("/auth/sync", requireAuth, async (req: AuthedRequest, res) => {
+  const body = z.object({
+    role: z.enum(["client", "barber"]).optional(),
+    name: z.string().min(2).optional(),
+    phone: z.string().optional(),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
 
-router.get("/auth/me", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token?.startsWith("gbc-token-")) return res.status(401).json({ error: "Unauthorized" });
-  const userId = parseInt(token.replace("gbc-token-", ""));
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-  if (!user) return res.status(404).json({ error: "User not found" });
-  const { passwordHash: _, ...safeUser } = user;
-  res.json(safeUser);
+  const user = req.localUser!;
+  const update: Partial<typeof usersTable.$inferInsert> = {};
+  if (body.data.name && body.data.name !== user.name) update.name = body.data.name;
+  if (body.data.phone && body.data.phone !== user.phone) update.phone = body.data.phone;
+  if (body.data.role && user.role !== "admin" && user.role !== body.data.role) update.role = body.data.role;
+
+  let final = user;
+  if (Object.keys(update).length) {
+    const [updated] = await db.update(usersTable).set(update).where(eq(usersTable.id, user.id)).returning();
+    final = updated;
+  }
+
+  let barber = null;
+  if (final.role === "barber") {
+    const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, final.id)).limit(1);
+    barber = b ?? null;
+  }
+
+  const { passwordHash: _, ...safeUser } = final;
+  res.json({ user: safeUser, barber });
 });
 
 export default router;

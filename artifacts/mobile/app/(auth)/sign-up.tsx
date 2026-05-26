@@ -1,0 +1,240 @@
+import { useSignUp, useAuth } from "@clerk/expo";
+import { Link, useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+
+import { useApp } from "@/contexts/AppContext";
+import { useColors } from "@/hooks/useColors";
+
+type Role = "client" | "barber";
+type Step = "details" | "verify";
+
+export default function SignUpScreen() {
+  const c = useColors();
+  const { syncAuth } = useApp();
+  const router = useRouter();
+  const { signUp, errors, fetchStatus } = useSignUp();
+  const { isSignedIn } = useAuth();
+
+  const [role, setRole] = useState<Role>("client");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<Step>("details");
+  const [err, setErr] = useState<string | null>(null);
+
+  if (isSignedIn && step !== "verify") {
+    router.replace("/");
+    return null;
+  }
+
+  const busy = fetchStatus === "fetching";
+
+  const handleStart = async () => {
+    setErr(null);
+    try {
+      const { error } = await signUp.password({ emailAddress: email.trim(), password });
+      if (error) {
+        setErr(error.message ?? "Erreur d'inscription");
+        return;
+      }
+      await signUp.verifications.sendEmailCode();
+      setStep("verify");
+    } catch (e: any) {
+      setErr(e?.message ?? "Erreur d'inscription");
+    }
+  };
+
+  const handleVerify = async () => {
+    setErr(null);
+    try {
+      await signUp.verifications.verifyEmailCode({ code: code.trim() });
+      if (signUp.status === "complete") {
+        await signUp.finalize({
+          navigate: async () => {
+            await syncAuth(role);
+            router.replace("/");
+          },
+        });
+      } else {
+        setErr("Vérification incomplète");
+      }
+    } catch (e: any) {
+      setErr(e?.message ?? "Code invalide");
+    }
+  };
+
+  const RoleButton = ({ value, title, subtitle }: { value: Role; title: string; subtitle: string }) => (
+    <Pressable
+      onPress={() => setRole(value)}
+      style={{
+        flex: 1,
+        padding: 16,
+        borderRadius: c.radius,
+        borderWidth: 2,
+        borderColor: role === value ? c.primary : c.border,
+        backgroundColor: role === value ? c.primary + "15" : c.card,
+      }}
+    >
+      <Text style={{ fontFamily: "Inter_600SemiBold", color: c.foreground, marginBottom: 4 }}>{title}</Text>
+      <Text style={{ fontFamily: "Inter_400Regular", color: c.mutedForeground, fontSize: 12 }}>{subtitle}</Text>
+    </Pressable>
+  );
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: c.background }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24 }}>
+        {step === "details" ? (
+          <>
+            <View style={{ marginBottom: 28 }}>
+              <Text style={{ fontFamily: "Inter_700Bold", fontSize: 28, color: c.foreground, marginBottom: 8 }}>
+                Créer un compte
+              </Text>
+              <Text style={{ fontFamily: "Inter_400Regular", color: c.mutedForeground }}>
+                Rejoignez la plateforme Global Barber
+              </Text>
+            </View>
+
+            <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 8 }}>Je suis</Text>
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}>
+              <RoleButton value="client" title="Client" subtitle="Réserver un barbier" />
+              <RoleButton value="barber" title="Barbier" subtitle="Gérer mon salon" />
+            </View>
+
+            <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Email</Text>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder="vous@exemple.com"
+              placeholderTextColor={c.mutedForeground}
+              style={inputStyle(c)}
+            />
+
+            <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Mot de passe</Text>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="Min. 8 caractères"
+              placeholderTextColor={c.mutedForeground}
+              style={inputStyle(c)}
+            />
+
+            {(err || (errors as any)?.raw?.[0]?.message) && (
+              <Text style={{ color: c.destructive, marginBottom: 12, fontFamily: "Inter_400Regular" }}>
+                {err || (errors as any)?.raw?.[0]?.message}
+              </Text>
+            )}
+
+            <Pressable
+              onPress={handleStart}
+              disabled={busy || !email || password.length < 8}
+              style={({ pressed }) => ({
+                backgroundColor: c.primary,
+                padding: 16,
+                borderRadius: c.radius,
+                alignItems: "center",
+                opacity: busy || !email || password.length < 8 ? 0.6 : pressed ? 0.85 : 1,
+              })}
+            >
+              {busy ? (
+                <ActivityIndicator color={c.primaryForeground} />
+              ) : (
+                <Text style={{ color: c.primaryForeground, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
+                  Continuer
+                </Text>
+              )}
+            </Pressable>
+
+            <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24 }}>
+              <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular" }}>Déjà un compte ? </Text>
+              <Link href="/(auth)/sign-in" replace>
+                <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold" }}>Se connecter</Text>
+              </Link>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={{ marginBottom: 28 }}>
+              <Text style={{ fontFamily: "Inter_700Bold", fontSize: 28, color: c.foreground, marginBottom: 8 }}>
+                Vérifiez votre email
+              </Text>
+              <Text style={{ fontFamily: "Inter_400Regular", color: c.mutedForeground }}>
+                Entrez le code envoyé à {email}
+              </Text>
+            </View>
+
+            <TextInput
+              value={code}
+              onChangeText={setCode}
+              keyboardType="number-pad"
+              placeholder="Code à 6 chiffres"
+              placeholderTextColor={c.mutedForeground}
+              style={inputStyle(c)}
+            />
+
+            {(err || (errors as any)?.raw?.[0]?.message) && (
+              <Text style={{ color: c.destructive, marginBottom: 12, fontFamily: "Inter_400Regular" }}>
+                {err || (errors as any)?.raw?.[0]?.message}
+              </Text>
+            )}
+
+            <Pressable
+              onPress={handleVerify}
+              disabled={busy || code.length < 4}
+              style={({ pressed }) => ({
+                backgroundColor: c.primary,
+                padding: 16,
+                borderRadius: c.radius,
+                alignItems: "center",
+                opacity: busy || code.length < 4 ? 0.6 : pressed ? 0.85 : 1,
+              })}
+            >
+              {busy ? (
+                <ActivityIndicator color={c.primaryForeground} />
+              ) : (
+                <Text style={{ color: c.primaryForeground, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
+                  Vérifier
+                </Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              onPress={() => signUp.verifications.sendEmailCode()}
+              style={{ marginTop: 16, alignItems: "center" }}
+            >
+              <Text style={{ color: c.primary, fontFamily: "Inter_500Medium" }}>Renvoyer le code</Text>
+            </Pressable>
+          </>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+function inputStyle(c: ReturnType<typeof useColors>) {
+  return {
+    backgroundColor: c.card,
+    color: c.foreground,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: c.radius,
+    padding: 14,
+    marginBottom: 16,
+    fontFamily: "Inter_400Regular" as const,
+  };
+}
