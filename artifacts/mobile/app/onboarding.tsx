@@ -8,6 +8,7 @@ import {
   Dimensions,
   FlatList,
   Pressable,
+  ScrollView,
   Text,
   View,
   ViewToken,
@@ -235,16 +236,18 @@ function Slide({
     <LinearGradient
       colors={[gradient[0], gradient[1], gradient[0]]}
       locations={[0, 0.55, 1]}
-      style={{
-        width,
-        minHeight: height,
-        paddingTop: insetsTop + 56,
-        paddingHorizontal: 28,
-        paddingBottom: 200,
-      }}
+      style={{ width, height }}
     >
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: insetsTop + 56,
+          paddingHorizontal: 28,
+          paddingBottom: showPrefs ? 280 : 220,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Big icon composition */}
-      <View style={{ marginBottom: 56, position: "relative" }}>
+      <View style={{ marginBottom: showPrefs ? 32 : 56, position: "relative" }}>
         <View
           style={{
             width: 140, height: 140, borderRadius: 70,
@@ -341,6 +344,7 @@ function Slide({
           </PrefRow>
         </View>
       )}
+      </ScrollView>
     </LinearGradient>
   );
 }
