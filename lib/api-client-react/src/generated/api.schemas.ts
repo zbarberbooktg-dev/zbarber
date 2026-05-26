@@ -5,6 +5,21 @@
  * Global Barber Corp API
  * OpenAPI spec version: 0.1.0
  */
+export interface UploadUrlRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @minLength 1 */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -570,9 +585,15 @@ export interface FinancingRequest {
   amount: number;
   purpose: FinancingRequestPurpose;
   description?: string;
+  monthlyRevenue: number;
+  yearsActive: number;
+  repaymentMonths: number;
+  documents: string[];
   status: FinancingRequestStatus;
   /** @nullable */
   adminNote?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
   createdAt: string;
 }
 
@@ -587,9 +608,25 @@ export const FinancingInputPurpose = {
 } as const;
 
 export interface FinancingInput {
+  /**
+     * @minimum 50000
+     * @maximum 5000000
+     */
   amount: number;
   purpose: FinancingInputPurpose;
+  /** @minLength 30 */
   description: string;
+  /** @minimum 0 */
+  monthlyRevenue: number;
+  /** @minimum 0 */
+  yearsActive: number;
+  /**
+     * @minimum 3
+     * @maximum 24
+     */
+  repaymentMonths: number;
+  /** @minItems 1 */
+  documents: string[];
 }
 
 export type FinancingStatusUpdateStatus = typeof FinancingStatusUpdateStatus[keyof typeof FinancingStatusUpdateStatus];

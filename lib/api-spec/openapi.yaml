@@ -37,6 +37,8 @@ tags:
     description: Statistics and analytics
   - name: admin
     description: Admin operations
+  - name: storage
+    description: Object storage upload and serving endpoints.
 
 paths:
   /healthz:
@@ -1420,8 +1422,52 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActivityItem"
 
+  /storage/uploads/request-url:
+    post:
+      tags: [storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+
 components:
   schemas:
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        size:
+          type: integer
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+
     HealthStatus:
       type: object
       properties:
@@ -2120,7 +2166,7 @@ components:
     # ── FINANCING ─────────────────────────────────────────────────────
     FinancingRequest:
       type: object
-      required: [id, barberId, amount, purpose, status, createdAt]
+      required: [id, barberId, amount, purpose, status, createdAt, monthlyRevenue, yearsActive, repaymentMonths, documents]
       properties:
         id:
           type: integer
@@ -2135,26 +2181,57 @@ components:
           enum: [renovation, tools, products, other]
         description:
           type: string
+        monthlyRevenue:
+          type: number
+        yearsActive:
+          type: integer
+        repaymentMonths:
+          type: integer
+        documents:
+          type: array
+          items:
+            type: string
         status:
           type: string
           enum: [pending, reviewing, approved, rejected]
         adminNote:
           type: ["string", "null"]
+        reviewedAt:
+          type: ["string", "null"]
+          format: date-time
         createdAt:
           type: string
           format: date-time
 
     FinancingInput:
       type: object
-      required: [amount, purpose, description]
+      required: [amount, purpose, description, monthlyRevenue, yearsActive, repaymentMonths, documents]
       properties:
         amount:
           type: number
+          minimum: 50000
+          maximum: 5000000
         purpose:
           type: string
           enum: [renovation, tools, products, other]
         description:
           type: string
+          minLength: 30
+        monthlyRevenue:
+          type: number
+          minimum: 0
+        yearsActive:
+          type: integer
+          minimum: 0
+        repaymentMonths:
+          type: integer
+          minimum: 3
+          maximum: 24
+        documents:
+          type: array
+          minItems: 1
+          items:
+            type: string
 
     FinancingStatusUpdate:
       type: object

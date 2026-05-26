@@ -8,7 +8,23 @@
 import type { FinancingInputPurpose } from './financingInputPurpose';
 
 export interface FinancingInput {
+  /**
+     * @minimum 50000
+     * @maximum 5000000
+     */
   amount: number;
   purpose: FinancingInputPurpose;
+  /** @minLength 30 */
   description: string;
+  /** @minimum 0 */
+  monthlyRevenue: number;
+  /** @minimum 0 */
+  yearsActive: number;
+  /**
+     * @minimum 3
+     * @maximum 24
+     */
+  repaymentMonths: number;
+  /** @minItems 1 */
+  documents: string[];
 }

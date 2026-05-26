@@ -1247,8 +1247,13 @@ export const ListFinancingRequestsResponse = zod.object({
   "amount": zod.number(),
   "purpose": zod.enum(['renovation', 'tools', 'products', 'other']),
   "description": zod.string().optional(),
+  "monthlyRevenue": zod.number(),
+  "yearsActive": zod.number(),
+  "repaymentMonths": zod.number(),
+  "documents": zod.array(zod.string()),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
+  "reviewedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })),
   "total": zod.number(),
@@ -1260,10 +1265,29 @@ export const ListFinancingRequestsResponse = zod.object({
 /**
  * @summary Submit financing request
  */
+export const createFinancingRequestBodyAmountMin = 50000;
+export const createFinancingRequestBodyAmountMax = 5000000;
+
+export const createFinancingRequestBodyDescriptionMin = 30;
+
+export const createFinancingRequestBodyMonthlyRevenueMin = 0;
+
+export const createFinancingRequestBodyYearsActiveMin = 0;
+
+export const createFinancingRequestBodyRepaymentMonthsMin = 3;
+export const createFinancingRequestBodyRepaymentMonthsMax = 24;
+
+
+
+
 export const CreateFinancingRequestBody = zod.object({
-  "amount": zod.number(),
+  "amount": zod.number().min(createFinancingRequestBodyAmountMin).max(createFinancingRequestBodyAmountMax),
   "purpose": zod.enum(['renovation', 'tools', 'products', 'other']),
-  "description": zod.string()
+  "description": zod.string().min(createFinancingRequestBodyDescriptionMin),
+  "monthlyRevenue": zod.number().min(createFinancingRequestBodyMonthlyRevenueMin),
+  "yearsActive": zod.number().min(createFinancingRequestBodyYearsActiveMin),
+  "repaymentMonths": zod.number().min(createFinancingRequestBodyRepaymentMonthsMin).max(createFinancingRequestBodyRepaymentMonthsMax),
+  "documents": zod.array(zod.string()).min(1)
 })
 
 
@@ -1281,8 +1305,13 @@ export const GetFinancingRequestResponse = zod.object({
   "amount": zod.number(),
   "purpose": zod.enum(['renovation', 'tools', 'products', 'other']),
   "description": zod.string().optional(),
+  "monthlyRevenue": zod.number(),
+  "yearsActive": zod.number(),
+  "repaymentMonths": zod.number(),
+  "documents": zod.array(zod.string()),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
+  "reviewedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -1306,8 +1335,13 @@ export const UpdateFinancingStatusResponse = zod.object({
   "amount": zod.number(),
   "purpose": zod.enum(['renovation', 'tools', 'products', 'other']),
   "description": zod.string().optional(),
+  "monthlyRevenue": zod.number(),
+  "yearsActive": zod.number(),
+  "repaymentMonths": zod.number(),
+  "documents": zod.array(zod.string()),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
+  "reviewedAt": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -1513,5 +1547,35 @@ export const GetRecentActivityResponseItem = zod.object({
   "createdAt": zod.coerce.date()
 })
 export const GetRecentActivityResponse = zod.array(GetRecentActivityResponseItem)
+
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+
+
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+})
+
+
+
+
+
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().min(1),
+  "size": zod.number().min(1),
+  "contentType": zod.string().min(1)
+}).optional()
+})
 
 

@@ -93,6 +93,8 @@ export * from './suspendInput';
 export * from './syncAuthInput';
 export * from './syncAuthInputRole';
 export * from './topBarber';
+export * from './uploadUrlRequest';
+export * from './uploadUrlResponse';
 export * from './user';
 export * from './userListResponse';
 export * from './userRole';
