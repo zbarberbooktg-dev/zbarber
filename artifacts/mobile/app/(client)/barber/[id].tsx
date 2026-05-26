@@ -16,11 +16,13 @@ import {
 } from "react-native";
 
 import { Avatar, Button, Card, Pill, SectionTitle } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function BarberDetail() {
   const c = useColors();
   const router = useRouter();
+  const { t, locale } = useApp();
   const { id } = useLocalSearchParams<{ id: string }>();
   const barberId = Number(id);
 
@@ -33,7 +35,14 @@ export default function BarberDetail() {
 
   if (isLoading || !barber) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: c.background,
+        }}
+      >
         <ActivityIndicator color={c.primary} />
       </View>
     );
@@ -47,7 +56,7 @@ export default function BarberDetail() {
       dt.setDate(today.getDate() + d);
       dt.setHours(h, 0, 0, 0);
       slots.push({
-        label: dt.toLocaleString("fr-FR", {
+        label: dt.toLocaleString(locale, {
           weekday: "short",
           day: "numeric",
           hour: "2-digit",
@@ -60,7 +69,7 @@ export default function BarberDetail() {
 
   const handleBook = () => {
     if (!selectedService || !selectedSlot) {
-      Alert.alert("Sélection requise", "Choisissez un service et un créneau.");
+      Alert.alert(t.selectionRequired, t.selectionRequiredDesc);
       return;
     }
     createReservation.mutate(
@@ -73,11 +82,11 @@ export default function BarberDetail() {
       },
       {
         onSuccess: () => {
-          Alert.alert("Réservation envoyée", "Votre demande a été transmise au salon.");
+          Alert.alert(t.bookingSent, t.bookingSentDesc);
           router.replace("/(client)/bookings");
         },
         onError: () => {
-          Alert.alert("Erreur", "Impossible de créer la réservation.");
+          Alert.alert(t.error, t.bookingError);
         },
       },
     );
@@ -114,14 +123,21 @@ export default function BarberDetail() {
 
       {barber.bio ? (
         <Card>
-          <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 20 }}>
+          <Text
+            style={{
+              color: c.foreground,
+              fontFamily: "Inter_400Regular",
+              fontSize: 14,
+              lineHeight: 20,
+            }}
+          >
             {barber.bio}
           </Text>
         </Card>
       ) : null}
 
       <View>
-        <SectionTitle title="Services" />
+        <SectionTitle title={t.services} />
         <View style={{ gap: 10 }}>
           {(services ?? []).map((s) => {
             const active = selectedService === s.id;
@@ -134,17 +150,30 @@ export default function BarberDetail() {
                   borderWidth: active ? 2 : 1,
                 }}
               >
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
                       {s.name}
                     </Text>
-                    <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
-                      {s.durationMinutes} min
+                    <Text
+                      style={{
+                        color: c.mutedForeground,
+                        fontFamily: "Inter_400Regular",
+                        fontSize: 12,
+                        marginTop: 2,
+                      }}
+                    >
+                      {s.durationMinutes} {t.minutes}
                     </Text>
                   </View>
                   <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 16 }}>
-                    {Number(s.price).toLocaleString("fr-FR")} F
+                    {Number(s.price).toLocaleString(locale)} F
                   </Text>
                 </View>
               </Card>
@@ -152,14 +181,14 @@ export default function BarberDetail() {
           })}
           {(services ?? []).length === 0 ? (
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13 }}>
-              Aucun service disponible pour le moment.
+              {t.noServices}
             </Text>
           ) : null}
         </View>
       </View>
 
       <View>
-        <SectionTitle title="Créneaux disponibles" />
+        <SectionTitle title={t.availableSlots} />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {slots.map((slot) => {
             const active = selectedSlot === slot.iso;
@@ -192,7 +221,7 @@ export default function BarberDetail() {
       </View>
 
       <Button
-        label="Réserver"
+        label={t.book}
         icon="check"
         onPress={handleBook}
         loading={createReservation.isPending}

@@ -8,11 +8,13 @@ import { useColors } from "@/hooks/useColors";
 
 export default function ClientTabs() {
   const c = useColors();
-  const { role, ready } = useApp();
+  const { role, ready, t } = useApp();
   const isWeb = Platform.OS === "web";
 
   if (!ready) return null;
-  if (role !== "client") return <Redirect href={role === "barber" ? "/(barber)" : "/role-select"} />;
+  if (role !== "client")
+    return <Redirect href={role === "barber" ? "/(barber)" : "/role-select"} />;
+
   return (
     <Tabs
       screenOptions={{
@@ -34,14 +36,14 @@ export default function ClientTabs() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Découvrir",
+          title: t.tabDiscover,
           tabBarIcon: ({ color, size }) => <Feather name="search" size={size - 2} color={color} />,
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
-          title: "Réservations",
+          title: t.tabBookings,
           tabBarIcon: ({ color, size }) => (
             <Feather name="calendar" size={size - 2} color={color} />
           ),
@@ -50,11 +52,11 @@ export default function ClientTabs() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
+          title: t.tabProfile,
           tabBarIcon: ({ color, size }) => <Feather name="user" size={size - 2} color={color} />,
         }}
       />
-      <Tabs.Screen name="barber/[id]" options={{ href: null, title: "Barbier" }} />
+      <Tabs.Screen name="barber/[id]" options={{ href: null, title: t.barber }} />
     </Tabs>
   );
 }

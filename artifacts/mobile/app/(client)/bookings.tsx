@@ -1,28 +1,23 @@
 import { useListReservations } from "@workspace/api-client-react";
 import React, { useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
 
 import { Card, EmptyState, Pill } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 type Status = "pending" | "confirmed" | "completed" | "cancelled";
 
-const STATUS_LABEL: Record<Status, string> = {
-  pending: "En attente",
-  confirmed: "Confirmé",
-  completed: "Terminé",
-  cancelled: "Annulé",
-};
-
-const STATUS_TONE: Record<Status, "warning" | "success" | "primary" | "danger"> = {
-  pending: "warning",
-  confirmed: "success",
-  completed: "primary",
-  cancelled: "danger",
-};
-
 export default function Bookings() {
   const c = useColors();
+  const { t, locale } = useApp();
   const [filter, setFilter] = useState<Status | "all">("all");
   const { data, isLoading, refetch, isRefetching } = useListReservations(
     filter === "all" ? undefined : { status: filter },
@@ -30,16 +25,38 @@ export default function Bookings() {
 
   const items = data?.data ?? [];
 
+  const STATUS_LABEL: Record<Status, string> = {
+    pending: t.statusPending,
+    confirmed: t.statusConfirmed,
+    completed: t.statusCompleted,
+    cancelled: t.statusCancelled,
+  };
+
+  const STATUS_TONE: Record<Status, "warning" | "success" | "primary" | "danger"> = {
+    pending: "warning",
+    confirmed: "success",
+    completed: "primary",
+    cancelled: "danger",
+  };
+
   const filters: Array<{ key: Status | "all"; label: string }> = [
-    { key: "all", label: "Tous" },
-    { key: "pending", label: "En attente" },
-    { key: "confirmed", label: "Confirmés" },
-    { key: "completed", label: "Terminés" },
+    { key: "all", label: t.filterAll },
+    { key: "pending", label: t.filterPending },
+    { key: "confirmed", label: t.filterConfirmed },
+    { key: "completed", label: t.filterCompleted },
   ];
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 8,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexWrap: "wrap",
+        }}
+      >
         {filters.map((f) => {
           const active = filter === f.key;
           return (
@@ -84,20 +101,24 @@ export default function Bookings() {
             />
           }
           ListEmptyComponent={
-            <EmptyState
-              icon="calendar"
-              title="Aucune réservation"
-              description="Vos rendez-vous apparaîtront ici"
-            />
+            <EmptyState icon="calendar" title={t.noBookings} description={t.noBookingsDesc} />
           }
           renderItem={({ item }) => {
             const status = (item.status ?? "pending") as Status;
             const date = new Date(item.scheduledAt);
             return (
               <Card>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                  <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>
-                    {date.toLocaleDateString("fr-FR", {
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                  }}
+                >
+                  <Text
+                    style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}
+                  >
+                    {date.toLocaleDateString(locale, {
                       weekday: "short",
                       day: "numeric",
                       month: "short",
@@ -105,11 +126,24 @@ export default function Bookings() {
                   </Text>
                   <Pill label={STATUS_LABEL[status]} tone={STATUS_TONE[status]} />
                 </View>
-                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 4 }}>
-                  {date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                <Text
+                  style={{
+                    color: c.mutedForeground,
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 13,
+                    marginBottom: 4,
+                  }}
+                >
+                  {date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                 </Text>
                 {item.notes ? (
-                  <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12 }}>
+                  <Text
+                    style={{
+                      color: c.mutedForeground,
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 12,
+                    }}
+                  >
                     {item.notes}
                   </Text>
                 ) : null}

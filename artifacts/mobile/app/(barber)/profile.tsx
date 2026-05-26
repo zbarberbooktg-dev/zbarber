@@ -6,6 +6,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
+import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
 
 const BARBER_ID = 1;
@@ -13,14 +14,35 @@ const BARBER_ID = 1;
 export default function BarberProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, signOut } = useApp();
+  const { themePref, setThemePref, lang, setLang, signOut, t } = useApp();
   const { data: barber } = useGetBarber(BARBER_ID);
 
   const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
-    { key: "system", label: "Auto", icon: "smartphone" },
-    { key: "light", label: "Clair", icon: "sun" },
-    { key: "dark", label: "Sombre", icon: "moon" },
+    { key: "system", label: t.themeAuto, icon: "smartphone" },
+    { key: "light", label: t.themeLight, icon: "sun" },
+    { key: "dark", label: t.themeDark, icon: "moon" },
   ];
+
+  const langOptions: Array<{ key: Lang; label: string }> = [
+    { key: "fr", label: "Français" },
+    { key: "en", label: "English" },
+  ];
+
+  const SectionLabel = ({ label }: { label: string }) => (
+    <Text
+      style={{
+        color: c.mutedForeground,
+        fontFamily: "Inter_600SemiBold",
+        fontSize: 11,
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        marginBottom: 8,
+        marginLeft: 4,
+      }}
+    >
+      {label}
+    </Text>
+  );
 
   return (
     <ScrollView
@@ -29,32 +51,20 @@ export default function BarberProfile() {
     >
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <Avatar name={barber?.salonName ?? "Salon"} size={56} />
+          <Avatar name={barber?.salonName ?? t.mySalon} size={56} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>
-              {barber?.salonName ?? "Mon salon"}
+              {barber?.salonName ?? t.mySalon}
             </Text>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13 }}>
-              {barber?.city ?? "Compte barbier"}
+              {barber?.city ?? t.barberAccount}
             </Text>
           </View>
         </View>
       </Card>
 
       <View>
-        <Text
-          style={{
-            color: c.mutedForeground,
-            fontFamily: "Inter_600SemiBold",
-            fontSize: 11,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            marginBottom: 8,
-            marginLeft: 4,
-          }}
-        >
-          Apparence
-        </Text>
+        <SectionLabel label={t.appearance} />
         <Card style={{ flexDirection: "row", gap: 8, padding: 8 }}>
           {themeOptions.map((opt) => {
             const active = themePref === opt.key;
@@ -88,22 +98,42 @@ export default function BarberProfile() {
       </View>
 
       <View>
-        <Text
-          style={{
-            color: c.mutedForeground,
-            fontFamily: "Inter_600SemiBold",
-            fontSize: 11,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            marginBottom: 8,
-            marginLeft: 4,
-          }}
-        >
-          Compte
-        </Text>
+        <SectionLabel label={t.language} />
+        <Card style={{ flexDirection: "row", gap: 8, padding: 8 }}>
+          {langOptions.map((opt) => {
+            const active = lang === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                onPress={() => setLang(opt.key)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: c.radius - 4,
+                  backgroundColor: active ? c.accent : "transparent",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    color: active ? c.primary : c.mutedForeground,
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 13,
+                  }}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </Card>
+      </View>
+
+      <View>
+        <SectionLabel label={t.account} />
         <View style={{ gap: 10 }}>
           <Button
-            label="Passer en mode Client"
+            label={t.switchToClient}
             variant="secondary"
             icon="refresh-cw"
             onPress={async () => {
@@ -112,7 +142,7 @@ export default function BarberProfile() {
             }}
           />
           <Button
-            label="Se déconnecter"
+            label={t.signOut}
             variant="ghost"
             icon="log-out"
             onPress={async () => {

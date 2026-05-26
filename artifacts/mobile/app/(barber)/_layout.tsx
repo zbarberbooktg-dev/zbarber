@@ -8,11 +8,13 @@ import { useColors } from "@/hooks/useColors";
 
 export default function BarberTabs() {
   const c = useColors();
-  const { role, ready } = useApp();
+  const { role, ready, t } = useApp();
   const isWeb = Platform.OS === "web";
 
   if (!ready) return null;
-  if (role !== "barber") return <Redirect href={role === "client" ? "/(client)" : "/role-select"} />;
+  if (role !== "barber")
+    return <Redirect href={role === "client" ? "/(client)" : "/role-select"} />;
+
   return (
     <Tabs
       screenOptions={{
@@ -34,14 +36,14 @@ export default function BarberTabs() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Salon",
+          title: t.tabSalon,
           tabBarIcon: ({ color, size }) => <Feather name="grid" size={size - 2} color={color} />,
         }}
       />
       <Tabs.Screen
         name="schedule"
         options={{
-          title: "Agenda",
+          title: t.tabSchedule,
           tabBarIcon: ({ color, size }) => (
             <Feather name="calendar" size={size - 2} color={color} />
           ),
@@ -50,14 +52,14 @@ export default function BarberTabs() {
       <Tabs.Screen
         name="clients"
         options={{
-          title: "Avis",
+          title: t.tabReviews,
           tabBarIcon: ({ color, size }) => <Feather name="star" size={size - 2} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
+          title: t.tabProfile,
           tabBarIcon: ({ color, size }) => <Feather name="user" size={size - 2} color={color} />,
         }}
       />
