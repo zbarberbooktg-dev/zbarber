@@ -13,9 +13,13 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  FlatList,
   Image,
   ImageSourcePropType,
   Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -64,6 +68,7 @@ export default function PublicSalonDetail() {
   const { locale, user, t } = useApp();
   const fetcher = useAuthedFetch();
   const [scrolled, setScrolled] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const { data: barber, isLoading } = useGetBarber(barberId);
   const { data: servicesData } = useListBarberServices(barberId);
@@ -198,16 +203,122 @@ export default function PublicSalonDetail() {
         }}
         scrollEventThrottle={32}
       >
-        {/* Hero image (salon logo if available, else fallback) */}
-        <Image
-          source={
-            barber.logoUrl
-              ? { uri: resolveObjectUrl(barber.logoUrl)! }
-              : salonFallbacks[barberId % salonFallbacks.length]
-          }
-          style={{ width: "100%", aspectRatio: 16 / 9 }}
-          resizeMode="cover"
-        />
+        {/* Hero carousel — barber's works (gallery) or fallback to logo */}
+        {(() => {
+          const screenW = Dimensions.get("window").width;
+          const heroH = Math.round(screenW * 9 / 16);
+          const heroSlides: Array<{ key: string; source: ImageSourcePropType }> =
+            galleryData && galleryData.length > 0
+              ? galleryData.map((p) => ({
+                  key: String(p.id),
+                  source: { uri: resolveObjectUrl(p.photoUrl)! },
+                }))
+              : [
+                  {
+                    key: "fallback",
+                    source: barber.logoUrl
+                      ? { uri: resolveObjectUrl(barber.logoUrl)! }
+                      : salonFallbacks[barberId % salonFallbacks.length],
+                  },
+                ];
+
+          const onHeroScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+            const i = Math.round(e.nativeEvent.contentOffset.x / screenW);
+            if (i !== heroIndex) setHeroIndex(i);
+          };
+
+          return (
+            <View style={{ width: "100%", height: heroH, backgroundColor: PALETTE.surface }}>
+              <FlatList
+                data={heroSlides}
+                keyExtractor={(it) => it.key}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={onHeroScroll}
+                scrollEventThrottle={32}
+                renderItem={({ item }) => (
+                  <Image
+                    source={item.source}
+                    style={{ width: screenW, height: heroH }}
+                    resizeMode="cover"
+                  />
+                )}
+              />
+
+              {/* Dark gradient overlay at bottom for legibility */}
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute", left: 0, right: 0, bottom: 0, height: 80,
+                  backgroundColor: "rgba(0,0,0,0.45)",
+                }}
+              />
+
+              {/* Salon logo badge (only when gallery is shown) */}
+              {galleryData && galleryData.length > 0 && barber.logoUrl && (
+                <View style={{
+                  position: "absolute", bottom: 12, left: 16,
+                  width: 56, height: 56, borderRadius: 28,
+                  borderWidth: 2, borderColor: PALETTE.gold,
+                  overflow: "hidden", backgroundColor: PALETTE.surface,
+                }}>
+                  <Image
+                    source={{ uri: resolveObjectUrl(barber.logoUrl)! }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="cover"
+                  />
+                </View>
+              )}
+
+              {/* "Works" badge */}
+              {galleryData && galleryData.length > 0 && (
+                <View style={{
+                  position: "absolute", top: 12, left: 16,
+                  flexDirection: "row", alignItems: "center", gap: 6,
+                  paddingHorizontal: 10, paddingVertical: 6,
+                  borderRadius: 999, backgroundColor: "rgba(0,0,0,0.55)",
+                }}>
+                  <Feather name="image" size={12} color={PALETTE.gold} />
+                  <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
+                    {t.galleryWorks ?? "Réalisations"} · {galleryData.length}
+                  </Text>
+                </View>
+              )}
+
+              {/* Pagination counter */}
+              {heroSlides.length > 1 && (
+                <View style={{
+                  position: "absolute", top: 12, right: 16,
+                  paddingHorizontal: 10, paddingVertical: 6,
+                  borderRadius: 999, backgroundColor: "rgba(0,0,0,0.55)",
+                }}>
+                  <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
+                    {heroIndex + 1} / {heroSlides.length}
+                  </Text>
+                </View>
+              )}
+
+              {/* Dots */}
+              {heroSlides.length > 1 && (
+                <View style={{
+                  position: "absolute", bottom: 10, right: 16,
+                  flexDirection: "row", gap: 5,
+                }}>
+                  {heroSlides.map((_, i) => (
+                    <View
+                      key={i}
+                      style={{
+                        width: i === heroIndex ? 16 : 6, height: 6, borderRadius: 3,
+                        backgroundColor: i === heroIndex ? PALETTE.gold : "rgba(255,255,255,0.55)",
+                      }}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })()}
 
         {/* Salon info */}
         <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
@@ -280,22 +391,6 @@ export default function PublicSalonDetail() {
           ) : null}
         </View>
 
-        {/* Gallery */}
-        {galleryData && galleryData.length > 0 && (
-          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
-            <SectionTitle title="Galerie" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-              {galleryData.map((p) => (
-                <Image
-                  key={p.id}
-                  source={{ uri: resolveObjectUrl(p.photoUrl)! }}
-                  style={{ width: 160, height: 160, borderWidth: 1, borderColor: PALETTE.border }}
-                  resizeMode="cover"
-                />
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
         {/* Schedule */}
         {scheduleData?.workDays && scheduleData.workDays.length > 0 && (
