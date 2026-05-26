@@ -174,7 +174,7 @@ export default function PublicSalonDetail() {
         flexDirection: "row",
         alignItems: "center",
         paddingTop: insets.top + 12,
-        paddingHorizontal: 20,
+        paddingHorizontal: 14,
         paddingBottom: 12,
         backgroundColor: PALETTE.bg,
         borderBottomWidth: 1,
@@ -321,7 +321,7 @@ export default function PublicSalonDetail() {
         })()}
 
         {/* Salon info */}
-        <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+        <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
           <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 24, marginBottom: 4 }}>
@@ -394,7 +394,7 @@ export default function PublicSalonDetail() {
 
         {/* Schedule */}
         {scheduleData?.workDays && scheduleData.workDays.length > 0 && (
-          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+          <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
             <SectionTitle title="Horaires d'ouverture" />
             <View style={{ gap: 6 }}>
               {WEEK_DAYS_ORDER.map(({ key, label }) => {
@@ -415,7 +415,7 @@ export default function PublicSalonDetail() {
 
         {/* Services */}
         {services.length === 0 ? (
-          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border, alignItems: "center", gap: 10 }}>
+          <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border, alignItems: "center", gap: 10 }}>
             <Feather name="scissors" size={28} color={PALETTE.textDim} />
             <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 14, textAlign: "center" }}>
               Ce salon n'a pas encore publié ses services
@@ -425,7 +425,7 @@ export default function PublicSalonDetail() {
             </Text>
           </View>
         ) : (
-          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+          <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
             <SectionTitle title="Services" />
             {services.map((s) => (
               <Pressable
@@ -472,7 +472,7 @@ export default function PublicSalonDetail() {
 
         {/* Time slots */}
         {selectedService && (
-          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+          <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
             <SectionTitle title="Choisir un créneau" />
             <ScrollView horizontal showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
@@ -506,7 +506,7 @@ export default function PublicSalonDetail() {
 
         {/* Reviews */}
         {reviews.length > 0 && (
-          <View style={{ padding: 20 }}>
+          <View style={{ padding: 14 }}>
             <SectionTitle title="Avis clients" />
             {reviews.slice(0, 5).map((r) => (
               <View key={r.id} style={{
@@ -547,7 +547,7 @@ export default function PublicSalonDetail() {
         <View style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
           paddingBottom: insets.bottom + 16,
-          paddingHorizontal: 20,
+          paddingHorizontal: 14,
           paddingTop: 16,
           backgroundColor: PALETTE.bg,
           borderTopWidth: 1,
@@ -585,7 +585,7 @@ export default function PublicSalonDetail() {
       {services.length === 0 && barber.phone && (
         <View style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
-          paddingBottom: insets.bottom + 16, paddingHorizontal: 20, paddingTop: 16,
+          paddingBottom: insets.bottom + 16, paddingHorizontal: 14, paddingTop: 16,
           backgroundColor: PALETTE.bg, borderTopWidth: 1, borderTopColor: PALETTE.border,
         }}>
           <Pressable
