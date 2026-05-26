@@ -24,3 +24,147 @@ id = "YCT0XcFCRanxYgMWiZvh8"
 uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
 title = "gbc mobile icon"
+
+[[generated]]
+id = "edhA9rAwsUvVHOvQv7bs5"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-premium/hero.png"
+type = "image"
+title = "Premium barber hero banner"
+
+[[generated]]
+id = "sY0N-Y2WN89JIYzRIxZ-_"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-premium/salon1.png"
+type = "image"
+title = "Luxury salon interior"
+
+[[generated]]
+id = "psr7vqNbdjDyPaQXTnB-N"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-premium/salon2.png"
+type = "image"
+title = "Barber at work"
+
+[[generated]]
+id = "U0r37GMjHGKZsC4PG6KCc"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-premium/salon3.png"
+type = "image"
+title = "Premium grooming products"
+
+[[generated]]
+id = "4mdi-NSS7U_A72J-CE5A8"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-premium/style1.png"
+type = "image"
+title = "Fade haircut style"
+
+[[generated]]
+id = "ZB8itcCvb9hxoekRbyjXR"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-premium/style2.png"
+type = "image"
+title = "Beard trim style"
+
+[[generated]]
+id = "4wQO_aX_LNPOYhYCCESa0"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-premium/style3.png"
+type = "image"
+title = "Taper fade style"
+
+[[generated]]
+id = "eZvL3iMlUmUUUfpW7VGqJ"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-premium/style4.png"
+type = "image"
+title = "Classic slick back"
+
+[[generated]]
+id = "NoJ2UlXapS0HgLYgr5b8q"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-modern/hero.png"
+type = "image"
+title = "vibrant modern barber neon"
+
+[[generated]]
+id = "4zjWp6cvNeoKpkUKeuVIy"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-modern/salon1.png"
+type = "image"
+title = "modern barber shop interior"
+
+[[generated]]
+id = "4dgAqxiuY3TJULGHG0uQr"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-modern/salon2.png"
+type = "image"
+title = "barber cutting hair"
+
+[[generated]]
+id = "eJzWcw8Y1O_z3zYeeWILt"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-modern/salon3.png"
+type = "image"
+title = "luxury barber chair"
+
+[[generated]]
+id = "I_fGi1YJtzuax8E2fK3OM"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-modern/cut1.png"
+type = "image"
+title = "mens fade haircut"
+
+[[generated]]
+id = "1aRU99HfJniU5aLqmgc3Y"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-modern/cut2.png"
+type = "image"
+title = "mens textured crop"
+
+[[generated]]
+id = "RF_mj4Bj7QMMAtGcnyBJf"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-modern/cut3.png"
+type = "image"
+title = "beard trim and fade"
+
+[[generated]]
+id = "Urmxom4H467bwKBwhyTsD"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-modern/cut4.png"
+type = "image"
+title = "taper fade haircut"
+
+[[generated]]
+id = "S76pnaW_xv3Yd9ErSXWAT"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/hero.png"
+type = "image"
+title = "Urban barbershop street hero"
+
+[[generated]]
+id = "Y2JXb6dHz-YUaRwVqFSGF"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/salon-1.png"
+type = "image"
+title = "Barber working on fade"
+
+[[generated]]
+id = "hOPicFnp0en3yT0sgEc4B"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/salon-2.png"
+type = "image"
+title = "Street style barbershop interior"
+
+[[generated]]
+id = "Es5dqH9yAg9JpyYgZyQup"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/salon-3.png"
+type = "image"
+title = "Barber tools and clippers"
+
+[[generated]]
+id = "JtsLQAKPUjNxX54Oa9QGX"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/style-1.png"
+type = "image"
+title = "Clean fade haircut style"
+
+[[generated]]
+id = "hHpBRCR1PJci74h42OP-B"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/style-2.png"
+type = "image"
+title = "Beard trim and shape up"
+
+[[generated]]
+id = "H6RgqM8WjpStpu2JdKObz"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/style-3.png"
+type = "image"
+title = "Textured crop haircut"
+
+[[generated]]
+id = "3ydwQBs6cGniEvIQ47w-Z"
+uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/style-4.png"
+type = "image"
+title = "Taper fade style"
