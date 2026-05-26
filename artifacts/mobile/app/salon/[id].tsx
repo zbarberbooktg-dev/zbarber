@@ -362,32 +362,60 @@ export default function PublicSalonDetail() {
             </View>
           )}
           {barber.latitude && barber.longitude ? (
-            <Pressable
-              onPress={() => {
-                const lat = Number(barber.latitude);
-                const lng = Number(barber.longitude);
-                const label = encodeURIComponent(barber.salonName);
-                const url = Platform.select({
-                  ios: `maps:0,0?q=${label}@${lat},${lng}`,
-                  android: `geo:0,0?q=${lat},${lng}(${label})`,
-                  default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
-                })!;
-                Linking.openURL(url).catch(() =>
-                  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`),
-                );
-              }}
-              style={({ pressed }) => ({
-                marginTop: 14, paddingVertical: 10, paddingHorizontal: 14,
-                flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-                borderWidth: 1, borderColor: PALETTE.gold,
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <Feather name="navigation" size={14} color={PALETTE.gold} />
-              <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
-                Ouvrir dans Maps
-              </Text>
-            </Pressable>
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
+              <Pressable
+                onPress={() => {
+                  const lat = Number(barber.latitude);
+                  const lng = Number(barber.longitude);
+                  const label = encodeURIComponent(barber.salonName);
+                  const url = Platform.select({
+                    ios: `maps:0,0?q=${label}@${lat},${lng}`,
+                    android: `geo:0,0?q=${lat},${lng}(${label})`,
+                    default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+                  })!;
+                  Linking.openURL(url).catch(() =>
+                    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`),
+                  );
+                }}
+                style={({ pressed }) => ({
+                  flex: 1, paddingVertical: 10, paddingHorizontal: 12,
+                  flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+                  borderWidth: 1, borderColor: PALETTE.border,
+                  opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <Feather name="map-pin" size={13} color={PALETTE.text} />
+                <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                  Voir sur la carte
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  const lat = Number(barber.latitude);
+                  const lng = Number(barber.longitude);
+                  const label = encodeURIComponent(barber.salonName);
+                  const url = Platform.select({
+                    ios: `maps://?daddr=${lat},${lng}&q=${label}&dirflg=d`,
+                    android: `google.navigation:q=${lat},${lng}&mode=d`,
+                    default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+                  })!;
+                  Linking.openURL(url).catch(() =>
+                    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`),
+                  );
+                }}
+                style={({ pressed }) => ({
+                  flex: 1, paddingVertical: 10, paddingHorizontal: 12,
+                  flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+                  backgroundColor: PALETTE.gold,
+                  opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <Feather name="navigation" size={13} color="#000" />
+                <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 12 }}>
+                  Itinéraire
+                </Text>
+              </Pressable>
+            </View>
           ) : null}
         </View>
 
