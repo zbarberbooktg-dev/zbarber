@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
+import { useAuth } from "@clerk/expo";
 import React from "react";
 import { Platform } from "react-native";
 
@@ -8,12 +9,15 @@ import { useColors } from "@/hooks/useColors";
 
 export default function BarberTabs() {
   const c = useColors();
-  const { role, ready, t } = useApp();
+  const { role, status, ready, syncing, user, t } = useApp();
+  const { isSignedIn } = useAuth();
   const isWeb = Platform.OS === "web";
 
-  if (!ready) return null;
-  if (role !== "barber")
-    return <Redirect href={role === "client" ? "/(client)" : "/role-select"} />;
+  if (!ready || (isSignedIn && syncing && !user)) return null;
+  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
+  if (role === "client") return <Redirect href="/(client)" />;
+  if (role !== "barber" && role !== "admin") return <Redirect href="/(auth)/sign-in" />;
+  if (role === "barber" && status !== "active") return <Redirect href="/(barber)/pending" />;
 
   return (
     <Tabs
@@ -44,9 +48,7 @@ export default function BarberTabs() {
         name="schedule"
         options={{
           title: t.tabSchedule,
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="calendar" size={size - 2} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Feather name="calendar" size={size - 2} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -63,6 +65,7 @@ export default function BarberTabs() {
           tabBarIcon: ({ color, size }) => <Feather name="user" size={size - 2} color={color} />,
         }}
       />
+      <Tabs.Screen name="pending" options={{ href: null }} />
     </Tabs>
   );
 }

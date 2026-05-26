@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
+import { useAuth } from "@clerk/expo";
 import React from "react";
 import { Platform } from "react-native";
 
@@ -8,12 +9,14 @@ import { useColors } from "@/hooks/useColors";
 
 export default function ClientTabs() {
   const c = useColors();
-  const { role, ready, t } = useApp();
+  const { role, ready, syncing, user, t } = useApp();
+  const { isSignedIn } = useAuth();
   const isWeb = Platform.OS === "web";
 
-  if (!ready) return null;
-  if (role !== "client")
-    return <Redirect href={role === "barber" ? "/(barber)" : "/role-select"} />;
+  if (!ready || (isSignedIn && syncing && !user)) return null;
+  if (!isSignedIn) return <Redirect href="/(auth)/sign-in" />;
+  if (role === "barber" || role === "admin") return <Redirect href="/(barber)" />;
+  if (role !== "client") return <Redirect href="/(auth)/sign-in" />;
 
   return (
     <Tabs
@@ -44,9 +47,7 @@ export default function ClientTabs() {
         name="bookings"
         options={{
           title: t.tabBookings,
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="calendar" size={size - 2} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Feather name="calendar" size={size - 2} color={color} />,
         }}
       />
       <Tabs.Screen

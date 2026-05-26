@@ -7,9 +7,10 @@ export const userStatusEnum = pgEnum("user_status", ["active", "suspended", "pen
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
+  clerkUserId: text("clerk_user_id").unique(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),
   role: userRoleEnum("role").notNull().default("client"),
   status: userStatusEnum("status").notNull().default("active"),
   phone: text("phone"),
