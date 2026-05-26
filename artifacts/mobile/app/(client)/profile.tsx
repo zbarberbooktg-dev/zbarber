@@ -1,19 +1,45 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as Location from "expo-location";
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
+import { useAuthedFetch } from "@/lib/api";
 
 export default function ClientProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, signOut, t, user } = useApp();
+  const { themePref, setThemePref, lang, setLang, signOut, syncAuth, t, user } = useApp();
+  const fetcher = useAuthedFetch();
   const [editOpen, setEditOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  const handleRefreshLocation = async () => {
+    setLocating(true);
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission refusée", "Autorisez la géolocalisation dans vos réglages.");
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      await fetcher("/api/users/me/location", {
+        method: "POST",
+        body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      });
+      await syncAuth();
+      Alert.alert("Position mise à jour", "Merci !");
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message ?? "Impossible d'actualiser la position.");
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
     { key: "system", label: t.themeAuto, icon: "smartphone" },
@@ -142,6 +168,39 @@ export default function ClientProfile() {
               </Pressable>
             );
           })}
+        </Card>
+      </View>
+
+      <View>
+        <SectionLabel label="Position" />
+        <Card>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Feather name="map-pin" size={18} color={c.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 14 }}>
+                {user?.city ? `${user.city}${user.country ? ", " + user.country : ""}` : "Non renseignée"}
+              </Text>
+              {user?.latitude && user?.longitude ? (
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11 }}>
+                  GPS : {Number(user.latitude).toFixed(3)}, {Number(user.longitude).toFixed(3)}
+                </Text>
+              ) : null}
+            </View>
+            <Pressable
+              onPress={handleRefreshLocation}
+              disabled={locating}
+              style={({ pressed }) => ({
+                paddingHorizontal: 12, paddingVertical: 8, borderRadius: c.radius - 4,
+                backgroundColor: pressed ? c.accent : c.muted,
+                flexDirection: "row", alignItems: "center", gap: 6,
+              })}
+            >
+              <Feather name="refresh-cw" size={13} color={c.primary} />
+              <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                {locating ? "..." : "Actualiser"}
+              </Text>
+            </Pressable>
+          </View>
         </Card>
       </View>
 

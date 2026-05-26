@@ -1,4 +1,5 @@
 import { useListReservations } from "@workspace/api-client-react";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -17,6 +18,7 @@ type Status = "pending" | "confirmed" | "completed" | "cancelled";
 
 export default function Bookings() {
   const c = useColors();
+  const router = useRouter();
   const { t, locale } = useApp();
   const [filter, setFilter] = useState<Status | "all">("all");
   const { data, isLoading, refetch, isRefetching } = useListReservations(
@@ -107,6 +109,10 @@ export default function Bookings() {
             const status = (item.status ?? "pending") as Status;
             const date = new Date(item.scheduledAt);
             return (
+              <Pressable
+                onPress={() => item.barberId && router.push(`/salon/${item.barberId}` as never)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
               <Card>
                 <View
                   style={{
@@ -148,6 +154,7 @@ export default function Bookings() {
                   </Text>
                 ) : null}
               </Card>
+              </Pressable>
             );
           }}
         />

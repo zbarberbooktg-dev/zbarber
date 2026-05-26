@@ -1,6 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import {
   useGetBarber,
+  useGetBarberGallery,
+  useGetBarberSchedule,
   useListBarberServices,
   useListReviews,
 } from "@workspace/api-client-react";
@@ -13,6 +15,8 @@ import {
   Alert,
   Image,
   ImageSourcePropType,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -22,6 +26,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
+import { resolveObjectUrl } from "@/lib/imageUpload";
+
+const WEEK_DAYS_ORDER: Array<{ key: string; label: string }> = [
+  { key: "monday", label: "Lundi" },
+  { key: "tuesday", label: "Mardi" },
+  { key: "wednesday", label: "Mercredi" },
+  { key: "thursday", label: "Jeudi" },
+  { key: "friday", label: "Vendredi" },
+  { key: "saturday", label: "Samedi" },
+  { key: "sunday", label: "Dimanche" },
+];
 
 const PALETTE = {
   bg: "#0A0A0A",
@@ -51,6 +66,8 @@ export default function PublicSalonDetail() {
   const { data: barber, isLoading } = useGetBarber(barberId);
   const { data: servicesData } = useListBarberServices(barberId);
   const { data: reviewsData } = useListReviews({ barberId });
+  const { data: galleryData } = useGetBarberGallery(barberId);
+  const { data: scheduleData } = useGetBarberSchedule(barberId);
 
   const [selectedService, setSelectedService] = useState<number | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -173,9 +190,13 @@ export default function PublicSalonDetail() {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-        {/* Hero image */}
+        {/* Hero image (salon logo if available, else fallback) */}
         <Image
-          source={salonFallbacks[barberId % salonFallbacks.length]}
+          source={
+            barber.logoUrl
+              ? { uri: resolveObjectUrl(barber.logoUrl)! }
+              : salonFallbacks[barberId % salonFallbacks.length]
+          }
           style={{ width: "100%", aspectRatio: 16 / 9 }}
           resizeMode="cover"
         />
@@ -221,7 +242,73 @@ export default function PublicSalonDetail() {
               <Text style={{ color: PALETTE.text, fontFamily: "Inter_400Regular", fontSize: 13 }}>{barber.phone}</Text>
             </View>
           )}
+          {barber.latitude && barber.longitude ? (
+            <Pressable
+              onPress={() => {
+                const lat = Number(barber.latitude);
+                const lng = Number(barber.longitude);
+                const label = encodeURIComponent(barber.salonName);
+                const url = Platform.select({
+                  ios: `maps:0,0?q=${label}@${lat},${lng}`,
+                  android: `geo:0,0?q=${lat},${lng}(${label})`,
+                  default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+                })!;
+                Linking.openURL(url).catch(() =>
+                  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`),
+                );
+              }}
+              style={({ pressed }) => ({
+                marginTop: 14, paddingVertical: 10, paddingHorizontal: 14,
+                flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+                borderWidth: 1, borderColor: PALETTE.gold,
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <Feather name="navigation" size={14} color={PALETTE.gold} />
+              <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                Ouvrir dans Maps
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
+
+        {/* Gallery */}
+        {galleryData && galleryData.length > 0 && (
+          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+            <SectionTitle title="Galerie" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+              {galleryData.map((p) => (
+                <Image
+                  key={p.id}
+                  source={{ uri: resolveObjectUrl(p.photoUrl)! }}
+                  style={{ width: 160, height: 160, borderWidth: 1, borderColor: PALETTE.border }}
+                  resizeMode="cover"
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Schedule */}
+        {scheduleData?.workDays && scheduleData.workDays.length > 0 && (
+          <View style={{ padding: 20, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+            <SectionTitle title="Horaires d'ouverture" />
+            <View style={{ gap: 6 }}>
+              {WEEK_DAYS_ORDER.map(({ key, label }) => {
+                const wd = scheduleData.workDays.find((x) => x.day === key);
+                const open = wd && wd.isWorking && wd.startTime && wd.endTime;
+                return (
+                  <View key={key} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+                    <Text style={{ color: PALETTE.text, fontFamily: "Inter_500Medium", fontSize: 13 }}>{label}</Text>
+                    <Text style={{ color: open ? PALETTE.gold : PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13 }}>
+                      {open ? `${wd!.startTime} – ${wd!.endTime}` : "Fermé"}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Services */}
         {services.length > 0 && (

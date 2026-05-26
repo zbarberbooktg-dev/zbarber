@@ -6,12 +6,14 @@ import { requireAuth, requireAdmin, type AuthedRequest } from "../lib/clerkAuth"
 
 const router = Router();
 
-// Self-service: update own profile (name, phone, avatar)
+// Self-service: update own profile (name, phone, avatar, city, country)
 router.patch("/users/me", requireAuth, async (req: AuthedRequest, res) => {
   const body = z.object({
     name: z.string().min(2).optional(),
-    phone: z.string().min(3).optional(),
-    avatarUrl: z.string().optional(),
+    phone: z.string().min(3).nullable().optional(),
+    avatarUrl: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    country: z.string().nullable().optional(),
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const data = body.data;
@@ -22,10 +24,27 @@ router.patch("/users/me", requireAuth, async (req: AuthedRequest, res) => {
   res.json(safe);
 });
 
+// Self-service: update own geographic position
+router.post("/users/me/location", requireAuth, async (req: AuthedRequest, res) => {
+  const body = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid coordinates" }); return; }
+  const [updated] = await db
+    .update(usersTable)
+    .set({ latitude: body.data.latitude, longitude: body.data.longitude, locationUpdatedAt: new Date() })
+    .where(eq(usersTable.id, req.localUser!.id))
+    .returning();
+  if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+  const { passwordHash: _, ...safe } = updated;
+  res.json(safe);
+});
+
 router.get("/users", requireAuth, requireAdmin, async (req, res) => {
   const { page = "1", limit = "20", search = "", role, status } = req.query as Record<string, string>;
   const offset = (parseInt(page) - 1) * parseInt(limit);
-  const query = db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, status: usersTable.status, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl, createdAt: usersTable.createdAt }).from(usersTable);
+  const query = db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, status: usersTable.status, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl, city: usersTable.city, country: usersTable.country, latitude: usersTable.latitude, longitude: usersTable.longitude, locationUpdatedAt: usersTable.locationUpdatedAt, createdAt: usersTable.createdAt }).from(usersTable);
   const conditions: ReturnType<typeof eq>[] = [];
   if (search) conditions.push(or(ilike(usersTable.name, `%${search}%`), ilike(usersTable.email, `%${search}%`))!);
   if (role) conditions.push(eq(usersTable.role, role as "client" | "barber" | "admin"));
@@ -38,14 +57,14 @@ router.get("/users", requireAuth, requireAdmin, async (req, res) => {
 
 router.get("/users/:id", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
-  const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, status: usersTable.status, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl, createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
+  const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, status: usersTable.status, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl, city: usersTable.city, country: usersTable.country, latitude: usersTable.latitude, longitude: usersTable.longitude, locationUpdatedAt: usersTable.locationUpdatedAt, createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
   res.json(user);
 });
 
 router.patch("/users/:id", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
-  const body = z.object({ name: z.string().optional(), phone: z.string().optional(), avatarUrl: z.string().optional(), role: z.enum(["client", "barber", "admin"]).optional() }).safeParse(req.body);
+  const body = z.object({ name: z.string().optional(), phone: z.string().nullable().optional(), avatarUrl: z.string().nullable().optional(), city: z.string().nullable().optional(), country: z.string().nullable().optional(), role: z.enum(["client", "barber", "admin"]).optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [updated] = await db.update(usersTable).set(body.data).where(eq(usersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }

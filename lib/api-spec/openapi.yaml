@@ -125,7 +125,46 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuthSyncResult"
 
-  # ── USERS ─────────────────────────────────────────────────────────────
+  # ── USER SELF-SERVICE ────────────────────────────────────────────────
+  /users/me:
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update own profile (name, phone, avatar, city, country)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/me/location:
+    post:
+      operationId: updateMyLocation
+      tags: [users]
+      summary: Update current user's geographic position
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLocationInput"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  # ── USERS (admin) ────────────────────────────────────────────────────
   /users:
     get:
       operationId: listUsers
@@ -606,6 +645,77 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BarberStats"
+
+  # ── HOME GALLERY (admin-managed homepage carousel) ───────────────────
+  /home-gallery:
+    get:
+      operationId: listHomeGalleryPhotos
+      tags: [gallery]
+      summary: List homepage gallery photos (public)
+      responses:
+        "200":
+          description: Photos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HomeGalleryPhoto"
+    post:
+      operationId: addHomeGalleryPhoto
+      tags: [gallery]
+      summary: Add a homepage gallery photo (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HomeGalleryPhotoInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeGalleryPhoto"
+
+  /home-gallery/{id}:
+    patch:
+      operationId: updateHomeGalleryPhoto
+      tags: [gallery]
+      summary: Update a homepage gallery photo (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HomeGalleryPhotoUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeGalleryPhoto"
+    delete:
+      operationId: deleteHomeGalleryPhoto
+      tags: [gallery]
+      summary: Delete a homepage gallery photo (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
   # ── GALLERY ───────────────────────────────────────────────────────────
   /barbers/{id}/gallery:
@@ -1535,6 +1645,17 @@ components:
           type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
+        locationUpdatedAt:
+          type: ["string", "null"]
+          format: date-time
         createdAt:
           type: string
           format: date-time
@@ -1547,6 +1668,10 @@ components:
         phone:
           type: ["string", "null"]
         avatarUrl:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        country:
           type: ["string", "null"]
         role:
           type: string
@@ -2462,6 +2587,58 @@ components:
           type: string
         phone:
           type: string
+        city:
+          type: string
+        country:
+          type: string
+        avatarUrl:
+          type: string
+
+    UpdateLocationInput:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+
+    HomeGalleryPhoto:
+      type: object
+      required: [id, imageUrl, sortOrder, createdAt]
+      properties:
+        id:
+          type: integer
+        imageUrl:
+          type: string
+        caption:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    HomeGalleryPhotoInput:
+      type: object
+      required: [imageUrl]
+      properties:
+        imageUrl:
+          type: string
+        caption:
+          type: string
+        sortOrder:
+          type: integer
+
+    HomeGalleryPhotoUpdate:
+      type: object
+      properties:
+        imageUrl:
+          type: string
+        caption:
+          type: string
+        sortOrder:
+          type: integer
 
     AuthSyncResult:
       type: object

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, pgEnum, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -15,6 +15,11 @@ export const usersTable = pgTable("users", {
   status: userStatusEnum("status").notNull().default("active"),
   phone: text("phone"),
   avatarUrl: text("avatar_url"),
+  city: text("city"),
+  country: text("country"),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  locationUpdatedAt: timestamp("location_updated_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

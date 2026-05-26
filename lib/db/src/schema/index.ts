@@ -8,4 +8,5 @@ export * from "./financing";
 export * from "./conferences";
 export * from "./notifications";
 export * from "./gallery";
+export * from "./home-gallery";
 export * from "./schedules";

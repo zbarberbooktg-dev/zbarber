@@ -21,6 +21,7 @@ import Financing from "@/pages/Financing";
 import Conferences from "@/pages/Conferences";
 import Notifications from "@/pages/Notifications";
 import Reviews from "@/pages/Reviews";
+import Gallery from "@/pages/Gallery";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -177,6 +178,7 @@ function ProtectedRouter() {
           <Route path="/conferences" component={Conferences} />
           <Route path="/notifications" component={Notifications} />
           <Route path="/reviews" component={Reviews} />
+          <Route path="/gallery" component={Gallery} />
           <Route component={NotFound} />
         </Switch>
       </Layout>

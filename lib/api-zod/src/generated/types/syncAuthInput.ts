@@ -11,4 +11,7 @@ export interface SyncAuthInput {
   role?: SyncAuthInputRole;
   name?: string;
   phone?: string;
+  city?: string;
+  country?: string;
+  avatarUrl?: string;
 }

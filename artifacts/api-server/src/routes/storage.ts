@@ -1,24 +1,42 @@
-import { Router, type IRouter, type Request, type Response } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { Readable } from "stream";
-import { db, financingRequestsTable, barbersTable } from "@workspace/db";
+import {
+  db,
+  financingRequestsTable,
+  barbersTable,
+  usersTable,
+  galleryPhotosTable,
+  homeGalleryPhotosTable,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
+import { getAuth } from "@clerk/express";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAuth, provisionUserFromClerk, type AuthedRequest } from "../lib/clerkAuth";
+
+async function attachOptionalUser(req: AuthedRequest, _res: Response, next: NextFunction): Promise<void> {
+  try {
+    const auth = getAuth(req);
+    const clerkUserId = auth?.userId;
+    if (clerkUserId) {
+      const user = await provisionUserFromClerk(clerkUserId);
+      if (user.status !== "suspended") {
+        req.clerkUserId = clerkUserId;
+        req.localUser = user;
+      }
+    }
+  } catch (err) {
+    req.log?.warn({ err }, "optional auth attach failed");
+  }
+  next();
+}
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
-/**
- * POST /storage/uploads/request-url
- *
- * Request a presigned URL for file upload.
- * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
- */
 router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
@@ -28,7 +46,6 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
 
   try {
     const { name, size, contentType } = parsed.data;
-
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
@@ -45,13 +62,6 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
   }
 });
 
-/**
- * GET /storage/public-objects/*
- *
- * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.
- * These are unconditionally public — no authentication or ACL checks.
- * IMPORTANT: Always provide this endpoint when object storage is set up.
- */
 router.get("/storage/public-objects/*filePath", async (req: Request, res: Response) => {
   try {
     const raw = req.params.filePath;
@@ -61,12 +71,9 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
       res.status(404).json({ error: "File not found" });
       return;
     }
-
     const response = await objectStorageService.downloadObject(file);
-
     res.status(response.status);
     response.headers.forEach((value, key) => res.setHeader(key, value));
-
     if (response.body) {
       const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
       nodeStream.pipe(res);
@@ -82,47 +89,98 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
 /**
  * GET /storage/objects/*
  *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
+ * Serves object entities. Auth model:
+ *  - Public-display assets (avatars, salon logos, gallery photos, home gallery) → served openly.
+ *  - Financing documents → require admin or owning barber.
+ *
+ * We optionally attach Clerk auth (no 401 if missing) and check ACL based on path classification.
  */
-router.get("/storage/objects/*path", requireAuth, async (req: AuthedRequest, res: Response) => {
-  try {
-    const raw = req.params.path;
-    const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
-    const objectPath = `/objects/${wildcardPath}`;
+router.get(
+  "/storage/objects/*path",
+  attachOptionalUser,
+  async (req: AuthedRequest, res: Response) => {
+    try {
+      const raw = req.params.path;
+      const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
+      const objectPath = `/objects/${wildcardPath}`;
 
-    const user = req.localUser!;
-    if (user.role !== "admin") {
-      const matches = await db.select({ barberId: financingRequestsTable.barberId, docs: financingRequestsTable.documents })
+      // Classify the object: is it a financing document?
+      const finRows = await db
+        .select({ barberId: financingRequestsTable.barberId, docs: financingRequestsTable.documents })
         .from(financingRequestsTable);
-      const owners = matches.filter(m => m.docs.includes(objectPath)).map(m => m.barberId);
-      if (owners.length === 0) { res.status(404).json({ error: "Object not found" }); return; }
-      const [b] = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-      if (!b || !owners.includes(b.id)) { res.status(403).json({ error: "Forbidden" }); return; }
-    }
+      const financingOwners = finRows
+        .filter((m) => m.docs.includes(objectPath))
+        .map((m) => m.barberId);
 
-    const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-    const response = await objectStorageService.downloadObject(objectFile);
+      if (financingOwners.length > 0) {
+        const user = req.localUser;
+        if (!user) {
+          res.status(401).json({ error: "Auth required" });
+          return;
+        }
+        if (user.role !== "admin") {
+          const [b] = await db
+            .select({ id: barbersTable.id })
+            .from(barbersTable)
+            .where(eq(barbersTable.userId, user.id))
+            .limit(1);
+          if (!b || !financingOwners.includes(b.id)) {
+            res.status(403).json({ error: "Forbidden" });
+            return;
+          }
+        }
+      } else {
+        // Non-financing object: ensure it's a known public-display asset (avatar, logo, gallery).
+        // Otherwise refuse (avoids serving orphan/unreferenced uploads).
+        const [byAvatar] = await db
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.avatarUrl, objectPath))
+          .limit(1);
+        const [byLogo] = await db
+          .select({ id: barbersTable.id })
+          .from(barbersTable)
+          .where(eq(barbersTable.logoUrl, objectPath))
+          .limit(1);
+        const [byGallery] = await db
+          .select({ id: galleryPhotosTable.id })
+          .from(galleryPhotosTable)
+          .where(eq(galleryPhotosTable.photoUrl, objectPath))
+          .limit(1);
+        const [byHome] = await db
+          .select({ id: homeGalleryPhotosTable.id })
+          .from(homeGalleryPhotosTable)
+          .where(eq(homeGalleryPhotosTable.imageUrl, objectPath))
+          .limit(1);
+        if (!byAvatar && !byLogo && !byGallery && !byHome) {
+          // Refuse unreferenced objects to prevent reading orphan/private uploads.
+          // Clients already hold the local URI immediately after PUT, so they
+          // don't need to fetch a freshly-uploaded asset before it's persisted.
+          res.status(404).json({ error: "Object not found" });
+          return;
+        }
+      }
 
-    res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-
-    if (response.body) {
-      const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
-      nodeStream.pipe(res);
-    } else {
-      res.end();
+      const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+      const response = await objectStorageService.downloadObject(objectFile);
+      res.status(response.status);
+      response.headers.forEach((value, key) => res.setHeader(key, value));
+      if (response.body) {
+        const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
+        nodeStream.pipe(res);
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        req.log.warn({ err: error }, "Object not found");
+        res.status(404).json({ error: "Object not found" });
+        return;
+      }
+      req.log.error({ err: error }, "Error serving object");
+      res.status(500).json({ error: "Failed to serve object" });
     }
-  } catch (error) {
-    if (error instanceof ObjectNotFoundError) {
-      req.log.warn({ err: error }, "Object not found");
-      res.status(404).json({ error: "Object not found" });
-      return;
-    }
-    req.log.error({ err: error }, "Error serving object");
-    res.status(500).json({ error: "Failed to serve object" });
-  }
-});
+  },
+);
 
 export default router;

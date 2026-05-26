@@ -76,6 +76,16 @@ export interface User {
   phone?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
+  /** @nullable */
+  locationUpdatedAt?: string | null;
   createdAt: string;
 }
 
@@ -99,6 +109,10 @@ export interface UserUpdate {
   phone?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
   role?: UserUpdateRole;
 }
 
@@ -811,6 +825,35 @@ export interface SyncAuthInput {
   role?: SyncAuthInputRole;
   name?: string;
   phone?: string;
+  city?: string;
+  country?: string;
+  avatarUrl?: string;
+}
+
+export interface UpdateLocationInput {
+  latitude: number;
+  longitude: number;
+}
+
+export interface HomeGalleryPhoto {
+  id: number;
+  imageUrl: string;
+  /** @nullable */
+  caption?: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface HomeGalleryPhotoInput {
+  imageUrl: string;
+  caption?: string;
+  sortOrder?: number;
+}
+
+export interface HomeGalleryPhotoUpdate {
+  imageUrl?: string;
+  caption?: string;
+  sortOrder?: number;
 }
 
 export interface AuthSyncResult {

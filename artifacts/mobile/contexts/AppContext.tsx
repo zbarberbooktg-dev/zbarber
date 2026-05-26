@@ -16,6 +16,11 @@ export type SyncedUser = {
   phone: string | null;
   role: Exclude<AppRole, null>;
   status: Exclude<AppStatus, null>;
+  city: string | null;
+  country: string | null;
+  avatarUrl: string | null;
+  latitude: string | null;
+  longitude: string | null;
 };
 
 export type SyncedBarber = {
@@ -38,7 +43,7 @@ type AppState = {
   setThemePref: (t: ThemePref) => Promise<void>;
   setLang: (l: Lang) => Promise<void>;
   signOut: () => Promise<void>;
-  syncAuth: (opts?: { role?: "client" | "barber"; name?: string; phone?: string }) => Promise<SyncedUser | null>;
+  syncAuth: (opts?: SyncAuthOpts) => Promise<SyncedUser | null>;
   t: (typeof translations)[Lang];
   locale: string;
 };
@@ -50,9 +55,18 @@ const LANG_KEY = "gbc.lang";
 
 type SyncResult = { user: SyncedUser; barber: SyncedBarber | null } | null;
 
+export type SyncAuthOpts = {
+  role?: "client" | "barber";
+  name?: string;
+  phone?: string;
+  city?: string;
+  country?: string;
+  avatarUrl?: string;
+};
+
 async function callSync(
   token: string | null,
-  opts?: { role?: "client" | "barber"; name?: string; phone?: string },
+  opts?: SyncAuthOpts,
 ): Promise<SyncResult> {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   const base = domain ? `https://${domain}` : "";
@@ -60,6 +74,9 @@ async function callSync(
   if (opts?.role) body.role = opts.role;
   if (opts?.name) body.name = opts.name;
   if (opts?.phone) body.phone = opts.phone;
+  if (opts?.city) body.city = opts.city;
+  if (opts?.country) body.country = opts.country;
+  if (opts?.avatarUrl) body.avatarUrl = opts.avatarUrl;
   const res = await fetch(`${base}/api/auth/sync`, {
     method: "POST",
     headers: {
@@ -129,7 +146,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn]);
 
-  const syncAuth = async (opts?: { role?: "client" | "barber"; name?: string; phone?: string }) => {
+  const syncAuth = async (opts?: SyncAuthOpts) => {
     setSyncing(true);
     try {
       const token = await getToken();

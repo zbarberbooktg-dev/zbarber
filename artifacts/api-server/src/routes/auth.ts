@@ -22,6 +22,9 @@ router.post("/auth/sync", requireAuth, async (req: AuthedRequest, res) => {
     role: z.enum(["client", "barber"]).optional(),
     name: z.string().min(2).optional(),
     phone: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+    avatarUrl: z.string().optional(),
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
 
@@ -29,6 +32,9 @@ router.post("/auth/sync", requireAuth, async (req: AuthedRequest, res) => {
   const update: Partial<typeof usersTable.$inferInsert> = {};
   if (body.data.name && body.data.name !== user.name) update.name = body.data.name;
   if (body.data.phone && body.data.phone !== user.phone) update.phone = body.data.phone;
+  if (body.data.city !== undefined && body.data.city !== user.city) update.city = body.data.city || null;
+  if (body.data.country !== undefined && body.data.country !== user.country) update.country = body.data.country || null;
+  if (body.data.avatarUrl !== undefined && body.data.avatarUrl !== user.avatarUrl) update.avatarUrl = body.data.avatarUrl || null;
   if (body.data.role && user.role !== "admin" && user.role !== body.data.role) update.role = body.data.role;
 
   let final = user;

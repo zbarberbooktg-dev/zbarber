@@ -13,5 +13,9 @@ export interface UserUpdate {
   phone?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  country?: string | null;
   role?: UserUpdateRole;
 }
