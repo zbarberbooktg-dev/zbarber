@@ -39,7 +39,7 @@ router.get("/financing-requests/:id", requireAuth, async (req: AuthedRequest, re
   res.json({ ...row, barberName: barber?.salonName });
 });
 
-router.patch("/financing-requests/:id/status", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/financing-requests/:id", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const body = z.object({ status: z.enum(["pending", "reviewing", "approved", "rejected"]), adminNote: z.string().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
