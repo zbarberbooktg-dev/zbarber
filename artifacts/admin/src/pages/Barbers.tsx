@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useSearch } from "wouter";
 import { Search, Check, X, ChevronRight, Pause, Play } from "lucide-react";
 import { useListBarbers, useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber, getListBarbersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,14 +8,27 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
 
+type ModalState = { type: "reject" | "suspend"; id: number; salonName: string } | null;
+
 export default function Barbers() {
+  const searchStr = useSearch();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  const [modal, setModal] = useState<ModalState>(null);
+  const [reason, setReason] = useState("");
   const qc = useQueryClient();
   const { toast } = useToast();
   const { t } = useT();
   const b = t.barbers;
+
+  // Sync URL ?status= → state on mount + when URL changes
+  useEffect(() => {
+    const sp = new URLSearchParams(searchStr);
+    const st = sp.get("status") ?? "";
+    setStatus(st);
+    setPage(1);
+  }, [searchStr]);
 
   const params = { page: String(page), limit: "15", search, ...(status ? { status } : {}) };
   const { data, isLoading } = useListBarbers(params as any);
@@ -30,13 +43,24 @@ export default function Barbers() {
     approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.approved_toast }); } });
   }
 
-  function handleReject(id: number) {
-    reject.mutate({ id, data: { reason: b.rejectReason } }, { onSuccess: () => { invalidate(); toast({ title: b.rejected_toast }); } });
-  }
+  function openReject(id: number, salonName: string) { setModal({ type: "reject", id, salonName }); setReason(""); }
+  function openSuspend(id: number, salonName: string) { setModal({ type: "suspend", id, salonName }); setReason(""); }
+  function closeModal() { setModal(null); setReason(""); }
 
-  function handleSuspend(id: number) {
-    if (!confirm(b.confirmSuspend)) return;
-    suspend.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.suspended_toast }); } });
+  function submitModal(e: React.FormEvent) {
+    e.preventDefault();
+    if (!modal) return;
+    const r = reason.trim();
+    if (modal.type === "reject") {
+      if (!r) { toast({ title: b.reasonRequired, variant: "destructive" as any }); return; }
+      reject.mutate({ id: modal.id, data: { reason: r } }, {
+        onSuccess: () => { invalidate(); toast({ title: b.rejected_toast }); closeModal(); },
+      });
+    } else {
+      suspend.mutate({ id: modal.id, data: { reason: r || null } }, {
+        onSuccess: () => { invalidate(); toast({ title: b.suspended_toast }); closeModal(); },
+      });
+    }
   }
 
   function handleReactivate(id: number) {
@@ -120,13 +144,13 @@ export default function Barbers() {
                         <button onClick={() => handleApprove(row.id)} className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors" title={b.approveTitle}>
                           <Check className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleReject(row.id)} className="p-1.5 rounded-md bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors" title={b.rejectTitle}>
+                        <button onClick={() => openReject(row.id, row.salonName)} className="p-1.5 rounded-md bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors" title={b.rejectTitle}>
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </>
                     )}
                     {row.status === "approved" && (
-                      <button onClick={() => handleSuspend(row.id)} className="p-1.5 rounded-md bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors" title={b.suspendTitle}>
+                      <button onClick={() => openSuspend(row.id, row.salonName)} className="p-1.5 rounded-md bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors" title={b.suspendTitle}>
                         <Pause className="h-3.5 w-3.5" />
                       </button>
                     )}
@@ -153,6 +177,36 @@ export default function Barbers() {
           <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-40">{t.common.prev}</button>
           <span className="rounded-lg border px-3 py-1.5 text-sm">{page}</span>
           <button disabled={page * 15 >= total} onClick={() => setPage(p => p + 1)} className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-40">{t.common.next}</button>
+        </div>
+      )}
+
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={closeModal}>
+          <form onSubmit={submitModal} onClick={e => e.stopPropagation()} className="bg-card rounded-xl border w-full max-w-md p-6 space-y-4">
+            <h2 className="text-lg font-bold">{modal.type === "reject" ? b.rejectModalTitle : b.suspendModalTitle}</h2>
+            <p className="text-sm text-muted-foreground">{modal.salonName}</p>
+            <label className="text-sm space-y-1 block">
+              <span className="text-muted-foreground">{modal.type === "reject" ? b.rejectReasonLabel : b.suspendReasonLabel}</span>
+              <textarea
+                rows={4}
+                required={modal.type === "reject"}
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder={modal.type === "reject" ? b.rejectReasonPh : b.suspendReasonPh}
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={closeModal} className="rounded-lg border px-4 py-2 text-sm hover:bg-muted transition-colors">{t.common.cancel}</button>
+              <button
+                type="submit"
+                disabled={reject.isPending || suspend.isPending}
+                className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${modal.type === "reject" ? "bg-red-500" : "bg-amber-500"}`}
+              >
+                {b.confirmAction}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

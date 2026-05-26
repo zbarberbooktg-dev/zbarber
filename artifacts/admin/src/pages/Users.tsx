@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, UserX, UserCheck } from "lucide-react";
-import { useListUsers, useSuspendUser, useActivateUser, getListUsersQueryKey } from "@workspace/api-client-react";
+import { useListUsers, useSuspendUser, useActivateUser, useUpdateUser, getListUsersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -20,9 +20,18 @@ export default function Users() {
   const { data, isLoading } = useListUsers(params as any);
   const suspend = useSuspendUser();
   const activate = useActivateUser();
+  const updateUser = useUpdateUser();
 
   const users = (data as any)?.data ?? [];
   const total = (data as any)?.total ?? 0;
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: getListUsersQueryKey() });
+
+  function handleRoleChange(id: number, newRole: string) {
+    updateUser.mutate({ id, data: { role: newRole as any } }, {
+      onSuccess: () => { invalidate(); toast({ title: u.role_updated_toast }); },
+    });
+  }
 
   return (
     <div>
@@ -78,7 +87,19 @@ export default function Users() {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3"><StatusBadge status={row.role} /></td>
+                <td className="px-4 py-3">
+                  <select
+                    value={row.role}
+                    onChange={e => handleRoleChange(row.id, e.target.value)}
+                    disabled={updateUser.isPending}
+                    title={u.changeRole}
+                    className="rounded-md border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="client">{t.statuses.client}</option>
+                    <option value="barber">{t.statuses.barber}</option>
+                    <option value="admin">{t.statuses.admin}</option>
+                  </select>
+                </td>
                 <td className="px-4 py-3"><StatusBadge status={row.status} /></td>
                 <td className="px-4 py-3 text-muted-foreground">{row.phone ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{new Date(row.createdAt).toLocaleDateString(locale)}</td>
@@ -86,14 +107,14 @@ export default function Users() {
                   <div className="flex justify-end">
                     {row.status === "active" ? (
                       <button
-                        onClick={() => suspend.mutate({ id: row.id }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListUsersQueryKey() }); toast({ title: u.suspended_toast }); } })}
+                        onClick={() => suspend.mutate({ id: row.id }, { onSuccess: () => { invalidate(); toast({ title: u.suspended_toast }); } })}
                         className="flex items-center gap-1.5 rounded-md bg-red-500/10 text-red-600 px-2.5 py-1.5 text-xs hover:bg-red-500/20 transition-colors"
                       >
                         <UserX className="h-3.5 w-3.5" /> {u.suspend}
                       </button>
                     ) : (
                       <button
-                        onClick={() => activate.mutate({ id: row.id }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListUsersQueryKey() }); toast({ title: u.activated_toast }); } })}
+                        onClick={() => activate.mutate({ id: row.id }, { onSuccess: () => { invalidate(); toast({ title: u.activated_toast }); } })}
                         className="flex items-center gap-1.5 rounded-md bg-emerald-500/10 text-emerald-600 px-2.5 py-1.5 text-xs hover:bg-emerald-500/20 transition-colors"
                       >
                         <UserCheck className="h-3.5 w-3.5" /> {u.activate}

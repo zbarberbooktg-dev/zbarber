@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { Users, Scissors, Calendar, CreditCard, Banknote, Star, Clock, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useGetAdminStats, useGetMonthlyStats, useGetTopBarbers, useGetRecentActivity } from "@workspace/api-client-react";
@@ -23,7 +24,11 @@ export default function Dashboard() {
         <StatCard title={d.reservations} value={statsLoading ? "—" : stats?.totalReservations ?? 0} icon={Calendar} color="#8b5cf6" />
         <StatCard title={d.activeSubs} value={statsLoading ? "—" : stats?.activeSubscriptions ?? 0} icon={CreditCard} color="#10b981" />
         <StatCard title={d.pendingFin} value={statsLoading ? "—" : stats?.pendingFinancing ?? 0} icon={Banknote} color="#f59e0b" trend={d.toProcess} />
-        <StatCard title={d.pendingBarbers} value={statsLoading ? "—" : stats?.pendingBarbers ?? 0} icon={Clock} color="#ef4444" trend={d.validationRequired} />
+        <Link href="/barbers?status=pending">
+          <a className="block hover:scale-[1.02] transition-transform cursor-pointer">
+            <StatCard title={d.pendingBarbers} value={statsLoading ? "—" : stats?.pendingBarbers ?? 0} icon={Clock} color="#ef4444" trend={d.validationRequired} />
+          </a>
+        </Link>
         <StatCard title={d.avgRating} value={statsLoading ? "—" : (stats?.averageRating ?? 0).toFixed(1)} icon={Star} color="#f59e0b" trend="/ 5" />
         <StatCard title={d.approvedSalons} value={statsLoading ? "—" : stats?.totalSalons ?? 0} icon={TrendingUp} color="#10b981" />
       </div>

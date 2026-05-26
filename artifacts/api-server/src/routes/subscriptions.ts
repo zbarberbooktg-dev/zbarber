@@ -33,10 +33,11 @@ router.delete("/subscription-plans/:id", requireAuth, requireAdmin, async (req, 
 });
 
 router.get("/subscriptions", requireAuth, requireAdmin, async (req, res) => {
-  const { page = "1", limit = "20", status } = req.query as Record<string, string>;
+  const { page = "1", limit = "20", status, barberId } = req.query as Record<string, string>;
   const offset = (parseInt(page) - 1) * parseInt(limit);
   let subs = await db.select().from(subscriptionsTable).orderBy(desc(subscriptionsTable.createdAt));
   if (status) subs = subs.filter(s => s.status === status);
+  if (barberId) subs = subs.filter(s => s.barberId === parseInt(barberId));
   const enriched = await Promise.all(subs.slice(offset, offset + parseInt(limit)).map(async s => {
     const [barber] = await db.select({ salonName: barbersTable.salonName }).from(barbersTable).where(eq(barbersTable.id, s.barberId)).limit(1);
     const [plan] = await db.select({ name: subscriptionPlansTable.name }).from(subscriptionPlansTable).where(eq(subscriptionPlansTable.id, s.planId)).limit(1);
@@ -46,10 +47,31 @@ router.get("/subscriptions", requireAuth, requireAdmin, async (req, res) => {
 });
 
 router.post("/subscriptions", requireAuth, requireAdmin, async (req, res) => {
-  const body = z.object({ barberId: z.number(), planId: z.number(), endDate: z.string(), paymentMethod: z.string().optional() }).safeParse(req.body);
+  const body = z.object({ barberId: z.number(), planId: z.number(), endDate: z.string(), paymentMethod: z.string().nullable().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [sub] = await db.insert(subscriptionsTable).values({ ...body.data, endDate: new Date(body.data.endDate) }).returning();
   res.status(201).json(sub);
+});
+
+router.patch("/subscriptions/:id", requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const body = z.object({
+    planId: z.number().optional(),
+    status: z.enum(["active", "expired", "cancelled"]).optional(),
+    endDate: z.string().optional(),
+    paymentMethod: z.string().nullable().optional(),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  const patch: Record<string, unknown> = { ...body.data };
+  if (body.data.endDate) patch.endDate = new Date(body.data.endDate);
+  const [updated] = await db.update(subscriptionsTable).set(patch).where(eq(subscriptionsTable.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(updated);
+});
+
+router.delete("/subscriptions/:id", requireAuth, requireAdmin, async (req, res) => {
+  await db.delete(subscriptionsTable).where(eq(subscriptionsTable.id, parseInt(String(req.params.id))));
+  res.status(204).send();
 });
 
 export default router;

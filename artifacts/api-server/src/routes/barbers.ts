@@ -418,14 +418,18 @@ router.patch("/barbers/:id/approve", requireAuth, requireAdmin, async (req, res)
 
 router.patch("/barbers/:id/reject", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
-  const [updated] = await db.update(barbersTable).set({ status: "rejected" }).where(eq(barbersTable.id, id)).returning();
+  const body = z.object({ reason: z.string().optional() }).safeParse(req.body ?? {});
+  const reason = body.success ? body.data.reason?.trim() || null : null;
+  const [updated] = await db.update(barbersTable).set({ status: "rejected", rejectionReason: reason }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
   res.json(updated);
 });
 
 router.patch("/barbers/:id/suspend", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
-  const [updated] = await db.update(barbersTable).set({ status: "suspended" }).where(eq(barbersTable.id, id)).returning();
+  const body = z.object({ reason: z.string().optional() }).safeParse(req.body ?? {});
+  const reason = body.success ? body.data.reason?.trim() || null : null;
+  const [updated] = await db.update(barbersTable).set({ status: "suspended", suspensionReason: reason }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
   res.json(updated);
 });

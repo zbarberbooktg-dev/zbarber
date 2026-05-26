@@ -6,10 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface SubscriptionInput {
-  barberId: number;
-  planId: number;
-  endDate: Date;
+export interface SuspendInput {
   /** @nullable */
-  paymentMethod?: string | null;
+  reason?: string | null;
 }

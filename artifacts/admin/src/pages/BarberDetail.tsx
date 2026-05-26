@@ -1,6 +1,12 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Check, X, Star, Eye, Calendar, Image, Pause, Play } from "lucide-react";
-import { useGetBarber, useGetBarberStats, useGetBarberGallery, useListBarberServices, useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber, getListBarbersQueryKey, getGetBarberQueryKey } from "@workspace/api-client-react";
+import { ArrowLeft, Check, X, Star, Eye, Calendar, Image, Pause, Play, CreditCard, Banknote } from "lucide-react";
+import {
+  useGetBarber, useGetBarberStats, useGetBarberGallery, useListBarberServices,
+  useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber,
+  useListReservations, useListSubscriptions, useListFinancingRequests,
+  getListBarbersQueryKey, getGetBarberQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
@@ -8,29 +14,56 @@ import { useT } from "@/lib/i18n";
 
 interface Props { params: { id: string } }
 
+type ModalState = { type: "reject" | "suspend" } | null;
+
 export default function BarberDetail({ params }: Props) {
   const id = parseInt(params.id);
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { t } = useT();
+  const { t, locale } = useT();
   const d = t.barberDetail;
   const { data: barber, isLoading } = useGetBarber(id);
   const { data: stats } = useGetBarberStats(id);
   const { data: gallery } = useGetBarberGallery(id);
   const { data: services } = useListBarberServices(id);
+  const { data: reservationsData } = useListReservations({ barberId: id, limit: "5" } as any);
+  const { data: subsData } = useListSubscriptions({ barberId: id, status: "active" } as any);
+  const { data: financingData } = useListFinancingRequests({ limit: "100" } as any);
   const approve = useApproveBarber();
   const reject = useRejectBarber();
   const suspend = useSuspendBarber();
   const reactivate = useReactivateBarber();
+
+  const [modal, setModal] = useState<ModalState>(null);
+  const [reason, setReason] = useState("");
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getListBarbersQueryKey() });
     qc.invalidateQueries({ queryKey: getGetBarberQueryKey(id) });
   };
 
+  function openModal(type: "reject" | "suspend") { setModal({ type }); setReason(""); }
+  function closeModal() { setModal(null); setReason(""); }
+  function submitModal(e: React.FormEvent) {
+    e.preventDefault();
+    if (!modal) return;
+    const r = reason.trim();
+    if (modal.type === "reject") {
+      if (!r) { toast({ title: t.barbers.reasonRequired, variant: "destructive" as any }); return; }
+      reject.mutate({ id, data: { reason: r } }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.rejected }); closeModal(); } });
+    } else {
+      suspend.mutate({ id, data: { reason: r || null } }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.suspended_toast }); closeModal(); } });
+    }
+  }
+
   if (isLoading) return <div className="flex items-center justify-center h-64 text-muted-foreground">{t.common.loading}</div>;
   if (!barber) return <div className="text-muted-foreground">{d.notFound}</div>;
 
   const b = barber as any;
+  const recentReservations = ((reservationsData as any)?.data ?? []).slice(0, 5);
+  const activeSubs = ((subsData as any)?.data ?? []);
+  const allFinancing = ((financingData as any)?.data ?? []);
+  const barberFinancing = allFinancing.filter((f: any) => f.barberId === id);
 
   return (
     <div>
@@ -63,7 +96,7 @@ export default function BarberDetail({ params }: Props) {
                 <Check className="h-4 w-4" /> {d.approve}
               </button>
               <button
-                onClick={() => reject.mutate({ id, data: { reason: t.barbers.rejectReason } }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.rejected }); } })}
+                onClick={() => openModal("reject")}
                 className="flex items-center gap-2 rounded-lg border border-destructive text-destructive px-4 py-2 text-sm font-medium hover:bg-destructive/5 transition-colors"
               >
                 <X className="h-4 w-4" /> {d.reject}
@@ -72,7 +105,7 @@ export default function BarberDetail({ params }: Props) {
           )}
           {b.status === "approved" && (
             <button
-              onClick={() => { if (confirm(t.barbers.confirmSuspend)) suspend.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.suspended_toast }); } }); }}
+              onClick={() => openModal("suspend")}
               className="flex items-center gap-2 rounded-lg border border-amber-500 text-amber-600 px-4 py-2 text-sm font-medium hover:bg-amber-500/5 transition-colors"
             >
               <Pause className="h-4 w-4" /> {t.barbers.suspendTitle}
@@ -140,6 +173,65 @@ export default function BarberDetail({ params }: Props) {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div className="rounded-xl border bg-card p-5">
+          <h2 className="text-sm font-semibold mb-4 flex items-center gap-2"><CreditCard className="h-4 w-4 text-emerald-500" /> {d.activeSub}</h2>
+          {activeSubs.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{d.noSubActive}</p>
+          ) : (
+            <div className="space-y-3">
+              {activeSubs.map((sub: any) => (
+                <div key={sub.id} className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
+                  <div>
+                    <p className="font-medium">{sub.planName ?? `#${sub.planId}`}</p>
+                    <p className="text-xs text-muted-foreground">{d.subExpires} {new Date(sub.endDate).toLocaleDateString(locale)}</p>
+                  </div>
+                  <StatusBadge status={sub.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border bg-card p-5">
+          <h2 className="text-sm font-semibold mb-4 flex items-center gap-2"><Banknote className="h-4 w-4 text-amber-500" /> {d.financingHistory} ({barberFinancing.length})</h2>
+          {barberFinancing.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{d.noFinancings}</p>
+          ) : (
+            <div className="space-y-2">
+              {barberFinancing.slice(0, 5).map((f: any) => (
+                <div key={f.id} className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
+                  <div>
+                    <p className="font-medium">{f.amount?.toLocaleString()} F</p>
+                    <p className="text-xs text-muted-foreground">{t.financing.purposes[f.purpose] ?? f.purpose}</p>
+                  </div>
+                  <StatusBadge status={f.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-xl border bg-card p-5">
+        <h2 className="text-sm font-semibold mb-4 flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" /> {d.bookingsHistory}</h2>
+        {recentReservations.length === 0 ? (
+          <p className="text-xs text-muted-foreground">{d.noBookingsHist}</p>
+        ) : (
+          <div className="space-y-2">
+            {recentReservations.map((r: any) => (
+              <div key={r.id} className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{r.clientName ?? `${t.reservations.clientShort}${r.clientId}`}</p>
+                  <p className="text-xs text-muted-foreground truncate">{r.serviceName} · {new Date(r.scheduledAt).toLocaleDateString(locale, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                </div>
+                <StatusBadge status={r.status} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {(gallery as any)?.length > 0 && (
         <div className="mt-6 rounded-xl border bg-card p-5">
           <h2 className="text-sm font-semibold mb-4">{d.gallery} ({(gallery as any).length} {d.photosLabel})</h2>
@@ -150,6 +242,36 @@ export default function BarberDetail({ params }: Props) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={closeModal}>
+          <form onSubmit={submitModal} onClick={e => e.stopPropagation()} className="bg-card rounded-xl border w-full max-w-md p-6 space-y-4">
+            <h2 className="text-lg font-bold">{modal.type === "reject" ? t.barbers.rejectModalTitle : t.barbers.suspendModalTitle}</h2>
+            <p className="text-sm text-muted-foreground">{b.salonName}</p>
+            <label className="text-sm space-y-1 block">
+              <span className="text-muted-foreground">{modal.type === "reject" ? t.barbers.rejectReasonLabel : t.barbers.suspendReasonLabel}</span>
+              <textarea
+                rows={4}
+                required={modal.type === "reject"}
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder={modal.type === "reject" ? t.barbers.rejectReasonPh : t.barbers.suspendReasonPh}
+                className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={closeModal} className="rounded-lg border px-4 py-2 text-sm hover:bg-muted transition-colors">{t.common.cancel}</button>
+              <button
+                type="submit"
+                disabled={reject.isPending || suspend.isPending}
+                className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${modal.type === "reject" ? "bg-red-500" : "bg-amber-500"}`}
+              >
+                {t.barbers.confirmAction}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

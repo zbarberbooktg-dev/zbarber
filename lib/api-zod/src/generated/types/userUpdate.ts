@@ -5,6 +5,7 @@
  * Global Barber Corp API
  * OpenAPI spec version: 0.1.0
  */
+import type { UserUpdateRole } from './userUpdateRole';
 
 export interface UserUpdate {
   name?: string;
@@ -12,4 +13,5 @@ export interface UserUpdate {
   phone?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  role?: UserUpdateRole;
 }
