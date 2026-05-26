@@ -149,7 +149,11 @@ export default function SignUpScreen() {
       style={{ flex: 1, backgroundColor: c.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24 }}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 56, paddingBottom: 96 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
         {step === "details" ? (
           <>
             <View style={{ marginBottom: 28 }}>

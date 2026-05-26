@@ -109,7 +109,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
             Renseignez les informations de base de votre salon. Vous pourrez tout modifier ensuite. Votre salon sera vérifié par l'équipe avant publication.
           </Text>
