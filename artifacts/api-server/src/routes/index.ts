@@ -27,8 +27,8 @@ router.use(subscriptionsRouter);
 router.use(financingRouter);
 router.use(conferencesRouter);
 router.use(notificationsRouter);
-router.use(adminRouter);
 router.use(storageRouter);
 router.use(homeGalleryRouter);
+router.use(adminRouter);
 
 export default router;

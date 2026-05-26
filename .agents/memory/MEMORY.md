@@ -4,4 +4,5 @@
 - [Barber approval gate](barber-approval-gate.md) — layout uses barberProfile.status (from AppContext, populated by /auth/sync barber field), NOT user.status.
 - [Security fixes](security-fixes.md) — gallery delete IDOR fix: scope by both barberId AND photoId; client reservation status limited to "cancelled" only.
 - [Object storage ACL](object-storage-acl.md) — GET /storage/objects/* must refuse unreferenced paths; never serve "any authenticated user" fallback for orphan uploads.
+- [Express router.use order](express-router-use-order.md) — adminRouter's top-level `router.use(requireAuth)` blocks any public router mounted AFTER it in routes/index.ts; mount public routers first.
 - [Availability model](availability-model.md) — server-side slot generation from weekly hours + service duration + reservations + daysOffTable; clients never recompute slots.
