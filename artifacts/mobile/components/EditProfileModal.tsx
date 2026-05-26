@@ -42,6 +42,7 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
+  const [confirmNewPwd, setConfirmNewPwd] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
@@ -56,6 +57,7 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
       setAvatarLocalUri(null);
       setCurrentPwd("");
       setNewPwd("");
+      setConfirmNewPwd("");
       setErr(null);
       setOk(null);
     }
@@ -113,6 +115,7 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
 
       if (newPwd) {
         if (newPwd.length < 8) throw new Error("Le nouveau mot de passe doit faire au moins 8 caractères");
+        if (newPwd !== confirmNewPwd) throw new Error("Les mots de passe ne correspondent pas");
         if (!clerkUser) throw new Error("Utilisateur non disponible");
         await clerkUser.updatePassword({
           currentPassword: currentPwd || undefined,
@@ -198,6 +201,9 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
             </Field>
             <Field label="Nouveau mot de passe">
               <TextInput value={newPwd} onChangeText={setNewPwd} secureTextEntry placeholder="Min. 8 caractères" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+            </Field>
+            <Field label="Confirmer le nouveau mot de passe">
+              <TextInput value={confirmNewPwd} onChangeText={setConfirmNewPwd} secureTextEntry placeholder="Saisissez à nouveau" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
             </Field>
           </View>
 

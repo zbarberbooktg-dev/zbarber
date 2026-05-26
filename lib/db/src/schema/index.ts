@@ -11,3 +11,4 @@ export * from "./gallery";
 export * from "./home-gallery";
 export * from "./schedules";
 export * from "./locations";
+export * from "./accountDeletionRequests";

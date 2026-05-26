@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { EditSalonLocationModal } from "@/components/EditSalonLocationModal";
 import { Avatar, Button, Card } from "@/components/UI";
@@ -44,6 +45,7 @@ export default function BarberProfile() {
   const barber = myBarbers?.[0] ?? null;
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [editLocationOpen, setEditLocationOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
     { key: "system", label: t.themeAuto, icon: "smartphone" },
@@ -244,8 +246,15 @@ export default function BarberProfile() {
               router.replace("/role-select");
             }}
           />
+          <Button
+            label={(t as any).deleteAccount ?? "Supprimer mon compte"}
+            variant="ghost"
+            icon="trash-2"
+            onPress={() => setDeleteOpen(true)}
+          />
         </View>
       </View>
+      <DeleteAccountModal visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </ScrollView>
   );
 }
