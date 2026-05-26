@@ -1,6 +1,6 @@
 import { Link } from "wouter";
-import { ArrowLeft, Check, X, Star, Eye, Calendar, Image } from "lucide-react";
-import { useGetBarber, useGetBarberStats, useGetBarberGallery, useListBarberServices, useApproveBarber, useRejectBarber, getListBarbersQueryKey } from "@workspace/api-client-react";
+import { ArrowLeft, Check, X, Star, Eye, Calendar, Image, Pause, Play } from "lucide-react";
+import { useGetBarber, useGetBarberStats, useGetBarberGallery, useListBarberServices, useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber, getListBarbersQueryKey, getGetBarberQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,12 @@ export default function BarberDetail({ params }: Props) {
   const { data: services } = useListBarberServices(id);
   const approve = useApproveBarber();
   const reject = useRejectBarber();
+  const suspend = useSuspendBarber();
+  const reactivate = useReactivateBarber();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: getListBarbersQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetBarberQueryKey(id) });
+  };
 
   if (isLoading) return <div className="flex items-center justify-center h-64 text-muted-foreground">{t.common.loading}</div>;
   if (!barber) return <div className="text-muted-foreground">{d.notFound}</div>;
@@ -47,22 +53,40 @@ export default function BarberDetail({ params }: Props) {
             <div className="mt-1"><StatusBadge status={b.status} /></div>
           </div>
         </div>
-        {b.status === "pending" && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          {b.status === "pending" && (
+            <>
+              <button
+                onClick={() => approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.approved }); } })}
+                className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors"
+              >
+                <Check className="h-4 w-4" /> {d.approve}
+              </button>
+              <button
+                onClick={() => reject.mutate({ id, data: { reason: t.barbers.rejectReason } }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.rejected }); } })}
+                className="flex items-center gap-2 rounded-lg border border-destructive text-destructive px-4 py-2 text-sm font-medium hover:bg-destructive/5 transition-colors"
+              >
+                <X className="h-4 w-4" /> {d.reject}
+              </button>
+            </>
+          )}
+          {b.status === "approved" && (
             <button
-              onClick={() => approve.mutate({ id }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListBarbersQueryKey() }); toast({ title: t.statuses.approved }); } })}
+              onClick={() => { if (confirm(t.barbers.confirmSuspend)) suspend.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.suspended_toast }); } }); }}
+              className="flex items-center gap-2 rounded-lg border border-amber-500 text-amber-600 px-4 py-2 text-sm font-medium hover:bg-amber-500/5 transition-colors"
+            >
+              <Pause className="h-4 w-4" /> {t.barbers.suspendTitle}
+            </button>
+          )}
+          {(b.status === "suspended" || b.status === "rejected") && (
+            <button
+              onClick={() => { if (confirm(t.barbers.confirmReactivate)) reactivate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.reactivated_toast }); } }); }}
               className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors"
             >
-              <Check className="h-4 w-4" /> {d.approve}
+              <Play className="h-4 w-4" /> {t.barbers.reactivateTitle}
             </button>
-            <button
-              onClick={() => reject.mutate({ id, data: { reason: t.barbers.rejectReason } }, { onSuccess: () => toast({ title: t.statuses.rejected }) })}
-              className="flex items-center gap-2 rounded-lg border border-destructive text-destructive px-4 py-2 text-sm font-medium hover:bg-destructive/5 transition-colors"
-            >
-              <X className="h-4 w-4" /> {d.reject}
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Search, Check, X, ChevronRight } from "lucide-react";
-import { useListBarbers, useApproveBarber, useRejectBarber, getListBarbersQueryKey } from "@workspace/api-client-react";
+import { Search, Check, X, ChevronRight, Pause, Play } from "lucide-react";
+import { useListBarbers, useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber, getListBarbersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -21,17 +21,27 @@ export default function Barbers() {
   const { data, isLoading } = useListBarbers(params as any);
   const approve = useApproveBarber();
   const reject = useRejectBarber();
+  const suspend = useSuspendBarber();
+  const reactivate = useReactivateBarber();
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: getListBarbersQueryKey() });
 
   function handleApprove(id: number) {
-    approve.mutate({ id }, {
-      onSuccess: () => { qc.invalidateQueries({ queryKey: getListBarbersQueryKey() }); toast({ title: b.approved_toast }); },
-    });
+    approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.approved_toast }); } });
   }
 
   function handleReject(id: number) {
-    reject.mutate({ id, data: { reason: b.rejectReason } }, {
-      onSuccess: () => { qc.invalidateQueries({ queryKey: getListBarbersQueryKey() }); toast({ title: b.rejected_toast }); },
-    });
+    reject.mutate({ id, data: { reason: b.rejectReason } }, { onSuccess: () => { invalidate(); toast({ title: b.rejected_toast }); } });
+  }
+
+  function handleSuspend(id: number) {
+    if (!confirm(b.confirmSuspend)) return;
+    suspend.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.suspended_toast }); } });
+  }
+
+  function handleReactivate(id: number) {
+    if (!confirm(b.confirmReactivate)) return;
+    reactivate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.reactivated_toast }); } });
   }
 
   const barbers = (data as any)?.data ?? [];
@@ -114,6 +124,16 @@ export default function Barbers() {
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </>
+                    )}
+                    {row.status === "approved" && (
+                      <button onClick={() => handleSuspend(row.id)} className="p-1.5 rounded-md bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors" title={b.suspendTitle}>
+                        <Pause className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {(row.status === "suspended" || row.status === "rejected") && (
+                      <button onClick={() => handleReactivate(row.id)} className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors" title={b.reactivateTitle}>
+                        <Play className="h-3.5 w-3.5" />
+                      </button>
                     )}
                     <Link href={`/barbers/${row.id}`}>
                       <a className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors">

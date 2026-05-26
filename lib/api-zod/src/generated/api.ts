@@ -377,6 +377,64 @@ export const RejectBarberResponse = zod.object({
 
 
 /**
+ * @summary Suspend barber account (admin)
+ */
+export const SuspendBarberParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SuspendBarberResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Reactivate a suspended barber (admin)
+ */
+export const ReactivateBarberParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReactivateBarberResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Get barber availability schedule
  */
 export const GetBarberScheduleParams = zod.object({
@@ -804,7 +862,12 @@ export const UpdateSubscriptionPlanBody = zod.object({
   "price": zod.number().optional(),
   "billingCycle": zod.enum(['monthly', 'yearly']).optional(),
   "features": zod.array(zod.string()).optional(),
-  "isActive": zod.boolean().optional()
+  "isActive": zod.boolean().optional(),
+  "maxPhotos": zod.number().nullish(),
+  "hasAnalytics": zod.boolean().optional(),
+  "hasPriority": zod.boolean().optional(),
+  "hasFinancing": zod.boolean().optional(),
+  "hasConferences": zod.boolean().optional()
 })
 
 export const UpdateSubscriptionPlanResponse = zod.object({

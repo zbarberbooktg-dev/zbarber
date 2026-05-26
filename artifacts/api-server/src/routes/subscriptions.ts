@@ -20,7 +20,7 @@ router.post("/subscription-plans", requireAuth, requireAdmin, async (req, res) =
 
 router.patch("/subscription-plans/:id", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
-  const body = z.object({ name: z.string().optional(), description: z.string().optional(), price: z.number().optional(), isActive: z.boolean().optional(), features: z.array(z.string()).optional() }).safeParse(req.body);
+  const body = z.object({ name: z.string().optional(), description: z.string().optional(), price: z.number().optional(), billingCycle: z.enum(["monthly", "yearly"]).optional(), isActive: z.boolean().optional(), features: z.array(z.string()).optional(), maxPhotos: z.number().nullable().optional(), hasAnalytics: z.boolean().optional(), hasPriority: z.boolean().optional(), hasFinancing: z.boolean().optional(), hasConferences: z.boolean().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [updated] = await db.update(subscriptionPlansTable).set(body.data).where(eq(subscriptionPlansTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Not found" }); return; }

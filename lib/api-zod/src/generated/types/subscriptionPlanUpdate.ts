@@ -15,4 +15,10 @@ export interface SubscriptionPlanUpdate {
   billingCycle?: SubscriptionPlanUpdateBillingCycle;
   features?: string[];
   isActive?: boolean;
+  /** @nullable */
+  maxPhotos?: number | null;
+  hasAnalytics?: boolean;
+  hasPriority?: boolean;
+  hasFinancing?: boolean;
+  hasConferences?: boolean;
 }

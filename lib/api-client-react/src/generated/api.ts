@@ -1275,6 +1275,146 @@ export const useRejectBarber = <TError = ErrorType<unknown>,
       return useMutation(getRejectBarberMutationOptions(options));
     }
 
+export const getSuspendBarberUrl = (id: number,) => {
+
+
+
+
+  return `/api/barbers/${id}/suspend`
+}
+
+/**
+ * @summary Suspend barber account (admin)
+ */
+export const suspendBarber = async (id: number, options?: RequestInit): Promise<Barber> => {
+
+  return customFetch<Barber>(getSuspendBarberUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getSuspendBarberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['suspendBarber'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suspendBarber>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  suspendBarber(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SuspendBarberMutationResult = NonNullable<Awaited<ReturnType<typeof suspendBarber>>>
+
+    export type SuspendBarberMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Suspend barber account (admin)
+ */
+export const useSuspendBarber = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof suspendBarber>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSuspendBarberMutationOptions(options));
+    }
+
+export const getReactivateBarberUrl = (id: number,) => {
+
+
+
+
+  return `/api/barbers/${id}/reactivate`
+}
+
+/**
+ * @summary Reactivate a suspended barber (admin)
+ */
+export const reactivateBarber = async (id: number, options?: RequestInit): Promise<Barber> => {
+
+  return customFetch<Barber>(getReactivateBarberUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getReactivateBarberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reactivateBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reactivateBarber>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['reactivateBarber'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reactivateBarber>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  reactivateBarber(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReactivateBarberMutationResult = NonNullable<Awaited<ReturnType<typeof reactivateBarber>>>
+
+    export type ReactivateBarberMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Reactivate a suspended barber (admin)
+ */
+export const useReactivateBarber = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reactivateBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reactivateBarber>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getReactivateBarberMutationOptions(options));
+    }
+
 export const getGetBarberScheduleUrl = (id: number,) => {
 
 
