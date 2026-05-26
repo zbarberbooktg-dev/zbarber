@@ -104,16 +104,30 @@ router.patch("/barbers/:id", requireAuth, requireAdmin, async (req, res) => {
   res.json(updated);
 });
 
-router.post("/barbers/:id/approve", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/barbers/:id/approve", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(barbersTable).set({ status: "approved" }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
   res.json(updated);
 });
 
-router.post("/barbers/:id/reject", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/barbers/:id/reject", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(barbersTable).set({ status: "rejected" }).where(eq(barbersTable.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
+  res.json(updated);
+});
+
+router.patch("/barbers/:id/suspend", requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const [updated] = await db.update(barbersTable).set({ status: "suspended" }).where(eq(barbersTable.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
+  res.json(updated);
+});
+
+router.patch("/barbers/:id/reactivate", requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const [updated] = await db.update(barbersTable).set({ status: "approved" }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
   res.json(updated);
 });
