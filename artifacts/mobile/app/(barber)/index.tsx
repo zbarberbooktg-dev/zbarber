@@ -221,10 +221,11 @@ export default function BarberDashboard() {
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="scissors" label="Services" onPress={() => router.push("/(barber)/services")} />
-        <Shortcut c={c} icon="plus-circle" label="Nouveau salon" onPress={() => setCreateOpen(true)} />
+        <Shortcut c={c} icon="image" label="Galerie" onPress={() => router.push("/(barber)/gallery")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="dollar-sign" label="Financement" onPress={() => router.push("/(barber)/financing")} />
+        <Shortcut c={c} icon="plus-circle" label="Nouveau salon" onPress={() => setCreateOpen(true)} />
       </View>
       <CreateSalonModal visible={createOpen} onClose={() => setCreateOpen(false)} />
 

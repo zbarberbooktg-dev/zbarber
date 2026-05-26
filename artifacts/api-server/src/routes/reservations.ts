@@ -92,6 +92,14 @@ router.patch("/reservations/:id", requireAuth, async (req: AuthedRequest, res) =
     : (["pending", "confirmed", "cancelled", "completed"] as const);
   const body = z.object({ status: z.enum(allowedStatuses) }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  // Enforce 24h cancellation window for clients.
+  if (user.role === "client" && body.data.status === "cancelled") {
+    const scheduled = new Date(existing.scheduledAt).getTime();
+    if (scheduled - Date.now() < 24 * 60 * 60 * 1000) {
+      res.status(409).json({ error: "Cancellation window closed — less than 24h before appointment." });
+      return;
+    }
+  }
   const [updated] = await db.update(reservationsTable).set({ status: body.data.status }).where(eq(reservationsTable.id, id)).returning();
   res.json(await enrichReservation(updated));
 });

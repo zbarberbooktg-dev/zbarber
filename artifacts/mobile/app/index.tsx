@@ -18,6 +18,7 @@ import {
   Image,
   ImageBackground,
   ImageSourcePropType,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -68,6 +69,7 @@ export default function PublicHome() {
   const [locationRefreshing, setLocationRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const featuredYRef = useRef(0);
+  const [lightbox, setLightbox] = useState<{ uri: string | null; src?: any; label?: string } | null>(null);
 
   const { data, isLoading, refetch, isRefetching } = useListBarbers({ status: "approved" });
   const { data: homeGallery } = useListHomeGalleryPhotos();
@@ -254,7 +256,7 @@ export default function PublicHome() {
           title={query ? `${list.length} résultat${list.length !== 1 ? "s" : ""}` : "Salons en Vedette"}
           action={query ? "" : "Tout voir"}
           serifFont={serif}
-          onPressAction={() => scrollRef.current?.scrollTo({ y: featuredYRef.current, animated: true })}
+          onPressAction={() => router.push("/salons" as never)}
         />
         </View>
         {isLoading ? (
@@ -316,7 +318,7 @@ export default function PublicHome() {
                     }))
                   : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
                 ).map((s: any) => (
-                  <Pressable key={s.key} onPress={() => router.push("/gallery")} style={{ width: "48%", aspectRatio: 1, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
+                  <Pressable key={s.key} onPress={() => setLightbox({ uri: s.uri, src: s.src, label: s.label })} style={{ width: "48%", aspectRatio: 1, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
                     <Image source={s.uri ? { uri: s.uri } : s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                     <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
                     {s.label ? <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text> : null}
@@ -385,6 +387,28 @@ export default function PublicHome() {
           </>
         )}
       </ScrollView>
+
+      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
+        <Pressable onPress={() => setLightbox(null)} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.95)", justifyContent: "center", alignItems: "center" }}>
+          <Pressable
+            onPress={() => setLightbox(null)}
+            hitSlop={12}
+            style={{ position: "absolute", top: insets.top + 12, right: 20, zIndex: 2, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}
+          >
+            <Feather name="x" size={22} color="#fff" />
+          </Pressable>
+          {lightbox && (
+            <Image
+              source={lightbox.uri ? { uri: lightbox.uri } : lightbox.src}
+              style={{ width: "92%", height: "70%" }}
+              resizeMode="contain"
+            />
+          )}
+          {lightbox?.label ? (
+            <Text style={{ marginTop: 18, color: "#fff", fontFamily: serifItalic, fontSize: 16 }}>{lightbox.label}</Text>
+          ) : null}
+        </Pressable>
+      </Modal>
     </View>
   );
 }
