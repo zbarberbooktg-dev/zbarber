@@ -29,11 +29,15 @@ export async function provisionUserFromClerk(clerkUserId: string) {
     }
   }
 
+  const metaRole = (cu.unsafeMetadata as Record<string, unknown> | undefined)?.role
+    ?? (cu.publicMetadata as Record<string, unknown> | undefined)?.role;
+  const initialRole: "client" | "barber" = metaRole === "barber" ? "barber" : "client";
+
   const [created] = await db.insert(usersTable).values({
     clerkUserId,
     name,
     email,
-    role: "client",
+    role: initialRole,
     status: "active",
     avatarUrl: cu.imageUrl ?? null,
   }).returning();

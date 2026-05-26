@@ -42,7 +42,11 @@ export default function SignUpScreen() {
   const handleStart = async () => {
     setErr(null);
     try {
-      const { error } = await signUp.password({ emailAddress: email.trim(), password });
+      const { error } = await signUp.password({
+        emailAddress: email.trim(),
+        password,
+        unsafeMetadata: { role },
+      });
       if (error) {
         setErr(error.message ?? "Erreur d'inscription");
         return;

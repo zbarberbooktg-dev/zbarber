@@ -33,9 +33,32 @@ async function findOrCreateClerkUser(spec: Spec) {
     firstName: spec.firstName,
     lastName: spec.lastName,
     skipPasswordChecks: true,
+    unsafeMetadata: { role: spec.role === "admin" ? "client" : spec.role },
   });
   console.log(`  created in Clerk: ${u.id}`);
   return u;
+}
+
+async function verifyPrimaryEmail(clerkUserId: string) {
+  const u = await clerk.users.getUser(clerkUserId);
+  const primary = u.primaryEmailAddress ?? u.emailAddresses[0];
+  if (!primary) return;
+  if (primary.verification?.status === "verified") return;
+  // Backend API: PATCH /email_addresses/{id} with verified: true
+  const res = await fetch(`https://api.clerk.com/v1/email_addresses/${primary.id}`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${process.env.CLERK_SECRET_KEY!}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ verified: true }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    console.log(`  WARN could not verify email: ${res.status} ${txt}`);
+  } else {
+    console.log(`  email marked verified`);
+  }
 }
 
 async function upsertLocalUser(clerkUserId: string, spec: Spec) {
@@ -76,6 +99,7 @@ async function main() {
   for (const spec of ACCOUNTS) {
     console.log(`\n${spec.email} (${spec.role})`);
     const cu = await findOrCreateClerkUser(spec);
+    await verifyPrimaryEmail(cu.id);
     const local = await upsertLocalUser(cu.id, spec);
     console.log(`  DB user id=${local.id} role=${local.role} status=${local.status}`);
     if (spec.role === "barber" && spec.salon) {
