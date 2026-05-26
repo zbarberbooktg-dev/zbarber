@@ -9,6 +9,7 @@ import type { ListSubscriptionsStatus } from './listSubscriptionsStatus';
 
 export type ListSubscriptionsParams = {
 status?: ListSubscriptionsStatus;
+barberId?: number;
 page?: number;
 limit?: number;
 };

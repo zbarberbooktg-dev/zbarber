@@ -14,7 +14,7 @@ async function enrichReservation(r: typeof reservationsTable.$inferSelect) {
 }
 
 router.get("/reservations", requireAuth, async (req: AuthedRequest, res) => {
-  const { page = "1", limit = "20", status, barberId, clientId } = req.query as Record<string, string>;
+  const { page = "1", limit = "20", status, barberId, clientId, dateFrom, dateTo, search } = req.query as Record<string, string>;
   const offset = (parseInt(page) - 1) * parseInt(limit);
   const user = req.localUser!;
 
@@ -29,8 +29,26 @@ router.get("/reservations", requireAuth, async (req: AuthedRequest, res) => {
   if (status) rows = rows.filter(r => r.status === status);
   if (barberId) rows = rows.filter(r => r.barberId === parseInt(barberId));
   if (clientId) rows = rows.filter(r => r.clientId === parseInt(clientId));
-  const enriched = await Promise.all(rows.slice(offset, offset + parseInt(limit)).map(enrichReservation));
-  res.json({ data: enriched, total: rows.length, page: parseInt(page), limit: parseInt(limit) });
+  if (dateFrom) {
+    const from = new Date(`${dateFrom}T00:00:00.000Z`);
+    rows = rows.filter(r => new Date(r.scheduledAt) >= from);
+  }
+  if (dateTo) {
+    const to = new Date(`${dateTo}T23:59:59.999Z`);
+    rows = rows.filter(r => new Date(r.scheduledAt) <= to);
+  }
+  let enriched = await Promise.all(rows.map(enrichReservation));
+  if (search) {
+    const q = search.toLowerCase();
+    enriched = enriched.filter(r =>
+      (r.clientName?.toLowerCase().includes(q) ?? false) ||
+      (r.barberName?.toLowerCase().includes(q) ?? false) ||
+      (r.serviceName?.toLowerCase().includes(q) ?? false)
+    );
+  }
+  const total = enriched.length;
+  const data = enriched.slice(offset, offset + parseInt(limit));
+  res.json({ data, total, page: parseInt(page), limit: parseInt(limit) });
 });
 
 router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {

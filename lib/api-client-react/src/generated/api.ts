@@ -77,6 +77,8 @@ import type {
   SubscriptionPlan,
   SubscriptionPlanInput,
   SubscriptionPlanUpdate,
+  SubscriptionUpdate,
+  SuspendInput,
   SyncAuthInput,
   TopBarber,
   User,
@@ -1898,14 +1900,16 @@ export const getSuspendBarberUrl = (id: number,) => {
 /**
  * @summary Suspend barber account (admin)
  */
-export const suspendBarber = async (id: number, options?: RequestInit): Promise<Barber> => {
+export const suspendBarber = async (id: number,
+    suspendInput: SuspendInput, options?: RequestInit): Promise<Barber> => {
 
   return customFetch<Barber>(getSuspendBarberUrl(id),
   {
     ...options,
-    method: 'PATCH'
-
-
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      suspendInput,)
   }
 );}
 
@@ -1913,8 +1917,8 @@ export const suspendBarber = async (id: number, options?: RequestInit): Promise<
 
 
 export const getSuspendBarberMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number;data: BodyType<SuspendInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number;data: BodyType<SuspendInput>}, TContext> => {
 
 const mutationKey = ['suspendBarber'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1926,10 +1930,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suspendBarber>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suspendBarber>>, {id: number;data: BodyType<SuspendInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  suspendBarber(id,requestOptions)
+          return  suspendBarber(id,data,requestOptions)
         }
 
 
@@ -1940,18 +1944,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type SuspendBarberMutationResult = NonNullable<Awaited<ReturnType<typeof suspendBarber>>>
-
+    export type SuspendBarberMutationBody = BodyType<SuspendInput>
     export type SuspendBarberMutationError = ErrorType<unknown>
 
     /**
  * @summary Suspend barber account (admin)
  */
 export const useSuspendBarber = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suspendBarber>>, TError,{id: number;data: BodyType<SuspendInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof suspendBarber>>,
         TError,
-        {id: number},
+        {id: number;data: BodyType<SuspendInput>},
         TContext
       > => {
       return useMutation(getSuspendBarberMutationOptions(options));
@@ -3962,6 +3966,148 @@ export const useCreateSubscription = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateSubscriptionMutationOptions(options));
+    }
+
+export const getUpdateSubscriptionUrl = (id: number,) => {
+
+
+
+
+  return `/api/subscriptions/${id}`
+}
+
+/**
+ * @summary Update a subscription (admin)
+ */
+export const updateSubscription = async (id: number,
+    subscriptionUpdate: SubscriptionUpdate, options?: RequestInit): Promise<Subscription> => {
+
+  return customFetch<Subscription>(getUpdateSubscriptionUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      subscriptionUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateSubscriptionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSubscription>>, TError,{id: number;data: BodyType<SubscriptionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSubscription>>, TError,{id: number;data: BodyType<SubscriptionUpdate>}, TContext> => {
+
+const mutationKey = ['updateSubscription'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSubscription>>, {id: number;data: BodyType<SubscriptionUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateSubscription(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof updateSubscription>>>
+    export type UpdateSubscriptionMutationBody = BodyType<SubscriptionUpdate>
+    export type UpdateSubscriptionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a subscription (admin)
+ */
+export const useUpdateSubscription = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSubscription>>, TError,{id: number;data: BodyType<SubscriptionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSubscription>>,
+        TError,
+        {id: number;data: BodyType<SubscriptionUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateSubscriptionMutationOptions(options));
+    }
+
+export const getDeleteSubscriptionUrl = (id: number,) => {
+
+
+
+
+  return `/api/subscriptions/${id}`
+}
+
+/**
+ * @summary Delete a subscription (admin)
+ */
+export const deleteSubscription = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteSubscriptionUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteSubscriptionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSubscription>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteSubscription>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteSubscription'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteSubscription>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteSubscription(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteSubscription>>>
+
+    export type DeleteSubscriptionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a subscription (admin)
+ */
+export const useDeleteSubscription = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSubscription>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteSubscription>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteSubscriptionMutationOptions(options));
     }
 
 export const getListFinancingRequestsUrl = (params?: ListFinancingRequestsParams,) => {

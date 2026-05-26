@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, X, Clock } from "lucide-react";
+import { Check, X, Clock, Search, RotateCcw } from "lucide-react";
 import { useListReservations, useUpdateReservationStatus, getListReservationsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
@@ -9,13 +9,23 @@ import { useT } from "@/lib/i18n";
 
 export default function Reservations() {
   const [status, setStatus] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const qc = useQueryClient();
   const { toast } = useToast();
   const { t, locale } = useT();
   const r = t.reservations;
 
-  const params = { page: String(page), limit: "15", ...(status ? { status } : {}) };
+  const params = {
+    page: String(page),
+    limit: "15",
+    ...(status ? { status } : {}),
+    ...(dateFrom ? { dateFrom } : {}),
+    ...(dateTo ? { dateTo } : {}),
+    ...(search ? { search } : {}),
+  };
   const { data, isLoading } = useListReservations(params as any);
   const updateStatus = useUpdateReservationStatus();
 
@@ -25,14 +35,28 @@ export default function Reservations() {
     });
   }
 
+  function resetFilters() {
+    setStatus(""); setDateFrom(""); setDateTo(""); setSearch(""); setPage(1);
+  }
+
   const reservations = (data as any)?.data ?? [];
   const total = (data as any)?.total ?? 0;
+  const hasFilters = !!(status || dateFrom || dateTo || search);
 
   return (
     <div>
       <PageHeader title={r.title} subtitle={r.countSuffix(total)} />
 
-      <div className="flex gap-3 mb-5">
+      <div className="flex flex-wrap gap-3 mb-5 items-end">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder={r.searchPh}
+            className="w-full rounded-lg border bg-card pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
         <select
           value={status}
           onChange={e => { setStatus(e.target.value); setPage(1); }}
@@ -44,6 +68,32 @@ export default function Reservations() {
           <option value="completed">{r.completed}</option>
           <option value="cancelled">{r.cancelled}</option>
         </select>
+        <label className="flex flex-col text-xs text-muted-foreground gap-1">
+          {r.dateFrom}
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => { setDateFrom(e.target.value); setPage(1); }}
+            className="rounded-lg border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+        <label className="flex flex-col text-xs text-muted-foreground gap-1">
+          {r.dateTo}
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => { setDateTo(e.target.value); setPage(1); }}
+            className="rounded-lg border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
+        {hasFilters && (
+          <button
+            onClick={resetFilters}
+            className="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-2 text-sm hover:bg-muted transition-colors"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> {r.resetFilters}
+          </button>
+        )}
       </div>
 
       <div className="rounded-xl border bg-card overflow-hidden">

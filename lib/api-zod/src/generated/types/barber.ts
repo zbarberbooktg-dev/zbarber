@@ -33,6 +33,10 @@ export interface Barber {
   /** @nullable */
   subscriptionPlanId?: number | null;
   /** @nullable */
+  rejectionReason?: string | null;
+  /** @nullable */
+  suspensionReason?: string | null;
+  /** @nullable */
   rating?: number | null;
   reviewCount?: number;
   createdAt: Date;

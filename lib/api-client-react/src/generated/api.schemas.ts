@@ -69,12 +69,22 @@ export interface AuthResponse {
   user: User;
 }
 
+export type UserUpdateRole = typeof UserUpdateRole[keyof typeof UserUpdateRole];
+
+
+export const UserUpdateRole = {
+  client: 'client',
+  barber: 'barber',
+  admin: 'admin',
+} as const;
+
 export interface UserUpdate {
   name?: string;
   /** @nullable */
   phone?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  role?: UserUpdateRole;
 }
 
 export interface UserListResponse {
@@ -85,6 +95,11 @@ export interface UserListResponse {
 }
 
 export interface RejectInput {
+  /** @nullable */
+  reason?: string | null;
+}
+
+export interface SuspendInput {
   /** @nullable */
   reason?: string | null;
 }
@@ -124,6 +139,10 @@ export interface Barber {
   profileViews?: number;
   /** @nullable */
   subscriptionPlanId?: number | null;
+  /** @nullable */
+  rejectionReason?: string | null;
+  /** @nullable */
+  suspensionReason?: string | null;
   /** @nullable */
   rating?: number | null;
   reviewCount?: number;
@@ -494,6 +513,24 @@ export interface Subscription {
 export interface SubscriptionInput {
   barberId: number;
   planId: number;
+  endDate: string;
+  /** @nullable */
+  paymentMethod?: string | null;
+}
+
+export type SubscriptionUpdateStatus = typeof SubscriptionUpdateStatus[keyof typeof SubscriptionUpdateStatus];
+
+
+export const SubscriptionUpdateStatus = {
+  active: 'active',
+  expired: 'expired',
+  cancelled: 'cancelled',
+} as const;
+
+export interface SubscriptionUpdate {
+  planId?: number;
+  status?: SubscriptionUpdateStatus;
+  endDate?: string;
   /** @nullable */
   paymentMethod?: string | null;
 }
@@ -834,6 +871,9 @@ export type ListReservationsParams = {
 status?: ListReservationsStatus;
 barberId?: number;
 clientId?: number;
+dateFrom?: string;
+dateTo?: string;
+search?: string;
 page?: number;
 limit?: number;
 };
@@ -856,6 +896,7 @@ limit?: number;
 
 export type ListSubscriptionsParams = {
 status?: ListSubscriptionsStatus;
+barberId?: number;
 page?: number;
 limit?: number;
 };

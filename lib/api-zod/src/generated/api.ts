@@ -108,6 +108,8 @@ export const SyncAuthResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -171,7 +173,8 @@ export const UpdateUserParams = zod.object({
 export const UpdateUserBody = zod.object({
   "name": zod.string().optional(),
   "phone": zod.string().nullish(),
-  "avatarUrl": zod.string().nullish()
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['client', 'barber', 'admin']).optional()
 })
 
 export const UpdateUserResponse = zod.object({
@@ -259,6 +262,8 @@ export const ListBarbersResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -305,6 +310,8 @@ export const GetMyBarbersResponseItem = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -361,6 +368,8 @@ export const UpdateMySalonResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -498,6 +507,8 @@ export const GetBarberResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -540,6 +551,8 @@ export const UpdateBarberResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -569,6 +582,8 @@ export const ApproveBarberResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -602,6 +617,8 @@ export const RejectBarberResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -613,6 +630,10 @@ export const RejectBarberResponse = zod.object({
  */
 export const SuspendBarberParams = zod.object({
   "id": zod.coerce.number()
+})
+
+export const SuspendBarberBody = zod.object({
+  "reason": zod.string().nullish()
 })
 
 export const SuspendBarberResponse = zod.object({
@@ -631,6 +652,8 @@ export const SuspendBarberResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -660,6 +683,8 @@ export const ReactivateBarberResponse = zod.object({
   "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -906,6 +931,9 @@ export const ListReservationsQueryParams = zod.object({
   "status": zod.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
   "barberId": zod.coerce.number().optional(),
   "clientId": zod.coerce.number().optional(),
+  "dateFrom": zod.date().optional(),
+  "dateTo": zod.date().optional(),
+  "search": zod.coerce.string().optional(),
   "page": zod.coerce.number().optional(),
   "limit": zod.coerce.number().optional()
 })
@@ -1131,6 +1159,7 @@ export const DeleteSubscriptionPlanParams = zod.object({
  */
 export const ListSubscriptionsQueryParams = zod.object({
   "status": zod.enum(['active', 'expired', 'cancelled']).optional(),
+  "barberId": zod.coerce.number().optional(),
   "page": zod.coerce.number().optional(),
   "limit": zod.coerce.number().optional()
 })
@@ -1160,7 +1189,44 @@ export const ListSubscriptionsResponse = zod.object({
 export const CreateSubscriptionBody = zod.object({
   "barberId": zod.number(),
   "planId": zod.number(),
+  "endDate": zod.coerce.date(),
   "paymentMethod": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update a subscription (admin)
+ */
+export const UpdateSubscriptionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateSubscriptionBody = zod.object({
+  "planId": zod.number().optional(),
+  "status": zod.enum(['active', 'expired', 'cancelled']).optional(),
+  "endDate": zod.coerce.date().optional(),
+  "paymentMethod": zod.string().nullish()
+})
+
+export const UpdateSubscriptionResponse = zod.object({
+  "id": zod.number(),
+  "barberId": zod.number(),
+  "planId": zod.number(),
+  "planName": zod.string().nullish(),
+  "barberName": zod.string().nullish(),
+  "status": zod.enum(['active', 'expired', 'cancelled']),
+  "startDate": zod.coerce.date(),
+  "endDate": zod.coerce.date(),
+  "paymentMethod": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a subscription (admin)
+ */
+export const DeleteSubscriptionParams = zod.object({
+  "id": zod.coerce.number()
 })
 
 

@@ -21,6 +21,8 @@ export const barbersTable = pgTable("barbers", {
   status: barberStatusEnum("status").notNull().default("pending"),
   profileViews: integer("profile_views").notNull().default(0),
   subscriptionPlanId: integer("subscription_plan_id"),
+  rejectionReason: text("rejection_reason"),
+  suspensionReason: text("suspension_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -511,6 +511,12 @@ paths:
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuspendInput"
       responses:
         "200":
           description: Barber suspended
@@ -817,6 +823,20 @@ paths:
           schema:
             type: integer
         - in: query
+          name: dateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: dateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
           name: page
           schema:
             type: integer
@@ -1033,6 +1053,10 @@ paths:
             type: string
             enum: [active, expired, cancelled]
         - in: query
+          name: barberId
+          schema:
+            type: integer
+        - in: query
           name: page
           schema:
             type: integer
@@ -1064,6 +1088,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Subscription"
+
+  /subscriptions/{id}:
+    patch:
+      operationId: updateSubscription
+      tags: [subscriptions]
+      summary: Update a subscription (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionUpdate"
+      responses:
+        "200":
+          description: Updated subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+    delete:
+      operationId: deleteSubscription
+      tags: [subscriptions]
+      summary: Delete a subscription (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
   # ── FINANCING ─────────────────────────────────────────────────────────
   /financing-requests:
@@ -1440,6 +1502,9 @@ components:
           type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
+        role:
+          type: string
+          enum: [client, barber, admin]
 
     UserListResponse:
       type: object
@@ -1457,6 +1522,12 @@ components:
           type: integer
 
     RejectInput:
+      type: object
+      properties:
+        reason:
+          type: ["string", "null"]
+
+    SuspendInput:
       type: object
       properties:
         reason:
@@ -1498,6 +1569,10 @@ components:
           type: integer
         subscriptionPlanId:
           type: ["integer", "null"]
+        rejectionReason:
+          type: ["string", "null"]
+        suspensionReason:
+          type: ["string", "null"]
         rating:
           type: ["number", "null"]
         reviewCount:
@@ -2001,12 +2076,29 @@ components:
 
     SubscriptionInput:
       type: object
-      required: [barberId, planId]
+      required: [barberId, planId, endDate]
       properties:
         barberId:
           type: integer
         planId:
           type: integer
+        endDate:
+          type: string
+          format: date-time
+        paymentMethod:
+          type: ["string", "null"]
+
+    SubscriptionUpdate:
+      type: object
+      properties:
+        planId:
+          type: integer
+        status:
+          type: string
+          enum: [active, expired, cancelled]
+        endDate:
+          type: string
+          format: date-time
         paymentMethod:
           type: ["string", "null"]
 

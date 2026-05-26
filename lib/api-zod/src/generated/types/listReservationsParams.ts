@@ -11,6 +11,9 @@ export type ListReservationsParams = {
 status?: ListReservationsStatus;
 barberId?: number;
 clientId?: number;
+dateFrom?: Date;
+dateTo?: Date;
+search?: string;
 page?: number;
 limit?: number;
 };
