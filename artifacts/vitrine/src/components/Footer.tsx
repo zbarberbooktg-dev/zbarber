@@ -41,6 +41,7 @@ export function Footer() {
               <li><a href="#" className="text-muted-foreground hover:text-foreground text-sm transition-colors">{t.footer.careers}</a></li>
               <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground text-sm transition-colors">{t.footer.privacy}</Link></li>
               <li><Link href="/terms" className="text-muted-foreground hover:text-foreground text-sm transition-colors">{t.footer.terms}</Link></li>
+              <li><Link href="/account-deletion" className="text-muted-foreground hover:text-foreground text-sm transition-colors">{(t.footer as any).accountDeletion ?? "Supprimer mon compte"}</Link></li>
             </ul>
           </div>
 

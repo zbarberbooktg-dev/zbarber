@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import React, { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 
+import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
@@ -18,6 +19,7 @@ export default function ClientProfile() {
   const { themePref, setThemePref, lang, setLang, signOut, syncAuth, t, user } = useApp();
   const fetcher = useAuthedFetch();
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [locating, setLocating] = useState(false);
 
   const handleRefreshLocation = async () => {
@@ -226,8 +228,15 @@ export default function ClientProfile() {
               router.replace("/role-select");
             }}
           />
+          <Button
+            label={(t as any).deleteAccount ?? "Supprimer mon compte"}
+            variant="ghost"
+            icon="trash-2"
+            onPress={() => setDeleteOpen(true)}
+          />
         </View>
       </View>
+      <DeleteAccountModal visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </ScrollView>
   );
 }

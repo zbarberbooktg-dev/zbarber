@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Constants from "expo-constants";
 import { Feather } from "@expo/vector-icons";
 
 import { useApp } from "@/contexts/AppContext";
@@ -25,7 +27,7 @@ type Step = "details" | "verify";
 
 export default function SignUpScreen() {
   const c = useColors();
-  const { syncAuth } = useApp();
+  const { syncAuth, t } = useApp();
   const router = useRouter();
   const { signUp, errors, fetchStatus } = useSignUp();
   const { isSignedIn } = useAuth();
@@ -36,6 +38,8 @@ export default function SignUpScreen() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -63,8 +67,22 @@ export default function SignUpScreen() {
     }
   };
 
+  const vitrineUrl = (Constants.expoConfig?.extra as any)?.vitrineUrl
+    ?? process.env.EXPO_PUBLIC_VITRINE_URL
+    ?? "https://globalbarber.app";
+  const openTerms = () => Linking.openURL(`${vitrineUrl}/terms`);
+  const openPrivacy = () => Linking.openURL(`${vitrineUrl}/privacy`);
+
   const handleStart = async () => {
     setErr(null);
+    if (password !== confirmPassword) {
+      setErr((t as any).passwordsDoNotMatch ?? "Les mots de passe ne correspondent pas");
+      return;
+    }
+    if (!acceptedTerms) {
+      setErr((t as any).mustAcceptTerms ?? "Vous devez accepter les conditions");
+      return;
+    }
     try {
       const trimmedName = name.trim();
       const [firstName, ...rest] = trimmedName.split(/\s+/);
@@ -196,6 +214,46 @@ export default function SignUpScreen() {
             <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Mot de passe</Text>
             <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="Min. 8 caractères" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
 
+            <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>
+              {(t as any).confirmPassword ?? "Confirmer le mot de passe"}
+            </Text>
+            <TextInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              placeholder={(t as any).confirmPasswordPh ?? "Saisissez à nouveau le mot de passe"}
+              placeholderTextColor={c.mutedForeground}
+              style={inputStyle(c)}
+            />
+
+            {/* CGU + privacy checkbox */}
+            <Pressable
+              onPress={() => setAcceptedTerms((v) => !v)}
+              style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 16, paddingVertical: 4 }}
+            >
+              <View
+                style={{
+                  width: 22, height: 22, borderRadius: 6, borderWidth: 2,
+                  borderColor: acceptedTerms ? c.primary : c.border,
+                  backgroundColor: acceptedTerms ? c.primary : "transparent",
+                  alignItems: "center", justifyContent: "center", marginTop: 2,
+                }}
+              >
+                {acceptedTerms && <Feather name="check" size={14} color={c.primaryForeground} />}
+              </View>
+              <Text style={{ flex: 1, color: c.mutedForeground, fontFamily: "Inter_400Regular", lineHeight: 20 }}>
+                {(t as any).acceptTermsPrefix ?? "J'accepte les "}
+                <Text onPress={openTerms} style={{ color: c.primary, fontFamily: "Inter_600SemiBold", textDecorationLine: "underline" }}>
+                  {(t as any).acceptTermsLink ?? "Conditions d'utilisation"}
+                </Text>
+                {(t as any).acceptTermsAnd ?? " et la "}
+                <Text onPress={openPrivacy} style={{ color: c.primary, fontFamily: "Inter_600SemiBold", textDecorationLine: "underline" }}>
+                  {(t as any).acceptPrivacyLink ?? "Politique de confidentialité"}
+                </Text>
+                .
+              </Text>
+            </Pressable>
+
             {(err || (errors as any)?.raw?.[0]?.message) && (
               <Text style={{ color: c.destructive, marginBottom: 12, fontFamily: "Inter_400Regular" }}>
                 {err || (errors as any)?.raw?.[0]?.message}
@@ -204,10 +262,10 @@ export default function SignUpScreen() {
 
             <Pressable
               onPress={handleStart}
-              disabled={busy || !email || !name.trim() || !phone.trim() || password.length < 8}
+              disabled={busy || !email || !name.trim() || !phone.trim() || password.length < 8 || !confirmPassword || !acceptedTerms}
               style={({ pressed }) => ({
                 backgroundColor: c.primary, padding: 16, borderRadius: c.radius, alignItems: "center",
-                opacity: busy || !email || !name.trim() || !phone.trim() || password.length < 8 ? 0.6 : pressed ? 0.85 : 1,
+                opacity: busy || !email || !name.trim() || !phone.trim() || password.length < 8 || !confirmPassword || !acceptedTerms ? 0.6 : pressed ? 0.85 : 1,
               })}
             >
               {busy ? <ActivityIndicator color={c.primaryForeground} /> : (
