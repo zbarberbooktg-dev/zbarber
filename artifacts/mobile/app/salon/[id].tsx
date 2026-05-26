@@ -6,6 +6,7 @@ import {
 } from "@workspace/api-client-react";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useAuth } from "@clerk/expo";
+import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -62,27 +63,37 @@ export default function PublicSalonDetail() {
       ? reviews.reduce((sum, r) => sum + (r.rating ?? 0), 0) / reviews.length
       : 0;
 
+  // Fetch real availability based on weekly hours + selected service duration + bookings + days off.
+  const fromIso = React.useMemo(() => {
+    const d = new Date(); const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, []);
+  const toIso = React.useMemo(() => {
+    const d = new Date(); d.setDate(d.getDate() + 13);
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, []);
+
+  const { data: availability } = useQuery<Array<{ date: string; isWorking: boolean; isBlocked: boolean; slots: Array<{ time: string; iso: string; available: boolean; reason?: string }> }>>({
+    queryKey: ["availability", barberId, selectedService, fromIso, toIso],
+    queryFn: () => fetcher(`/api/barbers/${barberId}/availability?from=${fromIso}&to=${toIso}${selectedService ? `&serviceId=${selectedService}` : ""}`),
+    enabled: !!barberId,
+  });
+
   const slots = React.useMemo(() => {
     const result: Array<{ label: string; iso: string }> = [];
-    const today = new Date();
-    for (let d = 0; d < 4; d++) {
-      for (const h of [9, 10, 11, 14, 15, 16]) {
-        const dt = new Date(today);
-        dt.setDate(today.getDate() + d);
-        dt.setHours(h, 0, 0, 0);
-        result.push({
-          label: dt.toLocaleString(locale, {
-            weekday: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          iso: dt.toISOString(),
-        });
+    if (!availability) return result;
+    for (const day of availability) {
+      if (!day.isWorking || day.isBlocked) continue;
+      const dayDate = new Date(day.date + "T00:00:00");
+      const dayLabel = dayDate.toLocaleDateString(locale, { weekday: "short", day: "numeric" });
+      for (const s of day.slots) {
+        if (!s.available) continue;
+        result.push({ label: `${dayLabel} · ${s.time}`, iso: s.iso });
       }
     }
     return result;
-  }, [locale]);
+  }, [availability, locale]);
 
   const handleBook = async () => {
     if (!isSignedIn) {

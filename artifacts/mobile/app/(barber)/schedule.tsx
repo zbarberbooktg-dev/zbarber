@@ -1,8 +1,10 @@
+import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Linking,
   Pressable,
   RefreshControl,
   Text,
@@ -21,9 +23,14 @@ type Reservation = {
   scheduledAt: string;
   status: Status;
   clientName?: string | null;
+  clientPhone?: string | null;
   serviceName?: string | null;
   servicePrice?: number | null;
 };
+
+function sanitizePhone(p: string) {
+  return p.replace(/[^\d+]/g, "");
+}
 
 const TONE: Record<Status, "warning" | "success" | "primary" | "danger"> = {
   pending: "warning",
@@ -131,9 +138,29 @@ export default function BarberSchedule() {
                   </Text>
                   <Pill label={STATUS_LABEL[status]} tone={TONE[status]} />
                 </View>
-                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
-                  {item.clientName ?? "Client"}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+                  <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                    {item.clientName ?? "Client"}
+                  </Text>
+                  {item.clientPhone && (
+                    <View style={{ flexDirection: "row", gap: 6 }}>
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() => Linking.openURL(`tel:${sanitizePhone(item.clientPhone!)}`).catch(() => {})}
+                        style={{ padding: 6, borderRadius: 8, backgroundColor: c.accent }}
+                      >
+                        <Feather name="phone" size={14} color={c.primary} />
+                      </Pressable>
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() => Linking.openURL(`https://wa.me/${sanitizePhone(item.clientPhone!).replace(/^\+/, "")}`).catch(() => {})}
+                        style={{ padding: 6, borderRadius: 8, backgroundColor: c.accent }}
+                      >
+                        <Feather name="message-circle" size={14} color={c.primary} />
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
                 <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2, marginBottom: 12 }}>
                   {item.serviceName ?? "Service"}
                   {item.servicePrice != null ? ` · ${Number(item.servicePrice).toLocaleString()} FC` : ""}

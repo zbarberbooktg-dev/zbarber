@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, financingRequestsTable } from "@workspace/db";
-import { eq, avg, count, and, lt, inArray, gte, sql } from "drizzle-orm";
+import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable } from "@workspace/db";
+import { eq, avg, count, and, lt, lte, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireAdmin, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
 
@@ -237,6 +237,159 @@ router.post("/barbers/me/financing", requireAuth, requireApprovedBarber, async (
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [created] = await db.insert(financingRequestsTable).values({ ...body.data, barberId: req.barberId! }).returning();
   res.status(201).json(created);
+});
+
+// ── Barber: days off (block whole days from client booking) ───
+router.get("/barbers/me/days-off", requireAuth, requireApprovedBarber, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const rows = await db.select().from(daysOffTable).where(eq(daysOffTable.barberId, b.id)).orderBy(daysOffTable.date);
+  res.json(rows);
+});
+
+router.post("/barbers/me/days-off", requireAuth, requireApprovedBarber, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const body = z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    force: z.boolean().optional(),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid date (YYYY-MM-DD expected)" }); return; }
+  // Idempotent: if already blocked, return existing.
+  const [existing] = await db.select().from(daysOffTable)
+    .where(and(eq(daysOffTable.barberId, b.id), eq(daysOffTable.date, body.data.date))).limit(1);
+  if (existing) { res.status(200).json(existing); return; }
+  // Guard: refuse to block a day that already has pending/confirmed reservations unless force=true.
+  if (!body.data.force) {
+    const dayStart = new Date(body.data.date + "T00:00:00Z");
+    const dayEnd = new Date(dayStart); dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+    const conflicts = await db.select({ id: reservationsTable.id })
+      .from(reservationsTable)
+      .where(and(
+        eq(reservationsTable.barberId, b.id),
+        gte(reservationsTable.scheduledAt, dayStart),
+        lt(reservationsTable.scheduledAt, dayEnd),
+        inArray(reservationsTable.status, ["pending", "confirmed"]),
+      ));
+    if (conflicts.length > 0) {
+      res.status(409).json({ error: "conflicting_reservations", count: conflicts.length });
+      return;
+    }
+  }
+  const [created] = await db.insert(daysOffTable).values({ barberId: b.id, date: body.data.date }).returning();
+  res.status(201).json(created);
+});
+
+router.delete("/barbers/me/days-off/:id", requireAuth, requireApprovedBarber, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const id = parseInt(String(req.params.id));
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  // Scope by both id AND barberId to prevent cross-barber deletion.
+  await db.delete(daysOffTable).where(and(eq(daysOffTable.id, id), eq(daysOffTable.barberId, b.id)));
+  res.status(204).send();
+});
+
+// ── Public: availability (dynamic slots based on weekly hours + service duration + bookings + days_off) ───
+const DOW_KEYS: Record<number, string> = { 0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat" };
+function parseHM(s: string | null | undefined): number | null {
+  if (!s) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(s);
+  if (!m) return null;
+  const h = parseInt(m[1]!, 10), mm = parseInt(m[2]!, 10);
+  if (!Number.isFinite(h) || !Number.isFinite(mm)) return null;
+  return h * 60 + mm;
+}
+function fmtHM(min: number): string {
+  const h = Math.floor(min / 60), mm = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+router.get("/barbers/:id/availability", async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid barber id" }); return; }
+  const query = z.object({
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    serviceId: z.string().optional(),
+  }).safeParse(req.query);
+  if (!query.success) { res.status(400).json({ error: "from/to required (YYYY-MM-DD)" }); return; }
+
+  // Default slot step = 30 min; if serviceId provided, use its durationMinutes.
+  let stepMinutes = 30;
+  if (query.data.serviceId) {
+    const sid = parseInt(query.data.serviceId);
+    if (Number.isFinite(sid)) {
+      const [svc] = await db.select({ d: servicesTable.durationMinutes }).from(servicesTable).where(eq(servicesTable.id, sid)).limit(1);
+      if (svc?.d && svc.d > 0) stepMinutes = svc.d;
+    }
+  }
+
+  const schedules = await db.select().from(schedulesTable).where(eq(schedulesTable.barberId, id));
+  const scheduleByDay = new Map(schedules.map((s) => [s.day, s]));
+
+  // Load reservations in [from 00:00 UTC, to+1 00:00 UTC) — pending or confirmed block the slot.
+  // Using UTC boundaries to match the UTC-based slot iso generation below.
+  const fromDate = new Date(query.data.from + "T00:00:00Z");
+  const toDate = new Date(query.data.to + "T00:00:00Z"); toDate.setUTCDate(toDate.getUTCDate() + 1);
+  const reservations = await db.select({ scheduledAt: reservationsTable.scheduledAt, status: reservationsTable.status })
+    .from(reservationsTable)
+    .where(and(
+      eq(reservationsTable.barberId, id),
+      gte(reservationsTable.scheduledAt, fromDate),
+      lt(reservationsTable.scheduledAt, toDate),
+      inArray(reservationsTable.status, ["pending", "confirmed"]),
+    ));
+  const bookedIso = new Set(reservations.map((r) => new Date(r.scheduledAt).toISOString()));
+
+  // Load days off in the inclusive range.
+  const offs = await db.select().from(daysOffTable)
+    .where(and(
+      eq(daysOffTable.barberId, id),
+      gte(daysOffTable.date, query.data.from),
+      lte(daysOffTable.date, query.data.to),
+    ));
+  const offSet = new Set(offs.map((o) => o.date));
+
+  const now = new Date();
+  const result: Array<{ date: string; isWorking: boolean; isBlocked: boolean; slots: Array<{ time: string; iso: string; available: boolean; reason?: string }> }> = [];
+
+  for (const d = new Date(fromDate); d < toDate; d.setUTCDate(d.getUTCDate() + 1)) {
+    const y = d.getUTCFullYear(), m = String(d.getUTCMonth() + 1).padStart(2, "0"), day = String(d.getUTCDate()).padStart(2, "0");
+    const ymd = `${y}-${m}-${day}`;
+    const dowKey = DOW_KEYS[d.getUTCDay()]!;
+    const sched = scheduleByDay.get(dowKey);
+    const isBlocked = offSet.has(ymd);
+    const isWorking = !!sched?.isWorking;
+
+    if (!isWorking) { result.push({ date: ymd, isWorking: false, isBlocked, slots: [] }); continue; }
+    if (isBlocked) { result.push({ date: ymd, isWorking: true, isBlocked: true, slots: [] }); continue; }
+
+    const start = parseHM(sched!.startTime);
+    const end = parseHM(sched!.endTime);
+    if (start == null || end == null || end <= start) {
+      result.push({ date: ymd, isWorking: true, isBlocked: false, slots: [] }); continue;
+    }
+    const breakStart = parseHM(sched!.breakStart);
+    const breakEnd = parseHM(sched!.breakEnd);
+
+    const slots: Array<{ time: string; iso: string; available: boolean; reason?: string }> = [];
+    for (let t = start; t + stepMinutes <= end; t += stepMinutes) {
+      const slotEnd = t + stepMinutes;
+      // Skip slots overlapping the break.
+      if (breakStart != null && breakEnd != null && t < breakEnd && slotEnd > breakStart) continue;
+      // Generate the iso in UTC so it is identical regardless of server timezone.
+      const slotDt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, t, 0, 0));
+      const iso = slotDt.toISOString();
+      let available = true; let reason: string | undefined;
+      if (slotDt <= now) { available = false; reason = "past"; }
+      else if (bookedIso.has(iso)) { available = false; reason = "booked"; }
+      slots.push({ time: fmtHM(t), iso, available, reason });
+    }
+    result.push({ date: ymd, isWorking: true, isBlocked: false, slots });
+  }
+
+  res.json(result);
 });
 
 // ── Public: barber detail ───
