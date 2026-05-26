@@ -2,9 +2,25 @@ import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin } from "../lib/clerkAuth";
+import { requireAuth, requireAdmin, type AuthedRequest } from "../lib/clerkAuth";
 
 const router = Router();
+
+// Self-service: update own profile (name, phone, avatar)
+router.patch("/users/me", requireAuth, async (req: AuthedRequest, res) => {
+  const body = z.object({
+    name: z.string().min(2).optional(),
+    phone: z.string().min(3).optional(),
+    avatarUrl: z.string().optional(),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  const data = body.data;
+  if (Object.keys(data).length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
+  const [updated] = await db.update(usersTable).set(data).where(eq(usersTable.id, req.localUser!.id)).returning();
+  if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+  const { passwordHash: _, ...safe } = updated;
+  res.json(safe);
+});
 
 router.get("/users", requireAuth, requireAdmin, async (req, res) => {
   const { page = "1", limit = "20", search = "", role, status } = req.query as Record<string, string>;

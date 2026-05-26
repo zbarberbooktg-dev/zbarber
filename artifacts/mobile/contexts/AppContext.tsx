@@ -13,6 +13,7 @@ export type SyncedUser = {
   id: number;
   email: string;
   name: string;
+  phone: string | null;
   role: Exclude<AppRole, null>;
   status: Exclude<AppStatus, null>;
 };

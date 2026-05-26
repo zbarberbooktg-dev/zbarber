@@ -1,21 +1,47 @@
 import { Feather } from "@expo/vector-icons";
-import { useGetBarber } from "@workspace/api-client-react";
+import { useAuth } from "@clerk/expo";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
+import { EditProfileModal } from "@/components/EditProfileModal";
+import { EditSalonLocationModal } from "@/components/EditSalonLocationModal";
 import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
 
-const BARBER_ID = 1;
+type MyBarber = {
+  id: number;
+  salonName: string;
+  city: string | null;
+  neighborhood: string | null;
+  address: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+};
 
 export default function BarberProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, signOut, t } = useApp();
-  const { data: barber } = useGetBarber(BARBER_ID);
+  const { getToken } = useAuth();
+  const { themePref, setThemePref, lang, setLang, signOut, t, user } = useApp();
+  const { data: barber, refetch } = useQuery<MyBarber | null>({
+    queryKey: ["barbersMe"],
+    queryFn: async () => {
+      const token = await getToken();
+      const domain = process.env.EXPO_PUBLIC_DOMAIN;
+      const base = domain ? `https://${domain}` : "";
+      const res = await fetch(`${base}/api/barbers/me`, {
+        headers: token ? { authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [editLocationOpen, setEditLocationOpen] = useState(false);
 
   const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
     { key: "system", label: t.themeAuto, icon: "smartphone" },
@@ -51,17 +77,82 @@ export default function BarberProfile() {
     >
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <Avatar name={barber?.salonName ?? t.mySalon} size={56} />
+          <Avatar name={user?.name ?? barber?.salonName ?? t.mySalon} size={56} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>
-              {barber?.salonName ?? t.mySalon}
+              {user?.name ?? t.mySalon}
             </Text>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13 }}>
-              {barber?.city ?? t.barberAccount}
+              {user?.email ?? t.barberAccount}
             </Text>
           </View>
+          <Pressable
+            onPress={() => setEditProfileOpen(true)}
+            hitSlop={10}
+            style={({ pressed }) => ({
+              padding: 8,
+              borderRadius: c.radius - 4,
+              backgroundColor: pressed ? c.accent : "transparent",
+            })}
+          >
+            <Feather name="edit-2" size={18} color={c.primary} />
+          </Pressable>
         </View>
       </Card>
+
+      <View>
+        <SectionLabel label="Mon salon" />
+        <Pressable onPress={() => setEditLocationOpen(true)}>
+          {({ pressed }) => (
+            <Card style={{ opacity: pressed ? 0.85 : 1 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View style={{
+                  width: 40, height: 40, borderRadius: 20,
+                  backgroundColor: c.accent, alignItems: "center", justifyContent: "center",
+                }}>
+                  <Feather name="map-pin" size={18} color={c.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                    {barber?.salonName ?? "Configurer mon salon"}
+                  </Text>
+                  <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
+                    {[barber?.neighborhood, barber?.city].filter(Boolean).join(", ") || "Ville non renseignée"}
+                  </Text>
+                  {barber?.address && (
+                    <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
+                      {barber.address}
+                    </Text>
+                  )}
+                </View>
+                <Feather name="chevron-right" size={18} color={c.mutedForeground} />
+              </View>
+            </Card>
+          )}
+        </Pressable>
+      </View>
+
+      <EditProfileModal
+        visible={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
+        initialName={user?.name ?? ""}
+        initialPhone={user?.phone ?? ""}
+      />
+
+      <EditSalonLocationModal
+        visible={editLocationOpen}
+        onClose={() => setEditLocationOpen(false)}
+        initial={{
+          city: barber?.city,
+          neighborhood: barber?.neighborhood,
+          address: barber?.address,
+          phone: barber?.phone,
+          whatsapp: barber?.whatsapp,
+        }}
+        onSaved={() => {
+          refetch();
+        }}
+      />
 
       <View>
         <SectionLabel label={t.appearance} />
