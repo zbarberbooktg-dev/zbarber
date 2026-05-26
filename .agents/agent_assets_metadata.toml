@@ -18,3 +18,9 @@ id = "g2Z1EPAG7-q_ImZd7dUWL"
 uri = "file://artifacts/vitrine/public/app-mockup.png"
 type = "image"
 title = "App UI mockup"
+
+[[generated]]
+id = "YCT0XcFCRanxYgMWiZvh8"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "gbc mobile icon"
