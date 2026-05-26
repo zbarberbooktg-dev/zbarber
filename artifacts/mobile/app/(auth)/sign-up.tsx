@@ -26,6 +26,8 @@ export default function SignUpScreen() {
   const { isSignedIn } = useAuth();
 
   const [role, setRole] = useState<Role>("client");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -42,10 +44,15 @@ export default function SignUpScreen() {
   const handleStart = async () => {
     setErr(null);
     try {
+      const trimmedName = name.trim();
+      const [firstName, ...rest] = trimmedName.split(/\s+/);
+      const lastName = rest.join(" ");
       const { error } = await signUp.password({
         emailAddress: email.trim(),
         password,
-        unsafeMetadata: { role },
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        unsafeMetadata: { role, phone: phone.trim() },
       });
       if (error) {
         setErr(error.message ?? "Erreur d'inscription");
@@ -65,7 +72,7 @@ export default function SignUpScreen() {
       if (signUp.status === "complete") {
         await signUp.finalize({
           navigate: async () => {
-            await syncAuth(role);
+            await syncAuth({ role, name: name.trim() || undefined, phone: phone.trim() || undefined });
             router.replace("/");
           },
         });
@@ -117,6 +124,26 @@ export default function SignUpScreen() {
               <RoleButton value="barber" title="Barbier" subtitle="Gérer mon salon" />
             </View>
 
+            <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Nom complet</Text>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              placeholder="Prénom Nom"
+              placeholderTextColor={c.mutedForeground}
+              style={inputStyle(c)}
+            />
+
+            <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Téléphone</Text>
+            <TextInput
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              placeholder="+243 ..."
+              placeholderTextColor={c.mutedForeground}
+              style={inputStyle(c)}
+            />
+
             <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Email</Text>
             <TextInput
               value={email}
@@ -125,8 +152,11 @@ export default function SignUpScreen() {
               keyboardType="email-address"
               placeholder="vous@exemple.com"
               placeholderTextColor={c.mutedForeground}
-              style={inputStyle(c)}
+              style={{ ...inputStyle(c), marginBottom: 6 }}
             />
+            <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginBottom: 16, lineHeight: 16 }}>
+              ⚠️ Utilisez une adresse email réelle : un code de vérification vous sera envoyé pour activer votre compte.
+            </Text>
 
             <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Mot de passe</Text>
             <TextInput
@@ -146,13 +176,13 @@ export default function SignUpScreen() {
 
             <Pressable
               onPress={handleStart}
-              disabled={busy || !email || password.length < 8}
+              disabled={busy || !email || !name.trim() || !phone.trim() || password.length < 8}
               style={({ pressed }) => ({
                 backgroundColor: c.primary,
                 padding: 16,
                 borderRadius: c.radius,
                 alignItems: "center",
-                opacity: busy || !email || password.length < 8 ? 0.6 : pressed ? 0.85 : 1,
+                opacity: busy || !email || !name.trim() || !phone.trim() || password.length < 8 ? 0.6 : pressed ? 0.85 : 1,
               })}
             >
               {busy ? (

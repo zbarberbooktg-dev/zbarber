@@ -29,7 +29,7 @@ type AppState = {
   setThemePref: (t: ThemePref) => Promise<void>;
   setLang: (l: Lang) => Promise<void>;
   signOut: () => Promise<void>;
-  syncAuth: (initialRole?: "client" | "barber") => Promise<SyncedUser | null>;
+  syncAuth: (opts?: { role?: "client" | "barber"; name?: string; phone?: string }) => Promise<SyncedUser | null>;
   t: (typeof translations)[Lang];
   locale: string;
 };
@@ -39,16 +39,23 @@ const AppContext = createContext<AppState | null>(null);
 const THEME_KEY = "gbc.theme";
 const LANG_KEY = "gbc.lang";
 
-async function callSync(token: string | null, initialRole?: "client" | "barber"): Promise<SyncedUser | null> {
+async function callSync(
+  token: string | null,
+  opts?: { role?: "client" | "barber"; name?: string; phone?: string },
+): Promise<SyncedUser | null> {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   const base = domain ? `https://${domain}` : "";
+  const body: Record<string, string> = {};
+  if (opts?.role) body.role = opts.role;
+  if (opts?.name) body.name = opts.name;
+  if (opts?.phone) body.phone = opts.phone;
   const res = await fetch(`${base}/api/auth/sync`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify(initialRole ? { role: initialRole } : {}),
+    body: JSON.stringify(body),
   });
   if (!res.ok) return null;
   const data = await res.json();
@@ -106,11 +113,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn]);
 
-  const syncAuth = async (initialRole?: "client" | "barber") => {
+  const syncAuth = async (opts?: { role?: "client" | "barber"; name?: string; phone?: string }) => {
     setSyncing(true);
     try {
       const token = await getToken();
-      const u = await callSync(token, initialRole);
+      const u = await callSync(token, opts);
       setUser(u);
       return u;
     } finally {

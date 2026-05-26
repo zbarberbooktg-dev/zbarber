@@ -96,8 +96,7 @@ function ThemedRoot() {
             maxWidth: 402,
             backgroundColor: palette.background,
             overflow: "hidden",
-            // @ts-expect-error web-only shadow
-            boxShadow: "0 0 60px rgba(212, 175, 55, 0.08)",
+            ...(Platform.OS === "web" ? { boxShadow: "0 0 60px rgba(212, 175, 55, 0.08)" } : {}),
           }}
         >
           {stack}
