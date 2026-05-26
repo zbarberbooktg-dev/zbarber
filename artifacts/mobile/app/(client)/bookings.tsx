@@ -113,47 +113,45 @@ export default function Bookings() {
                 onPress={() => item.barberId && router.push(`/salon/${item.barberId}` as never)}
                 style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               >
-              <Card>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    marginBottom: 8,
-                  }}
-                >
-                  <Text
-                    style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}
+                <Card>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginBottom: 8,
+                    }}
                   >
-                    {date.toLocaleDateString(locale, {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </Text>
-                  <Pill label={STATUS_LABEL[status]} tone={STATUS_TONE[status]} />
-                </View>
-                <Text
-                  style={{
-                    color: c.mutedForeground,
-                    fontFamily: "Inter_500Medium",
-                    fontSize: 13,
-                    marginBottom: 4,
-                  }}
-                >
-                  {date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
-                </Text>
-                {item.notes ? (
+                    <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>
+                      {date.toLocaleDateString(locale, {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </Text>
+                    <Pill label={STATUS_LABEL[status]} tone={STATUS_TONE[status]} />
+                  </View>
                   <Text
                     style={{
                       color: c.mutedForeground,
-                      fontFamily: "Inter_400Regular",
-                      fontSize: 12,
+                      fontFamily: "Inter_500Medium",
+                      fontSize: 13,
+                      marginBottom: 4,
                     }}
                   >
-                    {item.notes}
+                    {date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                   </Text>
-                ) : null}
-              </Card>
+                  {item.notes ? (
+                    <Text
+                      style={{
+                        color: c.mutedForeground,
+                        fontFamily: "Inter_400Regular",
+                        fontSize: 12,
+                      }}
+                    >
+                      {item.notes}
+                    </Text>
+                  ) : null}
+                </Card>
               </Pressable>
             );
           }}

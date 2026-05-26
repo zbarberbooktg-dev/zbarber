@@ -82,6 +82,18 @@ export default function PublicHome() {
     AsyncStorage.getItem(ONBOARDING_KEY).then((val) => setOnboardingDone(!!val));
   }, []);
 
+  const list = useMemo(() => {
+    const items = data?.data ?? [];
+    if (!query.trim()) return items;
+    const q = query.trim().toLowerCase();
+    return items.filter(
+      (b) =>
+        b.salonName.toLowerCase().includes(q) ||
+        (b.city ?? "").toLowerCase().includes(q) ||
+        (b.neighborhood ?? "").toLowerCase().includes(q),
+    );
+  }, [data, query]);
+
   // While Clerk or AppContext loads, or onboarding state unknown — show spinner
   if (!isLoaded || onboardingDone === null || (!isSignedIn ? false : !ready || (syncing && !user))) {
     return (
@@ -98,18 +110,6 @@ export default function PublicHome() {
   if (isSignedIn && user && (role === "barber" || role === "admin")) {
     return <Redirect href="/(barber)" />;
   }
-
-  const list = useMemo(() => {
-    const items = data?.data ?? [];
-    if (!query.trim()) return items;
-    const q = query.trim().toLowerCase();
-    return items.filter(
-      (b) =>
-        b.salonName.toLowerCase().includes(q) ||
-        (b.city ?? "").toLowerCase().includes(q) ||
-        (b.neighborhood ?? "").toLowerCase().includes(q),
-    );
-  }, [data, query]);
 
   const featured = list.slice(0, 6);
   const nearby = list.slice(0, 4);
