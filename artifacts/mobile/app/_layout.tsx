@@ -11,7 +11,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { useColorScheme, View } from "react-native";
+import { Platform, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -40,27 +40,76 @@ function ThemedRoot() {
   const effective = themePref === "system" ? systemScheme : themePref;
   const palette = effective === "dark" ? colors.dark : colors.light;
 
+  const isWeb = Platform.OS === "web";
+
   if (!ready) {
-    return <View style={{ flex: 1, backgroundColor: palette.background }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: isWeb ? "#000" : palette.background }}>
+        <View
+          style={
+            isWeb
+              ? {
+                  flex: 1,
+                  width: "100%",
+                  maxWidth: 402,
+                  alignSelf: "center",
+                  backgroundColor: palette.background,
+                }
+              : { flex: 1, backgroundColor: palette.background }
+          }
+        />
+      </View>
+    );
+  }
+
+  const stack = (
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: palette.background },
+        headerTintColor: palette.foreground,
+        headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
+        contentStyle: { backgroundColor: palette.background },
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="role-select" options={{ headerShown: false }} />
+      <Stack.Screen name="(client)" options={{ headerShown: false }} />
+      <Stack.Screen name="(barber)" options={{ headerShown: false }} />
+    </Stack>
+  );
+
+  if (isWeb) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#000",
+          alignItems: "center",
+        }}
+      >
+        <StatusBar style={effective === "dark" ? "light" : "dark"} />
+        <View
+          style={{
+            flex: 1,
+            width: "100%",
+            maxWidth: 402,
+            backgroundColor: palette.background,
+            overflow: "hidden",
+            // @ts-expect-error web-only shadow
+            boxShadow: "0 0 60px rgba(212, 175, 55, 0.08)",
+          }}
+        >
+          {stack}
+        </View>
+      </View>
+    );
   }
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <StatusBar style={effective === "dark" ? "light" : "dark"} />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: palette.background },
-          headerTintColor: palette.foreground,
-          headerTitleStyle: { fontFamily: "Inter_600SemiBold" },
-          contentStyle: { backgroundColor: palette.background },
-        }}
-      >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="role-select" options={{ headerShown: false }} />
-        <Stack.Screen name="(client)" options={{ headerShown: false }} />
-        <Stack.Screen name="(barber)" options={{ headerShown: false }} />
-      </Stack>
+      {stack}
     </View>
   );
 }
