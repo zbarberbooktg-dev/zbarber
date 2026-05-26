@@ -116,7 +116,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
             Mettez à jour l'adresse de votre salon si vous avez déménagé. Vos clients verront immédiatement la nouvelle localisation.
           </Text>

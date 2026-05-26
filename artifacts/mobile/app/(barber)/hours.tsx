@@ -107,7 +107,11 @@ export default function BarberHours() {
     <>
       <Stack.Screen options={{ title: "Horaires d'ouverture", headerBackTitle: "Retour" }} />
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 120 }}>
+        <ScrollView
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 160 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
           {rows.map((r) => {
             const dayLabel = DAYS.find((d) => d.key === r.day)?.label ?? r.day;
             return (

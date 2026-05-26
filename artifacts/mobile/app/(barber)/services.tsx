@@ -209,7 +209,7 @@ function ServiceModal({
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <Field label="Nom *">
             <TextInput value={name} onChangeText={setName} placeholder="Coupe homme" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>

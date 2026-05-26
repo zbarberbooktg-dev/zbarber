@@ -62,6 +62,7 @@ export function ReviewModal({ visible, onClose, barberId, salonName, onSubmitted
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}
       >

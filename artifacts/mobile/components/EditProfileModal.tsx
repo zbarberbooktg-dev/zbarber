@@ -151,7 +151,7 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <View style={{ alignItems: "center", marginVertical: 6 }}>
             <Pressable
               onPress={handlePickAvatar}

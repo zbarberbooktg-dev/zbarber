@@ -63,7 +63,7 @@ export function DeleteAccountModal({ visible, onClose }: Props) {
           <View style={{ width: 60 }} />
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
           <View style={{ backgroundColor: c.destructive + "15", padding: 16, borderRadius: c.radius, flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
             <Feather name="alert-triangle" size={22} color={c.destructive} />
             <Text style={{ flex: 1, color: c.foreground, fontFamily: "Inter_400Regular", lineHeight: 20 }}>
