@@ -6,3 +6,4 @@
 - [Object storage ACL](object-storage-acl.md) — GET /storage/objects/* must refuse unreferenced paths; never serve "any authenticated user" fallback for orphan uploads.
 - [Express router.use order](express-router-use-order.md) — adminRouter's top-level `router.use(requireAuth)` blocks any public router mounted AFTER it in routes/index.ts; mount public routers first.
 - [Availability model](availability-model.md) — server-side slot generation from weekly hours + service duration + reservations + daysOffTable; clients never recompute slots.
+- [Countries & cities catalog](countries-cities-catalog.md) — all city/country writes go through resolveAndPersistLocation (rejects unknown countries, dedups cities per country); country UI always renders before city.

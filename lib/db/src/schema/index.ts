@@ -10,3 +10,4 @@ export * from "./notifications";
 export * from "./gallery";
 export * from "./home-gallery";
 export * from "./schedules";
+export * from "./locations";

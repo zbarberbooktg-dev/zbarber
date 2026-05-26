@@ -13,6 +13,7 @@ import notificationsRouter from "./notifications";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
 import homeGalleryRouter from "./home-gallery";
+import locationsRouter from "./locations";
 
 const router: IRouter = Router();
 
@@ -29,6 +30,7 @@ router.use(conferencesRouter);
 router.use(notificationsRouter);
 router.use(storageRouter);
 router.use(homeGalleryRouter);
+router.use(locationsRouter);
 router.use(adminRouter);
 
 export default router;
