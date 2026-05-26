@@ -215,7 +215,6 @@ export default function ClientProfile() {
             onPress={async () => {
               setAuthIntent("signup");
               await signOut();
-              router.replace("/(auth)/sign-up");
             }}
           />
           <Button
