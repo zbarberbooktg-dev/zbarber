@@ -28,7 +28,7 @@ type Service = {
   isActive: boolean;
 };
 
-type MyBarber = { id: number } | null;
+type MyBarberItem = { id: number };
 
 export default function BarberServices() {
   const c = useColors();
@@ -36,12 +36,12 @@ export default function BarberServices() {
   const [editing, setEditing] = useState<Service | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const { data: myBarber } = useQuery<MyBarber>({
+  const { data: myBarbers } = useQuery<MyBarberItem[]>({
     queryKey: ["barbersMe"],
-    queryFn: () => fetcher<MyBarber>("/api/barbers/me"),
+    queryFn: () => fetcher<MyBarberItem[]>("/api/barbers/me"),
   });
 
-  const barberId = myBarber?.id;
+  const barberId = myBarbers?.[0]?.id;
   const { data, isLoading, refetch, isRefetching } = useQuery<Service[]>({
     queryKey: ["mySalonServices", barberId],
     enabled: !!barberId,

@@ -104,6 +104,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
 
+  /auth/sync:
+    post:
+      operationId: syncAuth
+      tags: [auth]
+      summary: Sync Clerk identity with local profile (JIT provisioning)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncAuthInput"
+      responses:
+        "200":
+          description: Synced user and optional barber profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSyncResult"
+
   # ── USERS ─────────────────────────────────────────────────────────────
   /users:
     get:
@@ -278,6 +297,122 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Barber"
+
+  /barbers/me:
+    get:
+      operationId: getMyBarbers
+      tags: [barbers]
+      summary: Get all salons owned by the authenticated barber (array)
+      responses:
+        "200":
+          description: Array of barber salons owned by current user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Barber"
+    post:
+      operationId: createMySalon
+      tags: [barbers]
+      summary: Create a new salon for the authenticated barber
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarberInput"
+      responses:
+        "201":
+          description: Created salon
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+    patch:
+      operationId: updateMySalon
+      tags: [barbers]
+      summary: Update the authenticated barber primary salon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarberUpdate"
+      responses:
+        "200":
+          description: Updated salon
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+
+  /barbers/me/revenue:
+    get:
+      operationId: getMyRevenue
+      tags: [barbers]
+      summary: Get revenue dashboard for authenticated barber
+      parameters:
+        - in: query
+          name: salonId
+          schema:
+            type: integer
+          description: Specific salon ID (for multi-salon barbers)
+      responses:
+        "200":
+          description: Revenue data bucketed by period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RevenueData"
+
+  /barbers/me/clients:
+    get:
+      operationId: getMyClients
+      tags: [barbers]
+      summary: Get client list for authenticated barber
+      parameters:
+        - in: query
+          name: salonId
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Client list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberClientsResponse"
+
+  /barbers/me/schedule:
+    get:
+      operationId: getMySchedule
+      tags: [barbers]
+      summary: Get weekly schedule for authenticated barber
+      responses:
+        "200":
+          description: Weekly schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+    put:
+      operationId: updateMySchedule
+      tags: [barbers]
+      summary: Update weekly schedule for authenticated barber
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleInput"
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
 
   /barbers/{id}:
     get:
@@ -2146,3 +2281,86 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    # ── AUTH (Clerk) ───────────────────────────────────────────────────
+    SyncAuthInput:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [client, barber]
+        name:
+          type: string
+        phone:
+          type: string
+
+    AuthSyncResult:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        barber:
+          allOf:
+            - $ref: "#/components/schemas/Barber"
+          nullable: true
+
+    # ── BARBER SELF-SERVICE ────────────────────────────────────────────
+    RevenueBucket:
+      type: object
+      required: [revenue, completedCount, upcomingCount, totalCount]
+      properties:
+        revenue:
+          type: number
+        completedCount:
+          type: integer
+        upcomingCount:
+          type: integer
+        totalCount:
+          type: integer
+
+    RevenueData:
+      type: object
+      required: [today, week, month, year, allTime]
+      properties:
+        today:
+          $ref: "#/components/schemas/RevenueBucket"
+        week:
+          $ref: "#/components/schemas/RevenueBucket"
+        month:
+          $ref: "#/components/schemas/RevenueBucket"
+        year:
+          $ref: "#/components/schemas/RevenueBucket"
+        allTime:
+          $ref: "#/components/schemas/RevenueBucket"
+
+    BarberClient:
+      type: object
+      required: [clientId, totalReservations, lastVisit]
+      properties:
+        clientId:
+          type: integer
+        clientName:
+          type: ["string", "null"]
+        clientEmail:
+          type: ["string", "null"]
+        totalReservations:
+          type: integer
+        completedReservations:
+          type: integer
+        lastVisit:
+          type: ["string", "null"]
+          format: date-time
+        totalSpent:
+          type: number
+
+    BarberClientsResponse:
+      type: object
+      required: [data, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BarberClient"
+        total:
+          type: integer

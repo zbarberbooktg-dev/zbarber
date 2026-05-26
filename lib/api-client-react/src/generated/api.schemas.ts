@@ -725,6 +725,58 @@ export interface ActivityItem {
   createdAt: string;
 }
 
+export type SyncAuthInputRole = typeof SyncAuthInputRole[keyof typeof SyncAuthInputRole];
+
+
+export const SyncAuthInputRole = {
+  client: 'client',
+  barber: 'barber',
+} as const;
+
+export interface SyncAuthInput {
+  role?: SyncAuthInputRole;
+  name?: string;
+  phone?: string;
+}
+
+export interface AuthSyncResult {
+  user: User;
+  barber?: Barber | null;
+}
+
+export interface RevenueBucket {
+  revenue: number;
+  completedCount: number;
+  upcomingCount: number;
+  totalCount: number;
+}
+
+export interface RevenueData {
+  today: RevenueBucket;
+  week: RevenueBucket;
+  month: RevenueBucket;
+  year: RevenueBucket;
+  allTime: RevenueBucket;
+}
+
+export interface BarberClient {
+  clientId: number;
+  /** @nullable */
+  clientName?: string | null;
+  /** @nullable */
+  clientEmail?: string | null;
+  totalReservations: number;
+  completedReservations?: number;
+  /** @nullable */
+  lastVisit: string | null;
+  totalSpent?: number;
+}
+
+export interface BarberClientsResponse {
+  data: BarberClient[];
+  total: number;
+}
+
 export type ListUsersParams = {
 role?: ListUsersRole;
 status?: ListUsersStatus;
@@ -766,6 +818,17 @@ export const ListBarbersStatus = {
   rejected: 'rejected',
   suspended: 'suspended',
 } as const;
+
+export type GetMyRevenueParams = {
+/**
+ * Specific salon ID (for multi-salon barbers)
+ */
+salonId?: number;
+};
+
+export type GetMyClientsParams = {
+salonId?: number;
+};
 
 export type ListReservationsParams = {
 status?: ListReservationsStatus;

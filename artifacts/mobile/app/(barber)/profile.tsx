@@ -27,7 +27,7 @@ export default function BarberProfile() {
   const router = useRouter();
   const { getToken } = useAuth();
   const { themePref, setThemePref, lang, setLang, signOut, t, user } = useApp();
-  const { data: barber, refetch } = useQuery<MyBarber | null>({
+  const { data: myBarbers, refetch } = useQuery<MyBarber[]>({
     queryKey: ["barbersMe"],
     queryFn: async () => {
       const token = await getToken();
@@ -36,10 +36,11 @@ export default function BarberProfile() {
       const res = await fetch(`${base}/api/barbers/me`, {
         headers: token ? { authorization: `Bearer ${token}` } : undefined,
       });
-      if (!res.ok) return null;
+      if (!res.ok) return [];
       return res.json();
     },
   });
+  const barber = myBarbers?.[0] ?? null;
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [editLocationOpen, setEditLocationOpen] = useState(false);
 

@@ -1,36 +1,54 @@
-# [Project name]
+# Global Barber Corp
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Plateforme multi-artifacts pour la réservation de salons de coiffure en RDC — app mobile publique (Expo), vitrine web, dashboard admin, et API REST.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DATABASE_URL`, `SESSION_SECRET`, `EXPO_PUBLIC_DOMAIN`, `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM
+- Auth: Clerk (mobile via `@clerk/expo`, admin via `@clerk/react`, API via `@clerk/express` proxy)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
+- Mobile: Expo Router v3, React Native, TanStack Query
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/db/src/schema.ts` — source of truth for DB schema
+- `lib/api-spec/openapi.yaml` — source of truth for API contract
+- `lib/api-client-react/` — generated React Query hooks (do not edit)
+- `lib/api-zod/` — generated Zod schemas (do not edit)
+- `artifacts/api-server/src/routes/` — Express route handlers
+- `artifacts/api-server/src/lib/clerkAuth.ts` — Clerk middleware + requireAuth/requireAdmin/requireApprovedBarber guards
+- `artifacts/mobile/app/` — Expo Router file-based routes
+- `artifacts/mobile/contexts/AppContext.tsx` — global state: user, barberProfile, role, theme, lang
+- `artifacts/mobile/constants/i18n.ts` — FR/EN translations
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **Auth is Clerk-first**: JWT verified via Clerk proxy middleware in the API; local user record provisioned JIT via `POST /auth/sync`. No session cookies.
+- **Barbers can own multiple salons**: No unique constraint on `barbersTable.userId`. `GET /barbers/me` returns an array.
+- **Mobile is public by default**: Home/discover and salon detail are unauthenticated. Booking prompts sign-in. Client tab group `(client)` requires Clerk sign-in.
+- **Barber approval gate uses barber profile status** (not user account status): `(barber)/_layout.tsx` reads `barberProfile.status` from AppContext (populated from `/auth/sync` response).
+- **Currency**: FC (Franc Congolais). **Language**: French default with EN toggle. **AsyncStorage keys**: `gbc.theme`, `gbc.lang`, `gbc.onboarding.v1`.
+- **Mobile barber screens use `useAuthedFetch`** directly (not generated hooks) for all `/barbers/me/*` routes.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- **Mobile app**: Public home/discover (salons, search), 4-slide onboarding (first launch), public salon detail, authenticated client bookings + profile, authenticated barber dashboard (revenue by period, upcoming reservations, services, schedule/hours, clients, multi-salon selector).
+- **Admin web**: Clerk-gated, admin-only. Manage barbers (approve/reject/suspend), users, financing requests, subscriptions, analytics.
+- **Vitrine**: Public marketing site.
+- **API**: REST, `/api` prefix, OpenAPI-documented, Clerk JWT auth.
 
 ## User preferences
 
@@ -38,7 +56,12 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- **`pnpm run typecheck` may time out in bash** — run per-package: `pnpm --filter @workspace/<name> run typecheck`.
+- **Orval naming collision**: If a component schema name matches an auto-generated response type name (e.g. `SyncAuthResponse` conflicts with operationId `syncAuth`), rename the schema (e.g. `AuthSyncResult`).
+- **`getToken` from `@clerk/expo` is unstable** — do not add it to `useEffect` deps; capture via closure instead.
+- **`/barbers/me` returns an array** (multi-salon). All consumers must type it as `MyBarber[]` and extract `[0]` for the primary salon.
+- **Gallery delete IDOR fix**: scope `DELETE /barbers/:barberId/gallery/:photoId` by both `barberId` AND `photoId` in the WHERE clause.
+- **Client reservation status**: clients may only set `cancelled`; barbers/admins can set any status.
 
 ## Pointers
 
