@@ -67,7 +67,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setAuthTokenGetter(() => getToken());
     return () => setAuthTokenGetter(null);
-  }, [getToken]);
+    // getToken is a fresh function on each render in @clerk/expo; depending on it
+    // causes an infinite re-render loop. We capture it once via a closure that
+    // re-reads the latest from useAuth on each call site.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -98,7 +102,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     })();
     return () => { cancel = true; };
-  }, [isLoaded, isSignedIn, getToken]);
+    // Intentionally exclude getToken (unstable identity in @clerk/expo).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn]);
 
   const syncAuth = async (initialRole?: "client" | "barber") => {
     setSyncing(true);
