@@ -47,7 +47,21 @@ router.post("/auth/sync", requireAuth, async (req: AuthedRequest, res) => {
     }
   }
   if (body.data.avatarUrl !== undefined && body.data.avatarUrl !== user.avatarUrl) update.avatarUrl = body.data.avatarUrl || null;
-  if (body.data.role && user.role !== "admin" && user.role !== body.data.role) update.role = body.data.role;
+  if (body.data.role && user.role !== "admin" && user.role !== body.data.role) {
+    // Eligibility: switching to "barber" requires at least one barber profile.
+    // First-time signup as barber is allowed because the profile is created
+    // immediately after via POST /barbers/me, but we also accept the case where
+    // the user has no profile yet AND has never been a barber (initial choice).
+    if (body.data.role === "barber") {
+      const existing = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
+      const isInitial = user.role === "client" && existing.length === 0 && !user.phone && !user.city;
+      if (existing.length === 0 && !isInitial) {
+        res.status(400).json({ error: "No barber profile. Create one before switching role." });
+        return;
+      }
+    }
+    update.role = body.data.role;
+  }
 
   let final = user;
   if (Object.keys(update).length) {
@@ -63,6 +77,23 @@ router.post("/auth/sync", requireAuth, async (req: AuthedRequest, res) => {
 
   const { passwordHash: _, ...safeUser } = final;
   res.json({ user: safeUser, barber });
+});
+
+// ── Switch the active role on the current account (dual-role support) ───
+router.post("/auth/active-role", requireAuth, async (req: AuthedRequest, res) => {
+  const body = z.object({ role: z.enum(["client", "barber"]) }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid role" }); return; }
+  const user = req.localUser!;
+  if (user.role === "admin") { res.status(400).json({ error: "Admins cannot switch role" }); return; }
+  if (user.role === body.data.role) { res.json({ ok: true, role: user.role }); return; }
+
+  if (body.data.role === "barber") {
+    const [existing] = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
+    if (!existing) { res.status(400).json({ error: "Create a barber profile first" }); return; }
+  }
+
+  await db.update(usersTable).set({ role: body.data.role }).where(eq(usersTable.id, user.id));
+  res.json({ ok: true, role: body.data.role });
 });
 
 export default router;
