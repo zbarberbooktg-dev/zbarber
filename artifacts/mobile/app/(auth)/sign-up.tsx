@@ -1,5 +1,5 @@
 import { useSignUp, useAuth } from "@clerk/expo";
-import { Link, useRouter } from "expo-router";
+import { Link, Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -45,8 +45,7 @@ export default function SignUpScreen() {
   const [err, setErr] = useState<string | null>(null);
 
   if (isSignedIn && step !== "verify") {
-    router.replace("/");
-    return null;
+    return <Redirect href="/" />;
   }
 
   const busy = fetchStatus === "fetching";
