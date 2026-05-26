@@ -17,6 +17,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
+import { CountryCityFields } from "@/components/CountryCityFields";
 
 type Props = {
   visible: boolean;
@@ -30,6 +31,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const qc = useQueryClient();
 
   const [salonName, setSalonName] = useState("");
+  const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [address, setAddress] = useState("");
@@ -44,7 +46,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
 
   React.useEffect(() => {
     if (visible) {
-      setSalonName(""); setCity(""); setNeighborhood(""); setAddress("");
+      setSalonName(""); setCountry(""); setCity(""); setNeighborhood(""); setAddress("");
       setPhone(""); setWhatsapp(""); setBio(""); setLogoUrl(null); setLogoLocalUri(null); setErr(null);
     }
   }, [visible]);
@@ -64,6 +66,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const handleSave = async () => {
     setErr(null);
     if (salonName.trim().length < 2) return setErr("Le nom du salon est obligatoire (2 caractères min.)");
+    if (!country.trim()) return setErr("Le pays est obligatoire");
     if (!city.trim()) return setErr("La ville est obligatoire");
     setSaving(true);
     try {
@@ -71,6 +74,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
         method: "POST",
         body: JSON.stringify({
           salonName: salonName.trim(),
+          country: country.trim(),
           city: city.trim(),
           neighborhood: neighborhood.trim() || undefined,
           address: address.trim() || undefined,
@@ -137,9 +141,14 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
             <TextInput value={salonName} onChangeText={setSalonName} placeholder="Salon Élégance" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>
 
-          <Field label="Ville *">
-            <TextInput value={city} onChangeText={setCity} placeholder="Kinshasa" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
-          </Field>
+          <CountryCityFields
+            required
+            countryLabel="Pays"
+            cityLabel="Ville"
+            countryName={country}
+            cityName={city}
+            onChange={({ country: nc, city: nci }) => { setCountry(nc); setCity(nci); }}
+          />
 
           <Field label="Quartier">
             <TextInput value={neighborhood} onChangeText={setNeighborhood} placeholder="Gombe" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />

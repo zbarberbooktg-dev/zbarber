@@ -145,6 +145,7 @@ export default function BarberProfile() {
         visible={editLocationOpen}
         onClose={() => setEditLocationOpen(false)}
         initial={{
+          country: (barber as any)?.country ?? null,
           city: barber?.city,
           neighborhood: barber?.neighborhood,
           address: barber?.address,

@@ -3,6 +3,7 @@ import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryP
 import { eq, avg, count, and, lt, lte, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireAdmin, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
+import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
 
 const router = Router();
 
@@ -213,6 +214,7 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
     salonName: z.string().min(2),
     bio: z.string().optional(),
     logoUrl: z.string().optional(),
+    country: z.string().optional(),
     city: z.string().min(1),
     neighborhood: z.string().optional(),
     address: z.string().optional(),
@@ -222,7 +224,20 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
     longitude: z.number().optional(),
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
-  const [barber] = await db.insert(barbersTable).values({ ...body.data, userId: req.localUser!.id, status: "pending" }).returning();
+  let resolved;
+  try {
+    resolved = await resolveAndPersistLocation({ countryName: body.data.country, cityName: body.data.city });
+  } catch (e) {
+    if (e instanceof UnknownCountryError) { res.status(400).json({ error: "Unknown country" }); return; }
+    throw e;
+  }
+  const [barber] = await db.insert(barbersTable).values({
+    ...body.data,
+    country: resolved.country,
+    city: resolved.city ?? body.data.city,
+    userId: req.localUser!.id,
+    status: "pending",
+  }).returning();
   res.status(201).json(barber);
 });
 
@@ -231,13 +246,27 @@ router.patch("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
   if (req.localUser!.role !== "barber") { res.status(403).json({ error: "Barber account required" }); return; }
   const body = z.object({
     salonName: z.string().optional(), bio: z.string().optional(), logoUrl: z.string().optional(),
-    city: z.string().optional(), neighborhood: z.string().optional(), address: z.string().optional(),
+    country: z.string().optional(), city: z.string().optional(), neighborhood: z.string().optional(), address: z.string().optional(),
     phone: z.string().optional(), whatsapp: z.string().optional(),
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [existing] = await db.select().from(barbersTable).where(eq(barbersTable.userId, req.localUser!.id)).limit(1);
   if (!existing) { res.status(404).json({ error: "Profile not found" }); return; }
-  const [updated] = await db.update(barbersTable).set(body.data).where(eq(barbersTable.id, existing.id)).returning();
+  const patch: typeof body.data = { ...body.data };
+  if (body.data.country !== undefined || body.data.city !== undefined) {
+    try {
+      const resolved = await resolveAndPersistLocation({
+        countryName: body.data.country ?? existing.country,
+        cityName: body.data.city ?? existing.city,
+      });
+      if (body.data.country !== undefined) patch.country = resolved.country ?? body.data.country;
+      if (body.data.city !== undefined) patch.city = resolved.city ?? body.data.city;
+    } catch (e) {
+      if (e instanceof UnknownCountryError) { res.status(400).json({ error: "Unknown country" }); return; }
+      throw e;
+    }
+  }
+  const [updated] = await db.update(barbersTable).set(patch).where(eq(barbersTable.id, existing.id)).returning();
   res.json(updated);
 });
 

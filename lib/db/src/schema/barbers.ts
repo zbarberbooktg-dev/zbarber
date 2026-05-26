@@ -11,6 +11,7 @@ export const barbersTable = pgTable("barbers", {
   salonName: text("salon_name").notNull(),
   bio: text("bio"),
   logoUrl: text("logo_url"),
+  country: text("country"),
   city: text("city").notNull(),
   neighborhood: text("neighborhood"),
   address: text("address"),

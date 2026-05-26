@@ -3,6 +3,7 @@ import { db, usersTable, barbersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
 
 const router = Router();
 
@@ -32,8 +33,19 @@ router.post("/auth/sync", requireAuth, async (req: AuthedRequest, res) => {
   const update: Partial<typeof usersTable.$inferInsert> = {};
   if (body.data.name && body.data.name !== user.name) update.name = body.data.name;
   if (body.data.phone && body.data.phone !== user.phone) update.phone = body.data.phone;
-  if (body.data.city !== undefined && body.data.city !== user.city) update.city = body.data.city || null;
-  if (body.data.country !== undefined && body.data.country !== user.country) update.country = body.data.country || null;
+  if (body.data.city !== undefined || body.data.country !== undefined) {
+    try {
+      const resolved = await resolveAndPersistLocation({
+        countryName: body.data.country ?? user.country,
+        cityName: body.data.city ?? user.city,
+      });
+      if (body.data.country !== undefined && resolved.country !== user.country) update.country = resolved.country;
+      if (body.data.city !== undefined && resolved.city !== user.city) update.city = resolved.city;
+    } catch (e) {
+      if (e instanceof UnknownCountryError) { res.status(400).json({ error: "Unknown country" }); return; }
+      throw e;
+    }
+  }
   if (body.data.avatarUrl !== undefined && body.data.avatarUrl !== user.avatarUrl) update.avatarUrl = body.data.avatarUrl || null;
   if (body.data.role && user.role !== "admin" && user.role !== body.data.role) update.role = body.data.role;
 

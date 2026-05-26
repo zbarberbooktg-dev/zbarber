@@ -18,6 +18,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
+import { CountryCityFields } from "@/components/CountryCityFields";
 
 type Role = "client" | "barber";
 type Step = "details" | "verify";
@@ -36,7 +37,7 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [city, setCity] = useState("");
-  const [country, setCountry] = useState("RDC");
+  const [country, setCountry] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarLocalUri, setAvatarLocalUri] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -178,15 +179,12 @@ export default function SignUpScreen() {
             <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Téléphone</Text>
             <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+243 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
 
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <View style={{ flex: 1.4 }}>
-                <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Ville</Text>
-                <TextInput value={city} onChangeText={setCity} autoCapitalize="words" placeholder="Kinshasa" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Pays</Text>
-                <TextInput value={country} onChangeText={setCountry} autoCapitalize="characters" placeholder="RDC" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
-              </View>
+            <View style={{ marginBottom: 12 }}>
+              <CountryCityFields
+                countryName={country}
+                cityName={city}
+                onChange={({ country: nc, city: nci }: { country: string; city: string }) => { setCountry(nc); setCity(nci); }}
+              />
             </View>
 
             <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Email</Text>

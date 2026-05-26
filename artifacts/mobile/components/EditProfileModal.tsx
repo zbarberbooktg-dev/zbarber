@@ -18,6 +18,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
+import { CountryCityFields } from "@/components/CountryCityFields";
 
 type Props = {
   visible: boolean;
@@ -179,18 +180,11 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
             <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+243 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>
 
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1.4 }}>
-              <Field label="Ville">
-                <TextInput value={city} onChangeText={setCity} autoCapitalize="words" placeholder="Kinshasa" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
-              </Field>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Field label="Pays">
-                <TextInput value={country} onChangeText={setCountry} autoCapitalize="characters" placeholder="RDC" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
-              </Field>
-            </View>
-          </View>
+          <CountryCityFields
+            countryName={country}
+            cityName={city}
+            onChange={({ country: nc, city: nci }) => { setCountry(nc); setCity(nci); }}
+          />
 
           <View style={{ marginTop: 8 }}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>

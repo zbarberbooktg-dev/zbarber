@@ -13,11 +13,13 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { CountryCityFields } from "@/components/CountryCityFields";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   initial: {
+    country?: string | null;
     city?: string | null;
     neighborhood?: string | null;
     address?: string | null;
@@ -30,6 +32,7 @@ type Props = {
 export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: Props) {
   const c = useColors();
   const { getToken } = useAuth();
+  const [country, setCountry] = useState(initial.country ?? "");
   const [city, setCity] = useState(initial.city ?? "");
   const [neighborhood, setNeighborhood] = useState(initial.neighborhood ?? "");
   const [address, setAddress] = useState(initial.address ?? "");
@@ -40,6 +43,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
 
   React.useEffect(() => {
     if (visible) {
+      setCountry(initial.country ?? "");
       setCity(initial.city ?? "");
       setNeighborhood(initial.neighborhood ?? "");
       setAddress(initial.address ?? "");
@@ -47,10 +51,14 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
       setWhatsapp(initial.whatsapp ?? "");
       setErr(null);
     }
-  }, [visible, initial.city, initial.neighborhood, initial.address, initial.phone, initial.whatsapp]);
+  }, [visible, initial.country, initial.city, initial.neighborhood, initial.address, initial.phone, initial.whatsapp]);
 
   const handleSave = async () => {
     setErr(null);
+    if (!country.trim()) {
+      setErr("Le pays est obligatoire");
+      return;
+    }
     if (!city.trim()) {
       setErr("La ville est obligatoire");
       return;
@@ -67,6 +75,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
           ...(token ? { authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
+          country: country.trim(),
           city: city.trim(),
           neighborhood: neighborhood.trim() || undefined,
           address: address.trim() || undefined,
@@ -112,15 +121,12 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
             Mettez à jour l'adresse de votre salon si vous avez déménagé. Vos clients verront immédiatement la nouvelle localisation.
           </Text>
 
-          <Field label="Ville *">
-            <TextInput
-              value={city}
-              onChangeText={setCity}
-              placeholder="Kinshasa"
-              placeholderTextColor={c.mutedForeground}
-              style={inputStyle(c)}
-            />
-          </Field>
+          <CountryCityFields
+            required
+            countryName={country}
+            cityName={city}
+            onChange={({ country: nc, city: nci }) => { setCountry(nc); setCity(nci); }}
+          />
 
           <Field label="Quartier">
             <TextInput
