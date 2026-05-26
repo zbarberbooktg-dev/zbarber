@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import React, { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 
+import { CreateSalonModal } from "@/components/CreateSalonModal";
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { Avatar, Button, Card } from "@/components/UI";
@@ -11,7 +12,6 @@ import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
-import { setAuthIntent } from "@/lib/authIntent";
 
 export default function ClientProfile() {
   const c = useColors();
@@ -20,7 +20,32 @@ export default function ClientProfile() {
   const fetcher = useAuthedFetch();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [createSalonOpen, setCreateSalonOpen] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  const activateBarberRole = async () => {
+    await fetcher("/api/auth/active-role", { method: "POST", body: JSON.stringify({ role: "barber" }) });
+    await syncAuth();
+    router.replace("/(barber)");
+  };
+
+  const handleSwitchToBarber = async () => {
+    if (switching) return;
+    setSwitching(true);
+    try {
+      const existing = (await fetcher("/api/barbers/me")) as Array<{ id: number }>;
+      if (Array.isArray(existing) && existing.length > 0) {
+        await activateBarberRole();
+      } else {
+        setCreateSalonOpen(true);
+      }
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message ?? "Impossible de basculer en mode barbier.");
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   const handleRefreshLocation = async () => {
     setLocating(true);
@@ -211,13 +236,10 @@ export default function ClientProfile() {
         <SectionLabel label={t.account} />
         <View style={{ gap: 10 }}>
           <Button
-            label={t.switchToBarber}
+            label={switching ? "..." : t.switchToBarber}
             variant="secondary"
             icon="refresh-cw"
-            onPress={async () => {
-              setAuthIntent("signup");
-              await signOut();
-            }}
+            onPress={handleSwitchToBarber}
           />
           <Button
             label={t.signOut}
@@ -237,6 +259,15 @@ export default function ClientProfile() {
         </View>
       </View>
       <DeleteAccountModal visible={deleteOpen} onClose={() => setDeleteOpen(false)} />
+      <CreateSalonModal
+        visible={createSalonOpen}
+        onClose={() => setCreateSalonOpen(false)}
+        onCreated={async () => {
+          setCreateSalonOpen(false);
+          try { await activateBarberRole(); }
+          catch (e: any) { Alert.alert("Erreur", e?.message ?? "Salon créé mais bascule impossible."); }
+        }}
+      />
     </ScrollView>
   );
 }

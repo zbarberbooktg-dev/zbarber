@@ -3,7 +3,7 @@ import { useAuth } from "@clerk/expo";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { EditProfileModal } from "@/components/EditProfileModal";
@@ -12,7 +12,7 @@ import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
-import { setAuthIntent } from "@/lib/authIntent";
+import { useAuthedFetch } from "@/lib/api";
 
 type MyBarber = {
   id: number;
@@ -28,7 +28,23 @@ export default function BarberProfile() {
   const c = useColors();
   const router = useRouter();
   const { getToken } = useAuth();
-  const { themePref, setThemePref, lang, setLang, signOut, t, user } = useApp();
+  const { themePref, setThemePref, lang, setLang, signOut, syncAuth, t, user } = useApp();
+  const fetcher = useAuthedFetch();
+  const [switching, setSwitching] = useState(false);
+
+  const handleSwitchToClient = async () => {
+    if (switching) return;
+    setSwitching(true);
+    try {
+      await fetcher("/api/auth/active-role", { method: "POST", body: JSON.stringify({ role: "client" }) });
+      await syncAuth();
+      router.replace("/(client)");
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message ?? "Impossible de basculer en mode client.");
+    } finally {
+      setSwitching(false);
+    }
+  };
   const { data: myBarbers, refetch } = useQuery<MyBarber[]>({
     queryKey: ["barbersMe"],
     queryFn: async () => {
@@ -229,13 +245,10 @@ export default function BarberProfile() {
         <SectionLabel label={t.account} />
         <View style={{ gap: 10 }}>
           <Button
-            label={t.switchToClient}
+            label={switching ? "..." : t.switchToClient}
             variant="secondary"
             icon="refresh-cw"
-            onPress={async () => {
-              setAuthIntent("signup");
-              await signOut();
-            }}
+            onPress={handleSwitchToClient}
           />
           <Button
             label={t.signOut}
