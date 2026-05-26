@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
 import { resolveObjectUrl } from "@/lib/imageUpload";
+import { ScrollHint } from "@/components/ScrollHint";
 
 const WEEK_DAYS_ORDER: Array<{ key: string; label: string }> = [
   { key: "monday", label: "Lundi" },
@@ -60,8 +61,9 @@ export default function PublicSalonDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isSignedIn } = useAuth();
-  const { locale, user } = useApp();
+  const { locale, user, t } = useApp();
   const fetcher = useAuthedFetch();
+  const [scrolled, setScrolled] = useState(false);
 
   const { data: barber, isLoading } = useGetBarber(barberId);
   const { data: servicesData } = useListBarberServices(barberId);
@@ -189,7 +191,13 @@ export default function PublicSalonDetail() {
         )}
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        onScroll={(e) => {
+          if (!scrolled && e.nativeEvent.contentOffset.y > 30) setScrolled(true);
+        }}
+        scrollEventThrottle={32}
+      >
         {/* Hero image (salon logo if available, else fallback) */}
         <Image
           source={
@@ -477,6 +485,8 @@ export default function PublicSalonDetail() {
           </Pressable>
         </View>
       )}
+      <ScrollHint label={t.scrollToBook ?? "Faites défiler pour réserver"} visible={!scrolled && services.length > 0} />
+
       {services.length === 0 && barber.phone && (
         <View style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
