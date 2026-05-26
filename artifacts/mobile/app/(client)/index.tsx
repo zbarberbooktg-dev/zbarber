@@ -5,7 +5,6 @@ import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -14,11 +13,13 @@ import {
 } from "react-native";
 
 import { Avatar, Card, EmptyState, Pill } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function Discover() {
   const c = useColors();
   const router = useRouter();
+  const { t } = useApp();
   const [query, setQuery] = useState("");
   const { data, isLoading, refetch, isRefetching } = useListBarbers({ status: "approved" });
 
@@ -52,7 +53,7 @@ export default function Discover() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Rechercher un salon ou une ville"
+            placeholder={t.searchPlaceholder}
             placeholderTextColor={c.mutedForeground}
             style={{
               flex: 1,
@@ -83,11 +84,7 @@ export default function Discover() {
             />
           }
           ListEmptyComponent={
-            <EmptyState
-              icon="search"
-              title="Aucun salon trouvé"
-              description="Essayez une autre ville ou un autre nom"
-            />
+            <EmptyState icon="search" title={t.noSalonFound} description={t.noSalonFoundDesc} />
           }
           renderItem={({ item }) => (
             <Card onPress={() => router.push(`/(client)/barber/${item.id}` as never)}>
@@ -105,7 +102,14 @@ export default function Discover() {
                   >
                     {item.salonName}
                   </Text>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                      marginBottom: 6,
+                    }}
+                  >
                     <Feather name="map-pin" size={11} color={c.mutedForeground} />
                     <Text
                       style={{
@@ -126,10 +130,10 @@ export default function Discover() {
                         icon="star"
                       />
                     ) : (
-                      <Pill label="Nouveau" tone="neutral" />
+                      <Pill label={t.newBadge} tone="neutral" />
                     )}
                     {item.subscriptionPlanId ? (
-                      <Pill label="Vérifié" tone="success" icon="check" />
+                      <Pill label={t.verified} tone="success" icon="check" />
                     ) : null}
                   </View>
                 </View>

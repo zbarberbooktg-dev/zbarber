@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { Button, Card, EmptyState, Pill } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 const BARBER_ID = 1;
@@ -27,6 +28,7 @@ const TONE: Record<Status, "warning" | "success" | "primary" | "danger"> = {
 
 export default function BarberSchedule() {
   const c = useColors();
+  const { t, locale } = useApp();
   const [filter, setFilter] = useState<Status | "all">("all");
   const { data, isLoading, refetch, isRefetching } = useListReservations({
     barberId: BARBER_ID,
@@ -36,11 +38,18 @@ export default function BarberSchedule() {
 
   const items = data?.data ?? [];
 
+  const STATUS_LABEL: Record<Status, string> = {
+    pending: t.statusPending,
+    confirmed: t.statusConfirmed,
+    completed: t.statusCompleted,
+    cancelled: t.statusCancelled,
+  };
+
   const filters: Array<{ key: Status | "all"; label: string }> = [
-    { key: "all", label: "Tous" },
-    { key: "pending", label: "En attente" },
-    { key: "confirmed", label: "Confirmés" },
-    { key: "completed", label: "Terminés" },
+    { key: "all", label: t.filterAll },
+    { key: "pending", label: t.filterPending },
+    { key: "confirmed", label: t.filterConfirmed },
+    { key: "completed", label: t.filterCompleted },
   ];
 
   const handleUpdate = (id: number, status: Status) => {
@@ -49,7 +58,15 @@ export default function BarberSchedule() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
-      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 12, flexWrap: "wrap" }}>
+      <View
+        style={{
+          flexDirection: "row",
+          gap: 8,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexWrap: "wrap",
+        }}
+      >
         {filters.map((f) => {
           const active = filter === f.key;
           return (
@@ -96,8 +113,8 @@ export default function BarberSchedule() {
           ListEmptyComponent={
             <EmptyState
               icon="calendar"
-              title="Aucune réservation"
-              description="Les demandes apparaîtront ici"
+              title={t.noBookingsBarber}
+              description={t.noBookingsBarberDesc}
             />
           }
           renderItem={({ item }) => {
@@ -105,28 +122,48 @@ export default function BarberSchedule() {
             const dt = new Date(item.scheduledAt);
             return (
               <Card>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
-                  <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>
-                    {dt.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}{" "}
-                    · {dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text
+                    style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}
+                  >
+                    {dt.toLocaleDateString(locale, {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}{" "}
+                    · {dt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                   </Text>
-                  <Pill label={status} tone={TONE[status]} />
+                  <Pill label={STATUS_LABEL[status]} tone={TONE[status]} />
                 </View>
-                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, marginBottom: 12 }}>
-                  Réservation #{item.id}
+                <Text
+                  style={{
+                    color: c.mutedForeground,
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 13,
+                    marginBottom: 12,
+                  }}
+                >
+                  {t.reservationN}
+                  {item.id}
                 </Text>
                 {status === "pending" ? (
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <View style={{ flex: 1 }}>
                       <Button
-                        label="Confirmer"
+                        label={t.confirm}
                         icon="check"
                         onPress={() => handleUpdate(item.id, "confirmed")}
                       />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Button
-                        label="Refuser"
+                        label={t.refuse}
                         variant="ghost"
                         icon="x"
                         onPress={() => handleUpdate(item.id, "cancelled")}
@@ -135,7 +172,7 @@ export default function BarberSchedule() {
                   </View>
                 ) : status === "confirmed" ? (
                   <Button
-                    label="Marquer terminé"
+                    label={t.markCompleted}
                     variant="secondary"
                     icon="check-circle"
                     onPress={() => handleUpdate(item.id, "completed")}

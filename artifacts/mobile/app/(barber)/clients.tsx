@@ -4,12 +4,14 @@ import React from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 import { Avatar, Card, EmptyState } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 const BARBER_ID = 1;
 
 export default function BarberReviews() {
   const c = useColors();
+  const { t } = useApp();
   const { data, isLoading } = useListReviews({ barberId: BARBER_ID });
   const reviews = data?.data ?? [];
 
@@ -48,30 +50,38 @@ export default function BarberReviews() {
                   </View>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
-                    {reviews.length} avis client{reviews.length > 1 ? "s" : ""}
+                  <Text
+                    style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}
+                  >
+                    {t.reviewsCount(reviews.length)}
                   </Text>
-                  <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
-                    Note moyenne du salon
+                  <Text
+                    style={{
+                      color: c.mutedForeground,
+                      fontFamily: "Inter_400Regular",
+                      fontSize: 12,
+                      marginTop: 2,
+                    }}
+                  >
+                    {t.avgRating}
                   </Text>
                 </View>
               </View>
             </Card>
           }
           ListEmptyComponent={
-            <EmptyState
-              icon="star"
-              title="Aucun avis pour le moment"
-              description="Les avis clients apparaîtront ici"
-            />
+            <EmptyState icon="star" title={t.noReviews} description={t.noReviewsDesc} />
           }
           renderItem={({ item }) => (
             <Card>
               <View style={{ flexDirection: "row", gap: 12, marginBottom: 8 }}>
-                <Avatar name={`Client ${item.clientId}`} size={40} />
+                <Avatar name={`${t.clientN}${item.clientId}`} size={40} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
-                    Client #{item.clientId}
+                  <Text
+                    style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}
+                  >
+                    {t.clientN}
+                    {item.clientId}
                   </Text>
                   <View style={{ flexDirection: "row", gap: 2, marginTop: 4 }}>
                     {[1, 2, 3, 4, 5].map((n) => (
@@ -86,7 +96,14 @@ export default function BarberReviews() {
                 </View>
               </View>
               {item.comment ? (
-                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
+                <Text
+                  style={{
+                    color: c.mutedForeground,
+                    fontFamily: "Inter_400Regular",
+                    fontSize: 13,
+                    lineHeight: 18,
+                  }}
+                >
                   {item.comment}
                 </Text>
               ) : null}

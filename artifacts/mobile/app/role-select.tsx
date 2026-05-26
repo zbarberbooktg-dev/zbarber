@@ -9,7 +9,7 @@ import { useColors } from "@/hooks/useColors";
 
 export default function RoleSelect() {
   const c = useColors();
-  const { setRole } = useApp();
+  const { setRole, t, lang, setLang } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -56,23 +56,10 @@ export default function RoleSelect() {
         <Feather name={icon} size={26} color={c.primary} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text
-          style={{
-            color: c.foreground,
-            fontFamily: "Inter_700Bold",
-            fontSize: 17,
-            marginBottom: 2,
-          }}
-        >
+        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17, marginBottom: 2 }}>
           {title}
         </Text>
-        <Text
-          style={{
-            color: c.mutedForeground,
-            fontFamily: "Inter_400Regular",
-            fontSize: 13,
-          }}
-        >
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13 }}>
           {description}
         </Text>
       </View>
@@ -85,10 +72,41 @@ export default function RoleSelect() {
       style={{
         flex: 1,
         backgroundColor: c.background,
-        paddingTop: insets.top + 60,
+        paddingTop: insets.top + 24,
         paddingHorizontal: 24,
       }}
     >
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 24 }}>
+        <View style={{ flexDirection: "row", backgroundColor: c.card, borderRadius: 999, padding: 4, borderWidth: 1, borderColor: c.border }}>
+          {(["fr", "en"] as const).map((l) => {
+            const active = lang === l;
+            return (
+              <Pressable
+                key={l}
+                onPress={() => setLang(l)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  backgroundColor: active ? c.primary : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    color: active ? c.primaryForeground : c.mutedForeground,
+                    fontFamily: "Inter_600SemiBold",
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {l}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
       <View style={{ alignItems: "center", marginBottom: 40 }}>
         <View
           style={{
@@ -103,14 +121,7 @@ export default function RoleSelect() {
         >
           <Feather name="scissors" size={32} color={c.primaryForeground} />
         </View>
-        <Text
-          style={{
-            color: c.foreground,
-            fontFamily: "Inter_700Bold",
-            fontSize: 26,
-            marginBottom: 6,
-          }}
-        >
+        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 26, marginBottom: 6 }}>
           Global Barber Corp
         </Text>
         <Text
@@ -121,7 +132,7 @@ export default function RoleSelect() {
             textAlign: "center",
           }}
         >
-          La plateforme des barbiers africains
+          {t.appTagline}
         </Text>
       </View>
 
@@ -135,22 +146,12 @@ export default function RoleSelect() {
           letterSpacing: 0.5,
         }}
       >
-        Continuer en tant que
+        {t.continueAs}
       </Text>
 
       <View style={{ gap: 12 }}>
-        <Option
-          role="client"
-          icon="user"
-          title="Client"
-          description="Trouver un barbier, réserver et noter"
-        />
-        <Option
-          role="barber"
-          icon="scissors"
-          title="Barbier"
-          description="Gérer mon salon, agenda et galerie"
-        />
+        <Option role="client" icon="user" title={t.client} description={t.clientDesc} />
+        <Option role="barber" icon="scissors" title={t.barber} description={t.barberDesc} />
       </View>
     </View>
   );
