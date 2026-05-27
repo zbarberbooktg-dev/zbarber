@@ -355,12 +355,22 @@ export default function SignInScreen() {
         )}
 
         {step === "credentials" && (
-          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24 }}>
-            <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular" }}>Pas de compte ? </Text>
-            <Link href="/(auth)/sign-up" replace>
-              <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold" }}>S'inscrire</Text>
-            </Link>
-          </View>
+          <>
+            <View style={{ alignItems: "center", marginTop: 16 }}>
+              <Link href="/(auth)/forgot-password">
+                <Text style={{ color: c.primary, fontFamily: "Inter_500Medium" }}>
+                  Mot de passe oublié ?
+                </Text>
+              </Link>
+            </View>
+
+            <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24 }}>
+              <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular" }}>Pas de compte ? </Text>
+              <Link href="/(auth)/sign-up" replace>
+                <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold" }}>S'inscrire</Text>
+              </Link>
+            </View>
+          </>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
