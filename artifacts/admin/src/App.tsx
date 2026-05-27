@@ -19,6 +19,7 @@ import Conferences from "@/pages/Conferences";
 import Notifications from "@/pages/Notifications";
 import Reviews from "@/pages/Reviews";
 import Gallery from "@/pages/Gallery";
+import Articles from "@/pages/Articles";
 import Admins from "@/pages/Admins";
 import NotFound from "@/pages/not-found";
 
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="/notifications" component={Notifications} />
         <Route path="/reviews" component={Reviews} />
         <Route path="/gallery" component={Gallery} />
+        <Route path="/articles" component={Articles} />
         <Route path="/admins" component={Admins} />
         <Route path="/sign-in"><Redirect to="/" /></Route>
         <Route component={NotFound} />
