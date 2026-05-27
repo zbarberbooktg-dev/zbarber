@@ -209,7 +209,8 @@ router.put("/barbers/me/schedule", requireAuth, async (req: AuthedRequest, res) 
 
 // ── Barber: create salon profile (status starts pending) ───
 router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
-  if (req.localUser!.role !== "barber") { res.status(403).json({ error: "Barber account required" }); return; }
+  const user = req.localUser!;
+  if (user.role === "admin") { res.status(403).json({ error: "Admins cannot own salons" }); return; }
   const body = z.object({
     salonName: z.string().min(2),
     bio: z.string().optional(),
@@ -235,9 +236,13 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
     ...body.data,
     country: resolved.country,
     city: resolved.city ?? body.data.city,
-    userId: req.localUser!.id,
+    userId: user.id,
     status: "pending",
   }).returning();
+  // Auto-promote client → barber on first salon creation so they can manage it.
+  if (user.role === "client") {
+    await db.update(usersTable).set({ role: "barber" }).where(eq(usersTable.id, user.id));
+  }
   res.status(201).json(barber);
 });
 
