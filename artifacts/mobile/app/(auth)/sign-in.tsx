@@ -40,19 +40,34 @@ export default function SignInScreen() {
 
   const handleSubmit = async () => {
     setSubmitError(null);
+    const trimmed = email.trim();
+    if (!trimmed || !password) {
+      setSubmitError("Veuillez saisir votre email et votre mot de passe");
+      return;
+    }
     try {
-      const { error } = await signIn.password({ identifier: email.trim(), password });
+      const { error } = await signIn.password({ identifier: trimmed, password });
       if (error) {
-        setSubmitError(error.message ?? "Erreur de connexion");
+        setSubmitError(error.message ?? "Identifiants invalides");
         return;
       }
       if (signIn.status === "complete") {
         await signIn.finalize({
           navigate: () => router.replace("/"),
         });
+        return;
       }
+      const fieldErr =
+        (errors as any)?.fields?.identifier?.message ||
+        (errors as any)?.fields?.password?.message ||
+        (errors as any)?.global?.[0]?.message;
+      setSubmitError(
+        fieldErr ??
+          `Connexion impossible (statut: ${signIn.status ?? "inconnu"}). Vérifiez vos identifiants.`,
+      );
     } catch (err: any) {
-      setSubmitError(err?.message ?? "Erreur de connexion");
+      console.warn("[sign-in] error", err);
+      setSubmitError(err?.message ?? err?.errors?.[0]?.message ?? "Erreur de connexion");
     }
   };
 
@@ -103,21 +118,28 @@ export default function SignInScreen() {
           placeholderTextColor={c.mutedForeground}
         />
 
-        {(submitError || (errors as any)?.raw?.[0]?.message) && (
-          <Text style={{ color: c.destructive, marginBottom: 12, fontFamily: "Inter_400Regular" }}>
-            {submitError || (errors as any)?.raw?.[0]?.message}
-          </Text>
-        )}
+        {(() => {
+          const signalErr =
+            (errors as any)?.fields?.identifier?.message ||
+            (errors as any)?.fields?.password?.message ||
+            (errors as any)?.global?.[0]?.message;
+          const msg = submitError || signalErr;
+          return msg ? (
+            <Text style={{ color: c.destructive, marginBottom: 12, fontFamily: "Inter_400Regular" }}>
+              {msg}
+            </Text>
+          ) : null;
+        })()}
 
         <Pressable
           onPress={handleSubmit}
-          disabled={busy || !email || !password}
+          disabled={busy}
           style={({ pressed }) => ({
             backgroundColor: c.primary,
             padding: 16,
             borderRadius: c.radius,
             alignItems: "center",
-            opacity: busy || !email || !password ? 0.6 : pressed ? 0.85 : 1,
+            opacity: busy ? 0.6 : pressed ? 0.85 : 1,
           })}
         >
           {busy ? (
