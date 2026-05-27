@@ -16,6 +16,7 @@ import {
 
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import { useApp } from "@/contexts/AppContext";
@@ -30,7 +31,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const c = useColors();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
-  const { user, syncAuth } = useApp();
+  const { user, syncAuth, t } = useApp();
   const userCountry = user?.country ?? "";
 
   const [salonName, setSalonName] = useState("");
@@ -59,8 +60,8 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
     try {
       const res = await pickAndUploadImage(fetcher);
       if (res) { setLogoUrl(res.objectPath); setLogoLocalUri(res.uri); }
-    } catch (e: any) {
-      setErr(e?.message ?? "Échec de l'envoi de la photo");
+    } catch (e: unknown) {
+      setErr(formatApiError(e, t.errors));
     } finally {
       setUploadingLogo(false);
     }
@@ -68,9 +69,9 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
 
   const handleSave = async () => {
     setErr(null);
-    if (salonName.trim().length < 2) return setErr("Le nom du salon est obligatoire (2 caractères min.)");
-    if (!country.trim()) return setErr("Le pays est obligatoire");
-    if (!city.trim()) return setErr("La ville est obligatoire");
+    if (salonName.trim().length < 2) return setErr(t.errors.salonNameRequired);
+    if (!country.trim()) return setErr(t.errors.countryRequired);
+    if (!city.trim()) return setErr(t.errors.cityRequired);
     setSaving(true);
     try {
       // If the user account has no country yet, persist the chosen country
@@ -95,8 +96,8 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
       await qc.invalidateQueries({ queryKey: ["barbersMe"] });
       onCreated?.(created.id);
       onClose();
-    } catch (e: any) {
-      setErr(e?.message ?? "Impossible de créer le salon");
+    } catch (e: unknown) {
+      setErr(formatApiError(e, t.errors));
     } finally {
       setSaving(false);
     }

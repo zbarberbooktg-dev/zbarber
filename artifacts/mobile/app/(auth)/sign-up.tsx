@@ -17,6 +17,7 @@ import { Feather } from "@expo/vector-icons";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import { pickImageWithSource, promptImageSource, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -68,8 +69,8 @@ export default function SignUpScreen() {
       setAvatarAsset(asset);
       setAvatarLocalUri(asset.uri);
       setAvatarUrl(null);
-    } catch (e: any) {
-      setErr(e?.message ?? "Échec de la sélection de la photo");
+    } catch (e: unknown) {
+      setErr(formatApiError(e, t.errors));
     } finally {
       setUploadingAvatar(false);
     }
@@ -91,7 +92,7 @@ export default function SignUpScreen() {
       headers: { "content-type": ct },
       body: blob,
     });
-    if (!put.ok) throw new Error(`Upload échoué (${put.status})`);
+    if (!put.ok) throw new Error(t.errors.uploadFailed);
     return presigned.objectPath;
   };
 
@@ -115,11 +116,11 @@ export default function SignUpScreen() {
         password,
         unsafeMetadata: { role, phone: phone.trim(), name: trimmedName },
       });
-      if (error) { setErr(error.message ?? "Erreur d'inscription"); return; }
+      if (error) { setErr(error.message ?? t.errors.generic); return; }
       await signUp.verifications.sendEmailCode();
       setStep("verify");
-    } catch (e: any) {
-      setErr(e?.message ?? "Erreur d'inscription");
+    } catch (e: unknown) {
+      setErr(formatApiError(e, t.errors));
     }
   };
 
@@ -135,9 +136,9 @@ export default function SignUpScreen() {
               let uploadedAvatar: string | null = null;
               try {
                 uploadedAvatar = await uploadAvatarAfterSignIn();
-              } catch (uploadErr: any) {
+              } catch (uploadErr: unknown) {
                 // Non-blocking: profile still gets created without avatar.
-                console.warn("Avatar upload failed:", uploadErr?.message);
+                console.warn("Avatar upload failed:", formatApiError(uploadErr, t.errors));
               }
               try {
                 await syncAuth({
@@ -148,25 +149,22 @@ export default function SignUpScreen() {
                   country: country.trim() || undefined,
                   avatarUrl: uploadedAvatar || avatarUrl || undefined,
                 });
-              } catch (syncErr: any) {
+              } catch (syncErr: unknown) {
                 // Surface error but still navigate home — the user is signed in
                 // and can complete their profile from the profile screen.
-                setErr(
-                  (syncErr?.message ?? "Profil partiellement enregistré") +
-                  " — vous pouvez compléter votre profil depuis l'écran Profil.",
-                );
+                setErr(formatApiError(syncErr, t.errors));
               }
               router.replace("/");
-            } catch (outerErr: any) {
-              setErr(outerErr?.message ?? "Erreur d'enregistrement du profil");
+            } catch (outerErr: unknown) {
+              setErr(formatApiError(outerErr, t.errors));
             }
           },
         });
       } else {
-        setErr("Vérification incomplète");
+        setErr(t.errors.generic);
       }
-    } catch (e: any) {
-      setErr(e?.message ?? "Code invalide");
+    } catch (e: unknown) {
+      setErr(formatApiError(e, t.errors));
     }
   };
 

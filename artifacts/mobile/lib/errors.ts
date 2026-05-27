@@ -1,6 +1,6 @@
 import type { translations } from "@/constants/i18n";
 
-type ErrorsDict = (typeof translations)["fr"]["errors"];
+type ErrorsDict = { readonly [K in keyof (typeof translations)["fr"]["errors"]]: string };
 
 const SERVER_TO_KEY: Record<string, keyof ErrorsDict> = {
   "Unauthorized": "unauthorized",
