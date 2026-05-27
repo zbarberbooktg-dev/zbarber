@@ -30,7 +30,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const c = useColors();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
-  const { user } = useApp();
+  const { user, syncAuth } = useApp();
   const userCountry = user?.country ?? "";
 
   const [salonName, setSalonName] = useState("");
@@ -73,6 +73,11 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
     if (!city.trim()) return setErr("La ville est obligatoire");
     setSaving(true);
     try {
+      // If the user account has no country yet, persist the chosen country
+      // to their profile so future salons inherit it (and the picker is locked).
+      if (!userCountry && country.trim()) {
+        try { await syncAuth({ country: country.trim() }); } catch { /* non-blocking */ }
+      }
       const created = await fetcher<{ id: number }>("/api/barbers/me", {
         method: "POST",
         body: JSON.stringify({
