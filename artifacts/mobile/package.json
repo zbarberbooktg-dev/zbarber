@@ -60,6 +60,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
+    "@clerk/localizations": "^4.6.8",
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@workspace/legal-content": "workspace:*",
     "expo-document-picker": "^56.0.4",

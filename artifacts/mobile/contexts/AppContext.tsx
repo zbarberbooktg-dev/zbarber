@@ -1,4 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DeviceEventEmitter } from "react-native";
+import { LANG_CHANGE_EVENT } from "@/hooks/useClerkLocalization";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/expo";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
@@ -171,6 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setLang = async (l: Lang) => {
     setLangState(l);
     await AsyncStorage.setItem(LANG_KEY, l);
+    DeviceEventEmitter.emit(LANG_CHANGE_EVENT, l);
   };
 
   const signOut = async () => {
