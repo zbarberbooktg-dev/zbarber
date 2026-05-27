@@ -17,9 +17,10 @@ import { Feather } from "@expo/vector-icons";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
-import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
+import { pickImageWithSource, promptImageSource, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import { PasswordInput } from "@/components/PasswordInput";
+import type * as ImagePicker from "expo-image-picker";
 
 type Role = "client" | "barber";
 type Step = "details" | "verify";
@@ -43,6 +44,7 @@ export default function SignUpScreen() {
   const [country, setCountry] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarLocalUri, setAvatarLocalUri] = useState<string | null>(null);
+  const [avatarAsset, setAvatarAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [code, setCode] = useState("");
   const [step, setStep] = useState<Step>("details");
@@ -57,13 +59,40 @@ export default function SignUpScreen() {
   const handlePickAvatar = async () => {
     setUploadingAvatar(true);
     try {
-      const res = await pickAndUploadImage(fetcher);
-      if (res) { setAvatarUrl(res.objectPath); setAvatarLocalUri(res.uri); }
+      // Only pick the image here — actual upload happens after sign-in
+      // (the storage API requires authentication).
+      const source = await promptImageSource();
+      if (!source) return;
+      const asset = await pickImageWithSource(source);
+      if (!asset) return;
+      setAvatarAsset(asset);
+      setAvatarLocalUri(asset.uri);
+      setAvatarUrl(null);
     } catch (e: any) {
-      setErr(e?.message ?? "Échec de l'envoi de la photo");
+      setErr(e?.message ?? "Échec de la sélection de la photo");
     } finally {
       setUploadingAvatar(false);
     }
+  };
+
+  const uploadAvatarAfterSignIn = async (): Promise<string | null> => {
+    if (!avatarAsset) return null;
+    const ct = avatarAsset.mimeType || "image/jpeg";
+    const name = avatarAsset.fileName || `avatar-${Date.now()}.jpg`;
+    const size = avatarAsset.fileSize ?? 0;
+    const presigned = await fetcher<{ uploadURL: string; objectPath: string }>(
+      "/api/storage/uploads/request-url",
+      { method: "POST", body: JSON.stringify({ name, size, contentType: ct }) },
+    );
+    const fileResp = await fetch(avatarAsset.uri);
+    const blob = await fileResp.blob();
+    const put = await fetch(presigned.uploadURL, {
+      method: "PUT",
+      headers: { "content-type": ct },
+      body: blob,
+    });
+    if (!put.ok) throw new Error(`Upload échoué (${put.status})`);
+    return presigned.objectPath;
   };
 
   const openTerms = () => router.push("/legal/terms");
@@ -101,15 +130,36 @@ export default function SignUpScreen() {
       if (signUp.status === "complete") {
         await signUp.finalize({
           navigate: async () => {
-            await syncAuth({
-              role,
-              name: name.trim() || undefined,
-              phone: phone.trim() || undefined,
-              city: city.trim() || undefined,
-              country: country.trim() || undefined,
-              avatarUrl: avatarUrl || undefined,
-            });
-            router.replace("/");
+            try {
+              // Now authenticated — upload the avatar if one was picked.
+              let uploadedAvatar: string | null = null;
+              try {
+                uploadedAvatar = await uploadAvatarAfterSignIn();
+              } catch (uploadErr: any) {
+                // Non-blocking: profile still gets created without avatar.
+                console.warn("Avatar upload failed:", uploadErr?.message);
+              }
+              try {
+                await syncAuth({
+                  role,
+                  name: name.trim() || undefined,
+                  phone: phone.trim() || undefined,
+                  city: city.trim() || undefined,
+                  country: country.trim() || undefined,
+                  avatarUrl: uploadedAvatar || avatarUrl || undefined,
+                });
+              } catch (syncErr: any) {
+                // Surface error but still navigate home — the user is signed in
+                // and can complete their profile from the profile screen.
+                setErr(
+                  (syncErr?.message ?? "Profil partiellement enregistré") +
+                  " — vous pouvez compléter votre profil depuis l'écran Profil.",
+                );
+              }
+              router.replace("/");
+            } catch (outerErr: any) {
+              setErr(outerErr?.message ?? "Erreur d'enregistrement du profil");
+            }
           },
         });
       } else {

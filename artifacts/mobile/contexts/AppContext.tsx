@@ -69,6 +69,7 @@ export type SyncAuthOpts = {
 async function callSync(
   token: string | null,
   opts?: SyncAuthOpts,
+  { throwOnError = false }: { throwOnError?: boolean } = {},
 ): Promise<SyncResult> {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   const base = domain ? `https://${domain}` : "";
@@ -87,9 +88,19 @@ async function callSync(
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    if (throwOnError) {
+      let msg = `Sync failed (${res.status})`;
+      try { const j = await res.json(); if (j?.error) msg = j.error; } catch {}
+      throw new Error(msg);
+    }
+    return null;
+  }
   const data = await res.json();
-  if (!data?.user) return null;
+  if (!data?.user) {
+    if (throwOnError) throw new Error("Sync returned no user");
+    return null;
+  }
   return { user: data.user, barber: data.barber ?? null };
 }
 
@@ -152,7 +163,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSyncing(true);
     try {
       const token = await getToken();
-      const result = await callSync(token, opts);
+      const result = await callSync(token, opts, { throwOnError: true });
       setUser(result?.user ?? null);
       setBarberProfile(result?.barber ?? null);
       return result?.user ?? null;
