@@ -23,11 +23,13 @@ type Props = {
   countryLabel?: string;
   cityLabel?: string;
   required?: boolean;
+  lockCountry?: boolean;
 };
 
 export function CountryCityFields({
   countryName, cityName, onChange,
   countryLabel = "Pays", cityLabel = "Ville", required,
+  lockCountry,
 }: Props) {
   const c = useColors();
   const [countries, setCountries] = useState<Country[] | null>(null);
@@ -123,20 +125,27 @@ export function CountryCityFields({
           {countryLabel}{required ? " *" : ""}
         </Text>
         <Pressable
-          onPress={() => setPickerOpen(true)}
+          onPress={() => { if (!lockCountry) setPickerOpen(true); }}
+          disabled={lockCountry}
           style={{
-            backgroundColor: c.card, borderWidth: 1, borderColor: c.border,
+            backgroundColor: lockCountry ? c.muted : c.card,
+            borderWidth: 1, borderColor: c.border,
             borderRadius: c.radius, padding: 14, flexDirection: "row",
             alignItems: "center", justifyContent: "space-between",
+            opacity: lockCountry ? 0.85 : 1,
           }}
         >
           <Text style={{
             color: selectedCountry ? c.foreground : c.mutedForeground,
             fontFamily: "Inter_400Regular", fontSize: 15, flex: 1,
           }} numberOfLines={1}>
-            {selectedCountry ? selectedCountry.name : (countries ? "Sélectionnez un pays" : "Chargement…")}
+            {selectedCountry
+              ? selectedCountry.name
+              : (countryName || (countries ? "Sélectionnez un pays" : "Chargement…"))}
           </Text>
-          <Feather name="chevron-down" size={18} color={c.mutedForeground} />
+          {lockCountry
+            ? <Feather name="lock" size={16} color={c.mutedForeground} />
+            : <Feather name="chevron-down" size={18} color={c.mutedForeground} />}
         </Pressable>
       </View>
 
