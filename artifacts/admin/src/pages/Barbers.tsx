@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 
 type ModalState = { type: "reject" | "suspend"; id: number; salonName: string } | null;
 
@@ -38,9 +39,10 @@ export default function Barbers() {
   const reactivate = useReactivateBarber();
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListBarbersQueryKey() });
+  const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
   function handleApprove(id: number) {
-    approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.approved_toast }); } });
+    approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.approved_toast }); }, onError: onErr });
   }
 
   function openReject(id: number, salonName: string) { setModal({ type: "reject", id, salonName }); setReason(""); }
@@ -55,17 +57,19 @@ export default function Barbers() {
       if (!r) { toast({ title: b.reasonRequired, variant: "destructive" as any }); return; }
       reject.mutate({ id: modal.id, data: { reason: r } }, {
         onSuccess: () => { invalidate(); toast({ title: b.rejected_toast }); closeModal(); },
+        onError: onErr,
       });
     } else {
       suspend.mutate({ id: modal.id, data: { reason: r || null } }, {
         onSuccess: () => { invalidate(); toast({ title: b.suspended_toast }); closeModal(); },
+        onError: onErr,
       });
     }
   }
 
   function handleReactivate(id: number) {
     if (!confirm(b.confirmReactivate)) return;
-    reactivate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.reactivated_toast }); } });
+    reactivate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.reactivated_toast }); }, onError: onErr });
   }
 
   const barbers = (data as any)?.data ?? [];

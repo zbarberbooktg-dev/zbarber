@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 
 export default function Reviews() {
   const [page, setPage] = useState(1);
@@ -21,7 +22,10 @@ export default function Reviews() {
 
   function handleDelete(id: number) {
     if (!confirm(r.confirmDelete)) return;
-    del.mutate({ id }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListReviewsQueryKey() }); toast({ title: r.deleted_toast }); } });
+    del.mutate({ id }, {
+      onSuccess: () => { qc.invalidateQueries({ queryKey: getListReviewsQueryKey() }); toast({ title: r.deleted_toast }); },
+      onError: (err) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any }),
+    });
   }
 
   return (
