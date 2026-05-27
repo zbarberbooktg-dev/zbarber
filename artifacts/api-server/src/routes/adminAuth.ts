@@ -38,7 +38,9 @@ router.post("/admin-auth/login", async (req, res) => {
 
   const token = signAdminToken(admin.id);
   setAdminCookie(res, token);
-  res.json({ admin: sanitizeAdmin(admin), token });
+  // Cookie-only — never return the raw JWT in the body. This keeps the
+  // bearer token out of XSS reach and away from client-side storage.
+  res.json({ admin: sanitizeAdmin(admin) });
 });
 
 router.post("/admin-auth/logout", async (_req, res) => {

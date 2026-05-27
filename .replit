@@ -49,3 +49,11 @@ externalPort = 3001
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.development]
+ADMIN_ROOT_EMAIL = "admin@globalbarber.local"
+ADMIN_ROOT_PASSWORD = "ChangeMe-0614e5121d79"
+ADMIN_JWT_SECRET = "62460b29c874ecaf06b4096a9a9e6250b9c45d18e61b05faf7b53fe500da7a01ea840f4e6d609af187bd984b5ebeb90e"
+ADMIN_LOGIN_URL = "http://localhost/admin/sign-in"

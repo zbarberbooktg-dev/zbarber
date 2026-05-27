@@ -45,8 +45,11 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ delivered: bo
   const ctx = getTransporter();
   if (!ctx) {
     const level = process.env.NODE_ENV === "production" ? "warn" : "info";
+    // Intentionally OMIT the body — invitation/reset emails contain
+    // temporary credentials that must never be written to logs. Surface
+    // only metadata so operators know SMTP is missing.
     logger[level](
-      { to: opts.to, subject: opts.subject, body: opts.text },
+      { to: opts.to, subject: opts.subject },
       "SMTP not configured — email NOT sent. Set SMTP_HOST/PORT/USER/PASS/FROM env vars.",
     );
     return { delivered: false };

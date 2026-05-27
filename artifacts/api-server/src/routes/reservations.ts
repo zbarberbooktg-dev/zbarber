@@ -3,6 +3,7 @@ import { db, reservationsTable, usersTable, barbersTable, servicesTable } from "
 import { eq, desc, or } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -13,17 +14,19 @@ async function enrichReservation(r: typeof reservationsTable.$inferSelect) {
   return { ...r, clientName: client?.name, clientPhone: client?.phone ?? null, barberName: barber?.salonName, serviceName: service?.name, servicePrice: service?.price };
 }
 
-router.get("/reservations", requireAuth, async (req: AuthedRequest, res) => {
+router.get("/reservations", requireAuthOrAdmin, async (req: AdminAuthedRequest & AuthedRequest, res) => {
   const { page = "1", limit = "20", status, barberId, clientId, dateFrom, dateTo, search } = req.query as Record<string, string>;
   const offset = (parseInt(page) - 1) * parseInt(limit);
-  const user = req.localUser!;
 
   let rows = await db.select().from(reservationsTable).orderBy(desc(reservationsTable.createdAt));
-  if (user.role === "client") {
-    rows = rows.filter(r => r.clientId === user.id);
-  } else if (user.role === "barber") {
-    const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-    rows = b ? rows.filter(r => r.barberId === b.id) : [];
+  if (!req.admin) {
+    const user = req.localUser!;
+    if (user.role === "client") {
+      rows = rows.filter(r => r.clientId === user.id);
+    } else if (user.role === "barber") {
+      const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
+      rows = b ? rows.filter(r => r.barberId === b.id) : [];
+    }
   }
   // admin: see all
   if (status) rows = rows.filter(r => r.status === status);
@@ -63,30 +66,42 @@ router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {
   res.status(201).json(await enrichReservation(res2));
 });
 
-router.get("/reservations/:id", requireAuth, async (req: AuthedRequest, res) => {
+router.get("/reservations/:id", requireAuthOrAdmin, async (req: AdminAuthedRequest & AuthedRequest, res) => {
   const [r] = await db.select().from(reservationsTable).where(eq(reservationsTable.id, parseInt(String(req.params.id)))).limit(1);
   if (!r) { res.status(404).json({ error: "Not found" }); return; }
-  const user = req.localUser!;
-  if (user.role === "client" && r.clientId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
-  if (user.role === "barber") {
-    const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-    if (!b || r.barberId !== b.id) { res.status(403).json({ error: "Forbidden" }); return; }
+  if (!req.admin) {
+    const user = req.localUser!;
+    if (user.role === "client" && r.clientId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
+    if (user.role === "barber") {
+      const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
+      if (!b || r.barberId !== b.id) { res.status(403).json({ error: "Forbidden" }); return; }
+    }
   }
   res.json(await enrichReservation(r));
 });
 
-router.patch("/reservations/:id", requireAuth, async (req: AuthedRequest, res) => {
+router.patch("/reservations/:id", requireAuthOrAdmin, async (req: AdminAuthedRequest & AuthedRequest, res) => {
   const id = parseInt(String(req.params.id));
   const [existing] = await db.select().from(reservationsTable).where(eq(reservationsTable.id, id)).limit(1);
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Admin path: any status.
+  if (req.admin) {
+    const body = z.object({ status: z.enum(["pending", "confirmed", "cancelled", "completed"]) }).safeParse(req.body);
+    if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+    const [updated] = await db.update(reservationsTable).set({ status: body.data.status }).where(eq(reservationsTable.id, id)).returning();
+    res.json(await enrichReservation(updated));
+    return;
+  }
+
   const user = req.localUser!;
-  // Client can cancel their own. Barber can confirm/complete/cancel their own. Admin all.
+  // Client can cancel their own. Barber can confirm/complete/cancel their own.
   if (user.role === "client" && existing.clientId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
   if (user.role === "barber") {
     const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
     if (!b || existing.barberId !== b.id) { res.status(403).json({ error: "Forbidden" }); return; }
   }
-  // Clients may only cancel their own reservation; barbers/admins can set any status.
+  // Clients may only cancel their own reservation; barbers can set any status on their salon.
   const allowedStatuses = user.role === "client"
     ? (["cancelled"] as const)
     : (["pending", "confirmed", "cancelled", "completed"] as const);
