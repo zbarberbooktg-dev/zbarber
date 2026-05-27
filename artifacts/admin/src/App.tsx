@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect, Link } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
@@ -146,12 +147,17 @@ function AuthError({ error, onRetry }: { error: unknown; onRetry: () => void }) 
 }
 
 function AdminGate({ children }: { children: React.ReactNode }) {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const { signOut } = useClerk();
   const [me, setMe] = useState<AuthMeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    setAuthTokenGetter(() => getToken());
+    return () => setAuthTokenGetter(null);
+  }, [getToken]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -161,7 +167,8 @@ function AdminGate({ children }: { children: React.ReactNode }) {
     setError(null);
     (async () => {
       try {
-        const synced = await syncAuth();
+        const token = await getToken();
+        const synced = await syncAuth(token);
         if (!cancel) { setMe(synced); setLoading(false); }
       } catch (err) {
         if (cancel) return;
@@ -176,6 +183,7 @@ function AdminGate({ children }: { children: React.ReactNode }) {
       }
     })();
     return () => { cancel = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn, attempt, signOut]);
 
   if (!isLoaded || loading) return <AuthLoading />;

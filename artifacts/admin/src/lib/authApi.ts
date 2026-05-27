@@ -43,17 +43,29 @@ async function parseError(res: Response, fallback: string): Promise<AuthApiError
   return new AuthApiError(`${fallback}: ${res.status}`, res.status);
 }
 
-export async function fetchAuthMe(): Promise<AuthMeResponse> {
-  const res = await fetch("/api/auth/me", { credentials: "same-origin" });
+function authHeaders(token: string | null): HeadersInit {
+  const h: Record<string, string> = { "content-type": "application/json" };
+  if (token) h.authorization = `Bearer ${token}`;
+  return h;
+}
+
+export async function fetchAuthMe(token: string | null = null): Promise<AuthMeResponse> {
+  const res = await fetch("/api/auth/me", {
+    credentials: "same-origin",
+    headers: authHeaders(token),
+  });
   if (!res.ok) throw await parseError(res, "Auth failed");
   return res.json();
 }
 
-export async function syncAuth(role?: "client" | "barber"): Promise<AuthMeResponse> {
+export async function syncAuth(
+  token: string | null = null,
+  role?: "client" | "barber",
+): Promise<AuthMeResponse> {
   const res = await fetch("/api/auth/sync", {
     method: "POST",
     credentials: "same-origin",
-    headers: { "content-type": "application/json" },
+    headers: authHeaders(token),
     body: JSON.stringify(role ? { role } : {}),
   });
   if (!res.ok) throw await parseError(res, "Sync failed");
