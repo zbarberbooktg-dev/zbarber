@@ -34,14 +34,15 @@ export default function ClientProfile() {
     if (switching) return;
     setSwitching(true);
     try {
-      const existing = (await fetcher("/api/barbers/me")) as Array<{ id: number }>;
-      if (Array.isArray(existing) && existing.length > 0) {
-        await activateBarberRole();
-      } else {
-        setCreateSalonOpen(true);
-      }
+      await activateBarberRole();
     } catch (e: any) {
-      Alert.alert("Erreur", e?.message ?? "Impossible de basculer en mode barbier.");
+      const msg: string = e?.message ?? "";
+      // API returns "Create a barber profile first" (400) when the user has no salon yet.
+      if (msg.toLowerCase().includes("barber profile")) {
+        setCreateSalonOpen(true);
+      } else {
+        Alert.alert("Erreur", msg || "Impossible de basculer en mode barbier.");
+      }
     } finally {
       setSwitching(false);
     }
