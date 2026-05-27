@@ -10,7 +10,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider, useT } from "@/lib/i18n";
 import { formatApiError } from "@/lib/errors";
 import { Sidebar } from "@/components/Sidebar";
-import { fetchAuthMe, syncAuth, type AuthMeResponse } from "@/lib/authApi";
+import { fetchAuthMe, syncAuth, AuthApiError, type AuthMeResponse } from "@/lib/authApi";
 import { Button } from "@/components/ui/button";
 import Dashboard from "@/pages/Dashboard";
 import Barbers from "@/pages/Barbers";
@@ -147,6 +147,7 @@ function AuthError({ error, onRetry }: { error: unknown; onRetry: () => void }) 
 
 function AdminGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
+  const { signOut } = useClerk();
   const [me, setMe] = useState<AuthMeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
@@ -163,11 +164,19 @@ function AdminGate({ children }: { children: React.ReactNode }) {
         const synced = await syncAuth();
         if (!cancel) { setMe(synced); setLoading(false); }
       } catch (err) {
-        if (!cancel) { setError(err); setLoading(false); }
+        if (cancel) return;
+        if (err instanceof AuthApiError && (err.status === 401 || err.status === 403)) {
+          signOut({ redirectUrl: `${basePath}/sign-in` }).catch(() => {
+            window.location.href = `${basePath}/sign-in`;
+          });
+          return;
+        }
+        setError(err);
+        setLoading(false);
       }
     })();
     return () => { cancel = true; };
-  }, [isLoaded, isSignedIn, attempt]);
+  }, [isLoaded, isSignedIn, attempt, signOut]);
 
   if (!isLoaded || loading) return <AuthLoading />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;

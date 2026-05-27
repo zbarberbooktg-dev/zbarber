@@ -11,7 +11,16 @@ export interface AuthMeResponse {
   barber: unknown | null;
 }
 
-async function parseError(res: Response, fallback: string): Promise<Error> {
+export class AuthApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "AuthApiError";
+    this.status = status;
+  }
+}
+
+async function parseError(res: Response, fallback: string): Promise<AuthApiError> {
   let body = "";
   try {
     body = await res.text();
@@ -26,12 +35,12 @@ async function parseError(res: Response, fallback: string): Promise<Error> {
         (obj && typeof obj.error === "string" && obj.error) ||
         (obj && typeof obj.message === "string" && obj.message) ||
         "";
-      if (msg) return new Error(msg);
+      if (msg) return new AuthApiError(msg, res.status);
     } catch {
       // fall through
     }
   }
-  return new Error(`${fallback}: ${res.status}`);
+  return new AuthApiError(`${fallback}: ${res.status}`, res.status);
 }
 
 export async function fetchAuthMe(): Promise<AuthMeResponse> {
