@@ -1,4 +1,5 @@
 - [Clerk auth architecture](clerk-auth-arch.md) — Clerk JIT provisioning via /auth/sync; mobile uses useAuthedFetch (not generated hooks) for barber self-service routes.
+- [Admin Clerk Bearer](admin-clerk-bearer.md) — browser SPAs on Replit shared proxy must send Clerk JWT via Authorization header; cookie auth silently 401s in dev.
 - [Multi-salon barber model](multi-salon.md) — /barbers/me returns array; no unique constraint on barbersTable.userId; consumers must extract [0] for primary salon.
 - [Orval naming collision](orval-naming.md) — component schema names must not match auto-generated response type names (operationId + "Response"); rename schema to avoid TS2308.
 - [Barber approval gate](barber-approval-gate.md) — layout uses barberProfile.status (from AppContext, populated by /auth/sync barber field), NOT user.status.
