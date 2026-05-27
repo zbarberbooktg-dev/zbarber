@@ -2,11 +2,11 @@ import { Router } from "express";
 import { db, usersTable, barbersTable, reservationsTable, subscriptionsTable, financingRequestsTable, reviewsTable } from "@workspace/db";
 import { eq, count, avg, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
-import { requireAuth, requireAdmin } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
-router.use(requireAuth, requireAdmin);
+router.use(requireAdminAuth);
 
 router.get("/admin/stats", async (_req, res) => {
   const [totalUsers] = await db.select({ count: count() }).from(usersTable);

@@ -2,7 +2,8 @@ import { Router } from "express";
 import { db, reviewsTable, usersTable, reservationsTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.post("/reviews", requireAuth, async (req: AuthedRequest, res) => {
   res.status(201).json(review);
 });
 
-router.delete("/reviews/:id", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/reviews/:id", requireAdminAuth, async (req, res) => {
   await db.delete(reviewsTable).where(eq(reviewsTable.id, parseInt(String(req.params.id))));
   res.status(204).send();
 });

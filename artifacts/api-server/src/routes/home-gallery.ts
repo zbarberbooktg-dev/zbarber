@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, homeGalleryPhotosTable } from "@workspace/db";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -14,7 +14,7 @@ router.get("/home-gallery", async (_req, res) => {
   res.json(photos);
 });
 
-router.post("/home-gallery", requireAuth, requireAdmin, async (req, res) => {
+router.post("/home-gallery", requireAdminAuth, async (req, res) => {
   const body = z
     .object({
       imageUrl: z.string().min(1),
@@ -30,7 +30,7 @@ router.post("/home-gallery", requireAuth, requireAdmin, async (req, res) => {
   res.status(201).json(photo);
 });
 
-router.patch("/home-gallery/:id", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/home-gallery/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });
@@ -63,7 +63,7 @@ router.patch("/home-gallery/:id", requireAuth, requireAdmin, async (req, res) =>
   res.json(updated);
 });
 
-router.delete("/home-gallery/:id", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/home-gallery/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid id" });

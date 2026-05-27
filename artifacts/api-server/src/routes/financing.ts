@@ -2,7 +2,8 @@ import { Router } from "express";
 import { db, financingRequestsTable, barbersTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -76,7 +77,7 @@ router.post("/financing-requests", requireAuth, async (req: AuthedRequest, res) 
   }
 });
 
-router.patch("/financing-requests/:id", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/financing-requests/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const body = z.object({ status: z.enum(["pending", "reviewing", "approved", "rejected"]), adminNote: z.string().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }

@@ -1,9 +1,9 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, Scissors, Calendar, CreditCard,
-  Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight, Image as ImageIcon,
+  Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight, Image as ImageIcon, ShieldCheck,
 } from "lucide-react";
-import { useClerk, useUser } from "@clerk/react";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useTheme } from "@/lib/theme";
 import { useT, LanguageToggle } from "@/lib/i18n";
 
@@ -11,12 +11,7 @@ export function Sidebar() {
   const [location] = useLocation();
   const { theme, toggle } = useTheme();
   const { t } = useT();
-  const { signOut } = useClerk();
-  const { user } = useUser();
-
-  const handleSignOut = async () => {
-    await signOut({ redirectUrl: "/admin/sign-in" });
-  };
+  const { admin, logout } = useAdminAuth();
 
   const nav = [
     { path: "/",              label: t.nav.dashboard,     icon: LayoutDashboard },
@@ -29,6 +24,7 @@ export function Sidebar() {
     { path: "/notifications", label: t.nav.notifications, icon: Bell },
     { path: "/reviews",       label: t.nav.reviews,       icon: Star },
     { path: "/gallery",       label: t.nav.gallery,       icon: ImageIcon },
+    { path: "/admins",        label: "Admins",            icon: ShieldCheck },
   ];
 
   return (
@@ -73,13 +69,13 @@ export function Sidebar() {
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           <span>{theme === "dark" ? t.common.lightMode : t.common.darkMode}</span>
         </button>
-        {user && (
+        {admin && (
           <div className="px-3 py-2 text-xs truncate" style={{ color: "hsl(var(--sidebar-fg))" }}>
-            {user.primaryEmailAddress?.emailAddress ?? user.username ?? ""}
+            {admin.email}
           </div>
         )}
         <button
-          onClick={handleSignOut}
+          onClick={() => logout()}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-150 hover:bg-white/5"
           style={{ color: "hsl(var(--sidebar-fg))" }}
         >

@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
@@ -10,6 +11,7 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { ensureRootAdmin } from "./lib/adminSeed";
 
 const app: Express = express();
 
@@ -30,6 +32,7 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -43,5 +46,8 @@ app.use(
 );
 
 app.use("/api", router);
+
+// Fire-and-forget — startup seed shouldn't block boot. Errors are logged.
+ensureRootAdmin().catch((err) => logger.error({ err }, "ensureRootAdmin failed"));
 
 export default app;

@@ -2,7 +2,8 @@ import { Router } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -41,7 +42,7 @@ router.post("/users/me/location", requireAuth, async (req: AuthedRequest, res) =
   res.json(safe);
 });
 
-router.get("/users", requireAuth, requireAdmin, async (req, res) => {
+router.get("/users", requireAdminAuth, async (req, res) => {
   const { page = "1", limit = "20", search = "", role, status } = req.query as Record<string, string>;
   const offset = (parseInt(page) - 1) * parseInt(limit);
   const query = db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, status: usersTable.status, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl, city: usersTable.city, country: usersTable.country, latitude: usersTable.latitude, longitude: usersTable.longitude, locationUpdatedAt: usersTable.locationUpdatedAt, createdAt: usersTable.createdAt }).from(usersTable);
@@ -55,14 +56,14 @@ router.get("/users", requireAuth, requireAdmin, async (req, res) => {
   res.json({ data, total, page: parseInt(page), limit: parseInt(limit) });
 });
 
-router.get("/users/:id", requireAuth, requireAdmin, async (req, res) => {
+router.get("/users/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [user] = await db.select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role, status: usersTable.status, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl, city: usersTable.city, country: usersTable.country, latitude: usersTable.latitude, longitude: usersTable.longitude, locationUpdatedAt: usersTable.locationUpdatedAt, createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
   res.json(user);
 });
 
-router.patch("/users/:id", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/users/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const body = z.object({ name: z.string().optional(), phone: z.string().nullable().optional(), avatarUrl: z.string().nullable().optional(), city: z.string().nullable().optional(), country: z.string().nullable().optional(), role: z.enum(["client", "barber", "admin"]).optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
@@ -72,13 +73,13 @@ router.patch("/users/:id", requireAuth, requireAdmin, async (req, res) => {
   res.json(safeUser);
 });
 
-router.delete("/users/:id", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/users/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.status(204).send();
 });
 
-router.patch("/users/:id/suspend", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/users/:id/suspend", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(usersTable).set({ status: "suspended" }).where(eq(usersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }
@@ -86,7 +87,7 @@ router.patch("/users/:id/suspend", requireAuth, requireAdmin, async (req, res) =
   res.json(safeUser);
 });
 
-router.patch("/users/:id/activate", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/users/:id/activate", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(usersTable).set({ status: "active" }).where(eq(usersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }
