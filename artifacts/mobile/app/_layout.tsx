@@ -21,6 +21,7 @@ import { tokenCache } from "@clerk/expo/token-cache";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import colors from "@/constants/colors";
 import { AppProvider, useApp } from "@/contexts/AppContext";
+import { useClerkLocalization } from "@/hooks/useClerkLocalization";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -135,11 +136,14 @@ export default function RootLayout() {
     throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY");
   }
 
+  const clerkLocalization = useClerkLocalization();
+
   return (
     <ClerkProvider
       publishableKey={publishableKey}
       tokenCache={tokenCache}
       proxyUrl={proxyUrl}
+      localization={clerkLocalization}
     >
       <ClerkLoaded>
         <SafeAreaProvider>

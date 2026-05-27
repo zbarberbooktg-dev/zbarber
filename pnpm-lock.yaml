@@ -435,6 +435,9 @@ importers:
 
   artifacts/mobile:
     dependencies:
+      '@clerk/localizations':
+        specifier: ^4.6.8
+        version: 4.6.8(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@expo-google-fonts/playfair-display':
         specifier: ^0.4.2
         version: 0.4.2
@@ -1592,6 +1595,10 @@ packages:
     engines: {node: '>=20.9.0'}
     peerDependencies:
       express: ^4.17.0 || ^5.0.0
+
+  '@clerk/localizations@4.6.8':
+    resolution: {integrity: sha512-QZdxmrdoeDedbT/wNc0nQruL8xMv9zMD/eSipP2hw0SL9kCmP3r0YUWyzb5DDm220q0BhBIwmJ9dzQqOuXGIaA==}
+    engines: {node: '>=20.9.0'}
 
   '@clerk/react@6.7.1':
     resolution: {integrity: sha512-OW88xeoTLhYC1CuKDa328BNvY4gA0HM/jpFd8K88YBjRNQ9FGlNRq2bmRiCZOqu7XMqq8ky/tRsjU6ccWvd2rg==}
@@ -7615,6 +7622,13 @@ snapshots:
       '@clerk/shared': 4.13.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       express: 5.2.1
       tslib: 2.8.1
+    transitivePeerDependencies:
+      - react
+      - react-dom
+
+  '@clerk/localizations@4.6.8(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@clerk/shared': 4.13.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     transitivePeerDependencies:
       - react
       - react-dom
