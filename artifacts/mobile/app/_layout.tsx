@@ -130,13 +130,13 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  const clerkLocalization = useClerkLocalization();
+
   if (!fontsLoaded && !fontError) return null;
 
   if (!publishableKey) {
     throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY");
   }
-
-  const clerkLocalization = useClerkLocalization();
 
   return (
     <ClerkProvider
