@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, conferencesTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -14,7 +14,7 @@ router.get("/conferences", async (req, res) => {
   res.json({ data: rows.slice(offset, offset + parseInt(limit)), total: rows.length, page: parseInt(page), limit: parseInt(limit) });
 });
 
-router.post("/conferences", requireAuth, requireAdmin, async (req, res) => {
+router.post("/conferences", requireAdminAuth, async (req, res) => {
   const body = z.object({ title: z.string(), topic: z.string(), description: z.string().optional(), scheduledAt: z.string(), participationChannel: z.string().optional(), joinLink: z.string().optional(), instructions: z.string().optional(), isPublished: z.boolean().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [conf] = await db.insert(conferencesTable).values({ ...body.data, scheduledAt: new Date(body.data.scheduledAt) }).returning();
@@ -27,7 +27,7 @@ router.get("/conferences/:id", async (req, res) => {
   res.json(conf);
 });
 
-router.patch("/conferences/:id", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/conferences/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const body = z.object({ title: z.string().optional(), topic: z.string().optional(), description: z.string().optional(), scheduledAt: z.string().optional(), isPublished: z.boolean().optional(), joinLink: z.string().optional(), instructions: z.string().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
@@ -38,7 +38,7 @@ router.patch("/conferences/:id", requireAuth, requireAdmin, async (req, res) => 
   res.json(updated);
 });
 
-router.delete("/conferences/:id", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/conferences/:id", requireAdminAuth, async (req, res) => {
   await db.delete(conferencesTable).where(eq(conferencesTable.id, parseInt(String(req.params.id))));
   res.status(204).send();
 });

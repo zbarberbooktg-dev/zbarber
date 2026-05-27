@@ -2,7 +2,8 @@ import { Router } from "express";
 import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable } from "@workspace/db";
 import { eq, avg, count, and, lt, lte, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
 
 const router = Router();
@@ -448,7 +449,7 @@ router.get("/barbers/:id", async (req, res) => {
 });
 
 // ── Admin: full barber management ───
-router.patch("/barbers/:id", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/barbers/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const body = z.object({ salonName: z.string().optional(), bio: z.string().optional(), logoUrl: z.string().optional(), city: z.string().optional(), neighborhood: z.string().optional(), address: z.string().optional(), phone: z.string().optional(), whatsapp: z.string().optional(), subscriptionPlanId: z.number().nullable().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
@@ -457,14 +458,14 @@ router.patch("/barbers/:id", requireAuth, requireAdmin, async (req, res) => {
   res.json(updated);
 });
 
-router.patch("/barbers/:id/approve", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/barbers/:id/approve", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(barbersTable).set({ status: "approved" }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
   res.json(updated);
 });
 
-router.patch("/barbers/:id/reject", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/barbers/:id/reject", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const body = z.object({ reason: z.string().optional() }).safeParse(req.body ?? {});
   const reason = body.success ? body.data.reason?.trim() || null : null;
@@ -473,7 +474,7 @@ router.patch("/barbers/:id/reject", requireAuth, requireAdmin, async (req, res) 
   res.json(updated);
 });
 
-router.patch("/barbers/:id/suspend", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/barbers/:id/suspend", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const body = z.object({ reason: z.string().optional() }).safeParse(req.body ?? {});
   const reason = body.success ? body.data.reason?.trim() || null : null;
@@ -482,7 +483,7 @@ router.patch("/barbers/:id/suspend", requireAuth, requireAdmin, async (req, res)
   res.json(updated);
 });
 
-router.patch("/barbers/:id/reactivate", requireAuth, requireAdmin, async (req, res) => {
+router.patch("/barbers/:id/reactivate", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(barbersTable).set({ status: "approved" }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }

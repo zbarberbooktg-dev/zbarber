@@ -12,3 +12,4 @@ export * from "./home-gallery";
 export * from "./schedules";
 export * from "./locations";
 export * from "./accountDeletionRequests";
+export * from "./adminAccounts";

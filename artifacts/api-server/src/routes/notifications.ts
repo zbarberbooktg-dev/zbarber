@@ -2,7 +2,8 @@ import { Router } from "express";
 import { db, notificationsTable, usersTable } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -14,7 +15,7 @@ router.get("/notifications", requireAuth, async (req: AuthedRequest, res) => {
   res.json(rows);
 });
 
-router.post("/notifications", requireAuth, requireAdmin, async (req, res) => {
+router.post("/notifications", requireAdminAuth, async (req, res) => {
   const body = z.object({ userId: z.number().optional(), type: z.enum(["new_reservation", "confirmation", "reminder", "admin_announcement", "subscription_expiry"]), title: z.string(), message: z.string().optional(), relatedId: z.number().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   if (!body.data.userId) {

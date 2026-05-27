@@ -2,7 +2,8 @@ import { Router } from "express";
 import { db, servicesTable, serviceCategoriesTable, barbersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireAdmin, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { requireAdminAuth } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.get("/services/categories", async (_req, res) => {
   res.json(cats);
 });
 
-router.post("/services/categories", requireAuth, requireAdmin, async (req, res) => {
+router.post("/services/categories", requireAdminAuth, async (req, res) => {
   const body = z.object({ name: z.string(), icon: z.string().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [cat] = await db.insert(serviceCategoriesTable).values(body.data).returning();

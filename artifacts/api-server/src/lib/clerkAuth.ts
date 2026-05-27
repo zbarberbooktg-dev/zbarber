@@ -74,7 +74,8 @@ export function requireRole(...roles: Array<"client" | "barber" | "admin">) {
   };
 }
 
-export const requireAdmin = requireRole("admin");
+// requireAdmin was removed when admin auth migrated to JWT (see lib/adminAuth.ts).
+// Use requireAdminAuth from "../lib/adminAuth" instead.
 
 export async function requireApprovedBarber(req: AuthedRequest, res: Response, next: NextFunction): Promise<void> {
   if (!req.localUser || req.localUser.role !== "barber") { res.status(403).json({ error: "Barber account required" }); return; }
