@@ -717,6 +717,132 @@ paths:
         "204":
           description: Deleted
 
+  # ── ARTICLES (édito — admin-managed, public listing) ─────────────────
+  /articles:
+    get:
+      operationId: listPublicArticles
+      tags: [articles]
+      summary: List published articles within active window (public)
+      responses:
+        "200":
+          description: Articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Article"
+
+  /articles/{id}:
+    get:
+      operationId: getPublicArticle
+      tags: [articles]
+      summary: Get a published article within active window (public)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+        "404":
+          description: Not found
+
+  /admin/articles:
+    get:
+      operationId: listAdminArticles
+      tags: [articles]
+      summary: List all articles, incl. drafts (admin)
+      responses:
+        "200":
+          description: Articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Article"
+    post:
+      operationId: createArticle
+      tags: [articles]
+      summary: Create an article (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+
+  /admin/articles/{id}:
+    get:
+      operationId: getAdminArticle
+      tags: [articles]
+      summary: Get an article by id (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateArticle
+      tags: [articles]
+      summary: Update an article (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+    delete:
+      operationId: deleteArticle
+      tags: [articles]
+      summary: Delete an article (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   # ── GALLERY ───────────────────────────────────────────────────────────
   /barbers/{id}/gallery:
     get:
@@ -2639,6 +2765,89 @@ components:
           type: string
         sortOrder:
           type: integer
+
+    Article:
+      type: object
+      required: [id, title, coverImageUrl, contentHtml, status, sortOrder, startsAt, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subtitle:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: string
+        contentHtml:
+          type: string
+        status:
+          type: string
+          enum: [draft, published]
+        sortOrder:
+          type: integer
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ArticleInput:
+      type: object
+      required: [title, coverImageUrl]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        subtitle:
+          type: string
+        coverImageUrl:
+          type: string
+          minLength: 1
+        contentHtml:
+          type: string
+        status:
+          type: string
+          enum: [draft, published]
+        sortOrder:
+          type: integer
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+
+    ArticleUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        subtitle:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: string
+          minLength: 1
+        contentHtml:
+          type: string
+        status:
+          type: string
+          enum: [draft, published]
+        sortOrder:
+          type: integer
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
 
     AuthSyncResult:
       type: object

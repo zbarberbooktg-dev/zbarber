@@ -918,6 +918,152 @@ export const DeleteHomeGalleryPhotoParams = zod.object({
 
 
 /**
+ * @summary List published articles within active window (public)
+ */
+export const ListPublicArticlesResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "subtitle": zod.string().nullish(),
+  "coverImageUrl": zod.string(),
+  "contentHtml": zod.string(),
+  "status": zod.enum(['draft', 'published']),
+  "sortOrder": zod.number(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListPublicArticlesResponse = zod.array(ListPublicArticlesResponseItem)
+
+
+/**
+ * @summary Get a published article within active window (public)
+ */
+export const GetPublicArticleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetPublicArticleResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "subtitle": zod.string().nullish(),
+  "coverImageUrl": zod.string(),
+  "contentHtml": zod.string(),
+  "status": zod.enum(['draft', 'published']),
+  "sortOrder": zod.number(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List all articles, incl. drafts (admin)
+ */
+export const ListAdminArticlesResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "subtitle": zod.string().nullish(),
+  "coverImageUrl": zod.string(),
+  "contentHtml": zod.string(),
+  "status": zod.enum(['draft', 'published']),
+  "sortOrder": zod.number(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAdminArticlesResponse = zod.array(ListAdminArticlesResponseItem)
+
+
+/**
+ * @summary Create an article (admin)
+ */
+
+
+
+
+export const CreateArticleBody = zod.object({
+  "title": zod.string().min(1),
+  "subtitle": zod.string().optional(),
+  "coverImageUrl": zod.string().min(1),
+  "contentHtml": zod.string().optional(),
+  "status": zod.enum(['draft', 'published']).optional(),
+  "sortOrder": zod.number().optional(),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Get an article by id (admin)
+ */
+export const GetAdminArticleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminArticleResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "subtitle": zod.string().nullish(),
+  "coverImageUrl": zod.string(),
+  "contentHtml": zod.string(),
+  "status": zod.enum(['draft', 'published']),
+  "sortOrder": zod.number(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update an article (admin)
+ */
+export const UpdateArticleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+export const UpdateArticleBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "subtitle": zod.string().nullish(),
+  "coverImageUrl": zod.string().min(1).optional(),
+  "contentHtml": zod.string().optional(),
+  "status": zod.enum(['draft', 'published']).optional(),
+  "sortOrder": zod.number().optional(),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().nullish()
+})
+
+export const UpdateArticleResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "subtitle": zod.string().nullish(),
+  "coverImageUrl": zod.string(),
+  "contentHtml": zod.string(),
+  "status": zod.enum(['draft', 'published']),
+  "sortOrder": zod.number(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete an article (admin)
+ */
+export const DeleteArticleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
  * @summary Get barber gallery
  */
 export const GetBarberGalleryParams = zod.object({

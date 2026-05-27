@@ -7,7 +7,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/playfair-display";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useListBarbers, useListHomeGalleryPhotos } from "@workspace/api-client-react";
+import { useListBarbers, useListHomeGalleryPhotos, useListPublicArticles } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
 import * as Location from "expo-location";
 import { Redirect, useRouter } from "expo-router";
@@ -73,6 +73,7 @@ export default function PublicHome() {
 
   const { data, isLoading, refetch, isRefetching } = useListBarbers({ status: "approved" });
   const { data: homeGallery } = useListHomeGalleryPhotos();
+  const { data: articles } = useListPublicArticles();
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_500Medium,
@@ -245,8 +246,8 @@ export default function PublicHome() {
           </View>
         </View>
 
-        {/* Hero image */}
-        {!query && (
+        {/* Hero image — falls back to a static visual when no articles are configured */}
+        {!query && (!articles || articles.length === 0) && (
           <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
             <ImageBackground source={heroImage} style={{ width: "100%", aspectRatio: 16 / 9, justifyContent: "flex-end" }}>
               <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(10,10,10,0.50)" }} />
@@ -257,6 +258,61 @@ export default function PublicHome() {
                 <Text style={{ color: "#fff", fontFamily: serif, fontSize: 22, lineHeight: 28 }}>La Renaissance du Rasage</Text>
               </View>
             </ImageBackground>
+          </View>
+        )}
+
+        {/* Articles carousel (édito) */}
+        {!query && articles && articles.length > 0 && (
+          <View style={{ marginBottom: 36 }}>
+            <View style={{ paddingHorizontal: 20, marginBottom: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ backgroundColor: PALETTE.gold, paddingHorizontal: 10, paddingVertical: 4 }}>
+                <Text style={{ color: "#000", fontSize: 10, letterSpacing: 1.5, fontFamily: "Inter_700Bold", textTransform: "uppercase" }}>L'Édito</Text>
+              </View>
+              <Text style={{ color: PALETTE.textMuted, fontFamily: serifItalic, fontSize: 13 }}>
+                Le journal Global Barber
+              </Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 14, paddingBottom: 4 }}
+              snapToInterval={296}
+              decelerationRate="fast"
+            >
+              {articles.map((a) => (
+                <Pressable
+                  key={a.id}
+                  onPress={() => router.push(`/articles/${a.id}` as never)}
+                  style={{ width: 282 }}
+                >
+                  <View style={{ aspectRatio: 4 / 3, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
+                    <Image
+                      source={{ uri: resolveObjectUrl(a.coverImageUrl) ?? "" }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                    />
+                    <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(10,10,10,0.30)" }} />
+                  </View>
+                  <Text
+                    style={{ color: "#fff", fontFamily: serif, fontSize: 18, lineHeight: 24, marginTop: 12 }}
+                    numberOfLines={2}
+                  >
+                    {a.title}
+                  </Text>
+                  {a.subtitle ? (
+                    <Text
+                      style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18, marginTop: 4 }}
+                      numberOfLines={2}
+                    >
+                      {a.subtitle}
+                    </Text>
+                  ) : null}
+                  <Text style={{ color: PALETTE.gold, fontSize: 10, letterSpacing: 1.5, fontFamily: "Inter_700Bold", textTransform: "uppercase", marginTop: 8 }}>
+                    Lire l'article →
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
         )}
 

@@ -64,6 +64,7 @@
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@workspace/legal-content": "workspace:*",
     "expo-document-picker": "^56.0.4",
+    "react-native-render-html": "^6.3.4",
     "react-native-webview": "^13.16.1"
   }
 }

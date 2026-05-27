@@ -16,6 +16,7 @@ import storageRouter from "./storage";
 import homeGalleryRouter from "./home-gallery";
 import locationsRouter from "./locations";
 import accountDeletionRouter from "./accountDeletion";
+import articlesRouter from "./articles";
 
 const router: IRouter = Router();
 
@@ -35,6 +36,7 @@ router.use(storageRouter);
 router.use(homeGalleryRouter);
 router.use(locationsRouter);
 router.use(accountDeletionRouter);
+router.use(articlesRouter);
 router.use(adminRouter);
 
 export default router;

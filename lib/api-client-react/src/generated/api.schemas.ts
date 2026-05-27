@@ -856,6 +856,75 @@ export interface HomeGalleryPhotoUpdate {
   sortOrder?: number;
 }
 
+export type ArticleStatus = typeof ArticleStatus[keyof typeof ArticleStatus];
+
+
+export const ArticleStatus = {
+  draft: 'draft',
+  published: 'published',
+} as const;
+
+export interface Article {
+  id: number;
+  title: string;
+  /** @nullable */
+  subtitle?: string | null;
+  coverImageUrl: string;
+  contentHtml: string;
+  status: ArticleStatus;
+  sortOrder: number;
+  startsAt: string;
+  /** @nullable */
+  endsAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ArticleInputStatus = typeof ArticleInputStatus[keyof typeof ArticleInputStatus];
+
+
+export const ArticleInputStatus = {
+  draft: 'draft',
+  published: 'published',
+} as const;
+
+export interface ArticleInput {
+  /** @minLength 1 */
+  title: string;
+  subtitle?: string;
+  /** @minLength 1 */
+  coverImageUrl: string;
+  contentHtml?: string;
+  status?: ArticleInputStatus;
+  sortOrder?: number;
+  startsAt?: string;
+  /** @nullable */
+  endsAt?: string | null;
+}
+
+export type ArticleUpdateStatus = typeof ArticleUpdateStatus[keyof typeof ArticleUpdateStatus];
+
+
+export const ArticleUpdateStatus = {
+  draft: 'draft',
+  published: 'published',
+} as const;
+
+export interface ArticleUpdate {
+  /** @minLength 1 */
+  title?: string;
+  /** @nullable */
+  subtitle?: string | null;
+  /** @minLength 1 */
+  coverImageUrl?: string;
+  contentHtml?: string;
+  status?: ArticleUpdateStatus;
+  sortOrder?: number;
+  startsAt?: string;
+  /** @nullable */
+  endsAt?: string | null;
+}
+
 export interface AuthSyncResult {
   user: User;
   barber?: Barber | null;

@@ -7,6 +7,7 @@ import {
   usersTable,
   galleryPhotosTable,
   homeGalleryPhotosTable,
+  articlesTable,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
@@ -152,7 +153,12 @@ router.get(
           .from(homeGalleryPhotosTable)
           .where(eq(homeGalleryPhotosTable.imageUrl, objectPath))
           .limit(1);
-        if (!byAvatar && !byLogo && !byGallery && !byHome) {
+        const [byArticle] = await db
+          .select({ id: articlesTable.id })
+          .from(articlesTable)
+          .where(eq(articlesTable.coverImageUrl, objectPath))
+          .limit(1);
+        if (!byAvatar && !byLogo && !byGallery && !byHome && !byArticle) {
           // Refuse unreferenced objects to prevent reading orphan/private uploads.
           // Clients already hold the local URI immediately after PUT, so they
           // don't need to fetch a freshly-uploaded asset before it's persisted.
