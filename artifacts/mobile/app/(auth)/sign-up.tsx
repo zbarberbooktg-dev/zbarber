@@ -19,6 +19,7 @@ import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
+import { PasswordInput } from "@/components/PasswordInput";
 
 type Role = "client" | "barber";
 type Step = "details" | "verify";
@@ -207,18 +208,16 @@ export default function SignUpScreen() {
             </Text>
 
             <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Mot de passe</Text>
-            <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="Min. 8 caractères" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+            <PasswordInput value={password} onChangeText={setPassword} placeholder="Min. 8 caractères" placeholderTextColor={c.mutedForeground} />
 
             <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>
               {(t as any).confirmPassword ?? "Confirmer le mot de passe"}
             </Text>
-            <TextInput
+            <PasswordInput
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry
               placeholder={(t as any).confirmPasswordPh ?? "Saisissez à nouveau le mot de passe"}
               placeholderTextColor={c.mutedForeground}
-              style={inputStyle(c)}
             />
 
             {/* CGU + privacy checkbox */}
