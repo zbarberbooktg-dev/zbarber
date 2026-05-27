@@ -10,4 +10,5 @@
 - [Countries & cities catalog](countries-cities-catalog.md) — all city/country writes go through resolveAndPersistLocation (rejects unknown countries, dedups cities per country); country UI always renders before city.
 - [Account deletion](account-deletion.md) — DELETE /api/auth/me anonymizes (not hard-deletes) because reservations/reviews FK clientId lacks cascade; public vitrine form stored in accountDeletionRequestsTable.
 - [Dual-role accounts](dual-role.md) — one Clerk user, both client & barber capabilities; users.role is the active role; switching to barber requires an existing barber profile (or fresh-signup exception in /auth/sync).
+- [Admin auth split from Clerk](admin-auth-split.md) — admins are self-managed (cookie JWT, bcrypt, separate adminAccountsTable); mobile clients/barbers stay on Clerk; hybrid routes use requireAuthOrAdmin and branch on req.admin.
 - [Shared legal content lib](legal-content-lib.md) — CGU + privacy live in lib/legal-content; consumed by mobile + vitrine; single source of truth, structured sections (no si/sip/sil keys).

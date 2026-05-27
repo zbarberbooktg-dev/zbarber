@@ -34,6 +34,20 @@ export async function ensureRootAdmin(): Promise<void> {
     return;
   }
 
+  // Refuse to overwrite an existing non-root account that already holds the
+  // seed email — otherwise the seeder would silently swallow the conflict
+  // and report success while no root admin exists.
+  const [conflict] = await db.select().from(adminAccountsTable).where(eq(adminAccountsTable.email, email)).limit(1);
+  if (conflict) {
+    logger.error(
+      { email },
+      "ADMIN_ROOT_EMAIL is already used by a non-root admin account. " +
+        "Either change ADMIN_ROOT_EMAIL or remove the conflicting account. " +
+        "No root admin will be seeded.",
+    );
+    return;
+  }
+
   const passwordHash = await hashPassword(password);
   await db.insert(adminAccountsTable).values({
     email,
@@ -42,7 +56,7 @@ export async function ensureRootAdmin(): Promise<void> {
     isRoot: true,
     mustChangePassword: true,
     status: "active",
-  }).onConflictDoNothing({ target: adminAccountsTable.email });
+  });
 
   logger.info({ email }, "Root admin seeded — change password on first login");
 }
