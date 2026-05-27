@@ -18,6 +18,7 @@ import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
+import { useApp } from "@/contexts/AppContext";
 
 type Props = {
   visible: boolean;
@@ -29,9 +30,11 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const c = useColors();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
+  const { user } = useApp();
+  const userCountry = user?.country ?? "";
 
   const [salonName, setSalonName] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState(userCountry);
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [address, setAddress] = useState("");
@@ -46,10 +49,10 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
 
   React.useEffect(() => {
     if (visible) {
-      setSalonName(""); setCountry(""); setCity(""); setNeighborhood(""); setAddress("");
+      setSalonName(""); setCountry(userCountry); setCity(""); setNeighborhood(""); setAddress("");
       setPhone(""); setWhatsapp(""); setBio(""); setLogoUrl(null); setLogoLocalUri(null); setErr(null);
     }
-  }, [visible]);
+  }, [visible, userCountry]);
 
   const handlePickLogo = async () => {
     setUploadingLogo(true);
@@ -147,8 +150,17 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
             cityLabel="Ville"
             countryName={country}
             cityName={city}
-            onChange={({ country: nc, city: nci }) => { setCountry(nc); setCity(nci); }}
+            lockCountry={!!userCountry}
+            onChange={({ country: nc, city: nci }) => {
+              if (!userCountry) setCountry(nc);
+              setCity(nci);
+            }}
           />
+          {userCountry && (
+            <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: -8 }}>
+              Le pays est défini par votre compte et ne peut pas être modifié ici.
+            </Text>
+          )}
 
           <Field label="Quartier">
             <TextInput value={neighborhood} onChangeText={setNeighborhood} placeholder="Gombe" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
