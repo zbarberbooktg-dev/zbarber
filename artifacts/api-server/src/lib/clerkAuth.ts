@@ -16,7 +16,13 @@ export async function provisionUserFromClerk(clerkUserId: string) {
   const primary = cu.primaryEmailAddress ?? cu.emailAddresses[0];
   const email = primary?.emailAddress ?? `${clerkUserId}@unknown.local`;
   const emailVerified = primary?.verification?.status === "verified";
-  const name = [cu.firstName, cu.lastName].filter(Boolean).join(" ").trim() || cu.username || email.split("@")[0];
+  const meta = (cu.unsafeMetadata as Record<string, unknown> | undefined) ?? {};
+  const metaName = typeof meta.name === "string" ? meta.name.trim() : "";
+  const metaPhone = typeof meta.phone === "string" ? meta.phone.trim() : "";
+  const name = metaName
+    || [cu.firstName, cu.lastName].filter(Boolean).join(" ").trim()
+    || cu.username
+    || email.split("@")[0];
 
   // Only link to a pre-existing local account if the Clerk email is verified.
   // Without this check, an attacker could sign up with a victim's unverified
@@ -29,14 +35,14 @@ export async function provisionUserFromClerk(clerkUserId: string) {
     }
   }
 
-  const metaRole = (cu.unsafeMetadata as Record<string, unknown> | undefined)?.role
-    ?? (cu.publicMetadata as Record<string, unknown> | undefined)?.role;
+  const metaRole = meta.role ?? (cu.publicMetadata as Record<string, unknown> | undefined)?.role;
   const initialRole: "client" | "barber" = metaRole === "barber" ? "barber" : "client";
 
   const [created] = await db.insert(usersTable).values({
     clerkUserId,
     name,
     email,
+    phone: metaPhone || null,
     role: initialRole,
     status: "active",
     avatarUrl: cu.imageUrl ?? null,
