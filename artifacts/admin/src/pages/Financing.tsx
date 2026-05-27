@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 
 export default function Financing() {
   const [status, setStatus] = useState("");
@@ -30,6 +31,7 @@ export default function Financing() {
         setSelected(null);
         setNote("");
       },
+      onError: (err) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any }),
     });
   }
 

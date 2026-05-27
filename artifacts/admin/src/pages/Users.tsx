@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 
 export default function Users() {
   const [search, setSearch] = useState("");
@@ -26,10 +27,12 @@ export default function Users() {
   const total = (data as any)?.total ?? 0;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListUsersQueryKey() });
+  const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
   function handleRoleChange(id: number, newRole: string) {
     updateUser.mutate({ id, data: { role: newRole as any } }, {
       onSuccess: () => { invalidate(); toast({ title: u.role_updated_toast }); },
+      onError: onErr,
     });
   }
 
@@ -107,14 +110,14 @@ export default function Users() {
                   <div className="flex justify-end">
                     {row.status === "active" ? (
                       <button
-                        onClick={() => suspend.mutate({ id: row.id }, { onSuccess: () => { invalidate(); toast({ title: u.suspended_toast }); } })}
+                        onClick={() => suspend.mutate({ id: row.id }, { onSuccess: () => { invalidate(); toast({ title: u.suspended_toast }); }, onError: onErr })}
                         className="flex items-center gap-1.5 rounded-md bg-red-500/10 text-red-600 px-2.5 py-1.5 text-xs hover:bg-red-500/20 transition-colors"
                       >
                         <UserX className="h-3.5 w-3.5" /> {u.suspend}
                       </button>
                     ) : (
                       <button
-                        onClick={() => activate.mutate({ id: row.id }, { onSuccess: () => { invalidate(); toast({ title: u.activated_toast }); } })}
+                        onClick={() => activate.mutate({ id: row.id }, { onSuccess: () => { invalidate(); toast({ title: u.activated_toast }); }, onError: onErr })}
                         className="flex items-center gap-1.5 rounded-md bg-emerald-500/10 text-emerald-600 px-2.5 py-1.5 text-xs hover:bg-emerald-500/20 transition-colors"
                       >
                         <UserCheck className="h-3.5 w-3.5" /> {u.activate}

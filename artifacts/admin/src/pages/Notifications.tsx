@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 
 export default function Notifications() {
   const [form, setForm] = useState({ type: "admin_announcement", title: "", message: "", userId: "" });
@@ -18,6 +19,7 @@ export default function Notifications() {
   const markRead = useMarkNotificationRead();
 
   const notifList = (notifs as any) ?? [];
+  const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
   function handleSend() {
     if (!form.title) return;
@@ -29,6 +31,7 @@ export default function Notifications() {
         toast({ title: n.sent_toast });
         setForm({ type: "admin_announcement", title: "", message: "", userId: "" });
       },
+      onError: onErr,
     });
   }
 
@@ -82,7 +85,7 @@ export default function Notifications() {
                 <div className="text-right shrink-0">
                   <p className="text-xs text-muted-foreground">{new Date(notif.createdAt).toLocaleDateString(locale)}</p>
                   {!notif.isRead && (
-                    <button onClick={() => markRead.mutate({ id: notif.id }, { onSuccess: () => qc.invalidateQueries({ queryKey: getListNotificationsQueryKey() }) })} className="text-xs text-primary hover:underline mt-0.5">{n.markRead}</button>
+                    <button onClick={() => markRead.mutate({ id: notif.id }, { onSuccess: () => qc.invalidateQueries({ queryKey: getListNotificationsQueryKey() }), onError: onErr })} className="text-xs text-primary hover:underline mt-0.5">{n.markRead}</button>
                   )}
                 </div>
               </div>

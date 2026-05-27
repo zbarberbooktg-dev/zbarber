@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 
 type PlanForm = {
   id?: number;
@@ -63,10 +64,11 @@ export default function Subscriptions() {
 
   const invalidatePlans = () => qc.invalidateQueries({ queryKey: getListSubscriptionPlansQueryKey() });
   const invalidateSubs = () => qc.invalidateQueries({ queryKey: getListSubscriptionsQueryKey() });
+  const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
   function handleDeletePlan(id: number) {
     if (!confirm(s.confirmDelete)) return;
-    deletePlan.mutate({ id }, { onSuccess: () => { invalidatePlans(); toast({ title: s.deleted_toast }); } });
+    deletePlan.mutate({ id }, { onSuccess: () => { invalidatePlans(); toast({ title: s.deleted_toast }); }, onError: onErr });
   }
 
   function openCreatePlan() { setEditingPlan({ ...emptyPlanForm }); }
@@ -98,10 +100,12 @@ export default function Subscriptions() {
     if (editingPlan.id) {
       updatePlan.mutate({ id: editingPlan.id, data: payload }, {
         onSuccess: () => { invalidatePlans(); toast({ title: s.updated_toast }); setEditingPlan(null); },
+        onError: onErr,
       });
     } else {
       createPlan.mutate({ data: payload }, {
         onSuccess: () => { invalidatePlans(); toast({ title: s.created_toast }); setEditingPlan(null); },
+        onError: onErr,
       });
     }
   }
@@ -124,6 +128,7 @@ export default function Subscriptions() {
       },
     }, {
       onSuccess: () => { invalidateSubs(); toast({ title: s.assigned_toast }); setAssignForm(null); },
+      onError: onErr,
     });
   }
 
@@ -150,6 +155,7 @@ export default function Subscriptions() {
       },
     }, {
       onSuccess: () => { invalidateSubs(); toast({ title: s.sub_updated_toast }); setEditSub(null); },
+      onError: onErr,
     });
   }
 
@@ -157,6 +163,7 @@ export default function Subscriptions() {
     if (!confirm(s.confirmCancelSub)) return;
     updateSub.mutate({ id, data: { status: "cancelled" } }, {
       onSuccess: () => { invalidateSubs(); toast({ title: s.sub_cancelled_toast }); },
+      onError: onErr,
     });
   }
 
@@ -166,6 +173,7 @@ export default function Subscriptions() {
     base.setDate(base.getDate() + 30);
     updateSub.mutate({ id: sub.id, data: { endDate: base.toISOString(), status: "active" } }, {
       onSuccess: () => { invalidateSubs(); toast({ title: s.sub_updated_toast }); },
+      onError: onErr,
     });
   }
 
@@ -173,6 +181,7 @@ export default function Subscriptions() {
     if (!confirm(s.confirmDeleteSub)) return;
     deleteSub.mutate({ id }, {
       onSuccess: () => { invalidateSubs(); toast({ title: s.sub_deleted_toast }); },
+      onError: onErr,
     });
   }
 

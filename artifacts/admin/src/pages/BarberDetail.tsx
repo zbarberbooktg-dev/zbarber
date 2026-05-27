@@ -11,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 
 interface Props { params: { id: string } }
 
@@ -41,6 +42,7 @@ export default function BarberDetail({ params }: Props) {
     qc.invalidateQueries({ queryKey: getListBarbersQueryKey() });
     qc.invalidateQueries({ queryKey: getGetBarberQueryKey(id) });
   };
+  const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
   function openModal(type: "reject" | "suspend") { setModal({ type }); setReason(""); }
   function closeModal() { setModal(null); setReason(""); }
@@ -50,9 +52,9 @@ export default function BarberDetail({ params }: Props) {
     const r = reason.trim();
     if (modal.type === "reject") {
       if (!r) { toast({ title: t.barbers.reasonRequired, variant: "destructive" as any }); return; }
-      reject.mutate({ id, data: { reason: r } }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.rejected }); closeModal(); } });
+      reject.mutate({ id, data: { reason: r } }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.rejected }); closeModal(); }, onError: onErr });
     } else {
-      suspend.mutate({ id, data: { reason: r || null } }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.suspended_toast }); closeModal(); } });
+      suspend.mutate({ id, data: { reason: r || null } }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.suspended_toast }); closeModal(); }, onError: onErr });
     }
   }
 
@@ -90,7 +92,7 @@ export default function BarberDetail({ params }: Props) {
           {b.status === "pending" && (
             <>
               <button
-                onClick={() => approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.approved }); } })}
+                onClick={() => approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.approved }); }, onError: onErr })}
                 className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors"
               >
                 <Check className="h-4 w-4" /> {d.approve}
@@ -113,7 +115,7 @@ export default function BarberDetail({ params }: Props) {
           )}
           {(b.status === "suspended" || b.status === "rejected") && (
             <button
-              onClick={() => { if (confirm(t.barbers.confirmReactivate)) reactivate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.reactivated_toast }); } }); }}
+              onClick={() => { if (confirm(t.barbers.confirmReactivate)) reactivate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.reactivated_toast }); }, onError: onErr }); }}
               className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors"
             >
               <Play className="h-4 w-4" /> {t.barbers.reactivateTitle}

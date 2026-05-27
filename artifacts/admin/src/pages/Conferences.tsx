@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 
 const EMPTY = { title: "", topic: "", description: "", scheduledAt: "", participationChannel: "", joinLink: "", instructions: "", isPublished: false };
 
@@ -24,6 +25,7 @@ export default function Conferences() {
   const del = useDeleteConference();
 
   const conferences = (data as any)?.data ?? [];
+  const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
   function openCreate() { setForm(EMPTY); setEditing(null); setShowForm(true); }
   function openEdit(conf: any) {
@@ -35,15 +37,15 @@ export default function Conferences() {
   function handleSubmit() {
     const payload = { ...form, scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : "" };
     if (editing) {
-      update.mutate({ id: editing.id, data: payload }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListConferencesQueryKey() }); toast({ title: c.updated_toast }); setShowForm(false); } });
+      update.mutate({ id: editing.id, data: payload }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListConferencesQueryKey() }); toast({ title: c.updated_toast }); setShowForm(false); }, onError: onErr });
     } else {
-      create.mutate({ data: payload }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListConferencesQueryKey() }); toast({ title: c.created_toast }); setShowForm(false); } });
+      create.mutate({ data: payload }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListConferencesQueryKey() }); toast({ title: c.created_toast }); setShowForm(false); }, onError: onErr });
     }
   }
 
   function handleDelete(id: number) {
     if (!confirm(c.confirmDelete)) return;
-    del.mutate({ id }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListConferencesQueryKey() }); toast({ title: c.deleted_toast }); } });
+    del.mutate({ id }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListConferencesQueryKey() }); toast({ title: c.deleted_toast }); }, onError: onErr });
   }
 
   const fields: [keyof typeof c.fields, string][] = [
