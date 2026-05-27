@@ -7,7 +7,8 @@ import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme";
-import { I18nProvider } from "@/lib/i18n";
+import { I18nProvider, useT } from "@/lib/i18n";
+import { formatApiError } from "@/lib/errors";
 import { Sidebar } from "@/components/Sidebar";
 import { fetchAuthMe, syncAuth, type AuthMeResponse } from "@/lib/authApi";
 import { Button } from "@/components/ui/button";
@@ -124,30 +125,54 @@ function AuthLoading() {
   );
 }
 
+function AuthError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  const { t } = useT();
+  const { signOut } = useClerk();
+  const msg = formatApiError(error, t.errors);
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4">
+      <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 text-center space-y-4 shadow-lg">
+        <h1 className="text-2xl font-bold text-foreground">{t.errors.generic}</h1>
+        <p className="text-muted-foreground">{msg}</p>
+        <div className="flex gap-2 justify-center">
+          <Button onClick={onRetry} variant="default">{t.common.save === "Enregistrer" ? "Réessayer" : "Retry"}</Button>
+          <Button onClick={() => signOut({ redirectUrl: `${basePath}/sign-in` })} variant="outline">
+            {t.common.logout}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
   const [me, setMe] = useState<AuthMeResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) { setLoading(false); return; }
     let cancel = false;
+    setLoading(true);
+    setError(null);
     (async () => {
       try {
         const synced = await syncAuth();
         if (!cancel) { setMe(synced); setLoading(false); }
       } catch (err) {
-        if (!cancel) { setError(String(err)); setLoading(false); }
+        if (!cancel) { setError(err); setLoading(false); }
       }
     })();
     return () => { cancel = true; };
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, attempt]);
 
   if (!isLoaded || loading) return <AuthLoading />;
   if (!isSignedIn) return <Redirect to="/sign-in" />;
-  if (error || !me) return <AuthLoading />;
+  if (error) return <AuthError error={error} onRetry={() => setAttempt((n) => n + 1)} />;
+  if (!me) return <AuthError error={new Error("No profile")} onRetry={() => setAttempt((n) => n + 1)} />;
   if (me.user.role !== "admin") return <AccessDenied user={me.user} />;
   return <>{children}</>;
 }
