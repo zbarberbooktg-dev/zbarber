@@ -15,6 +15,7 @@ import {
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { consumeAuthIntent } from "@/lib/authIntent";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function SignInScreen() {
   const c = useColors();
@@ -95,22 +96,11 @@ export default function SignInScreen() {
         />
 
         <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Mot de passe</Text>
-        <TextInput
+        <PasswordInput
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
           placeholder="••••••••"
           placeholderTextColor={c.mutedForeground}
-          style={{
-            backgroundColor: c.card,
-            color: c.foreground,
-            borderWidth: 1,
-            borderColor: c.border,
-            borderRadius: c.radius,
-            padding: 14,
-            marginBottom: 16,
-            fontFamily: "Inter_400Regular",
-          }}
         />
 
         {(submitError || (errors as any)?.raw?.[0]?.message) && (

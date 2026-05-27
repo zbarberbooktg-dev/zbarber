@@ -19,6 +19,7 @@ import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
+import { PasswordInput } from "@/components/PasswordInput";
 
 type Props = {
   visible: boolean;
@@ -197,13 +198,13 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
               Laissez vide si vous ne souhaitez pas le modifier.
             </Text>
             <Field label="Mot de passe actuel">
-              <TextInput value={currentPwd} onChangeText={setCurrentPwd} secureTextEntry placeholder="••••••••" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+              <PasswordInput value={currentPwd} onChangeText={setCurrentPwd} placeholder="••••••••" placeholderTextColor={c.mutedForeground} />
             </Field>
             <Field label="Nouveau mot de passe">
-              <TextInput value={newPwd} onChangeText={setNewPwd} secureTextEntry placeholder="Min. 8 caractères" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+              <PasswordInput value={newPwd} onChangeText={setNewPwd} placeholder="Min. 8 caractères" placeholderTextColor={c.mutedForeground} />
             </Field>
             <Field label="Confirmer le nouveau mot de passe">
-              <TextInput value={confirmNewPwd} onChangeText={setConfirmNewPwd} secureTextEntry placeholder="Saisissez à nouveau" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+              <PasswordInput value={confirmNewPwd} onChangeText={setConfirmNewPwd} placeholder="Saisissez à nouveau" placeholderTextColor={c.mutedForeground} />
             </Field>
           </View>
 
