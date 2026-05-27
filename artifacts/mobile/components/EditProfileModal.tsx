@@ -17,6 +17,7 @@ import {
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
+import { formatApiError } from "@/lib/errors";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import { PasswordInput } from "@/components/PasswordInput";
@@ -32,7 +33,7 @@ type Props = {
 export function EditProfileModal({ visible, onClose, initialName, initialPhone, onSaved }: Props) {
   const c = useColors();
   const { user: clerkUser } = useUser();
-  const { syncAuth, user } = useApp();
+  const { syncAuth, user, t } = useApp();
   const fetcher = useAuthedFetch();
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone);
@@ -69,8 +70,8 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
     try {
       const res = await pickAndUploadImage(fetcher);
       if (res) { setAvatarUrl(res.objectPath); setAvatarLocalUri(res.uri); }
-    } catch (e: any) {
-      setErr(e?.message ?? "Échec de l'envoi de la photo");
+    } catch (e: unknown) {
+      setErr(formatApiError(e, t.errors));
     } finally {
       setUploadingAvatar(false);
     }
@@ -101,7 +102,7 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
           country: trimmedCountry || undefined,
           avatarUrl: avatarUrl || undefined,
         });
-        if (!u) throw new Error("Échec de la mise à jour du profil");
+        if (!u) throw new Error(t.errors.syncFailed);
 
         if (clerkUser && trimmedName) {
           const [firstName, ...rest] = trimmedName.split(/\s+/);
@@ -115,9 +116,9 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
       }
 
       if (newPwd) {
-        if (newPwd.length < 8) throw new Error("Le nouveau mot de passe doit faire au moins 8 caractères");
-        if (newPwd !== confirmNewPwd) throw new Error("Les mots de passe ne correspondent pas");
-        if (!clerkUser) throw new Error("Utilisateur non disponible");
+        if (newPwd.length < 8) throw new Error(t.errors.invalidInput);
+        if (newPwd !== confirmNewPwd) throw new Error((t as any).passwordsDoNotMatch ?? t.errors.invalidInput);
+        if (!clerkUser) throw new Error(t.errors.unauthorized);
         await clerkUser.updatePassword({
           currentPassword: currentPwd || undefined,
           newPassword: newPwd,
@@ -128,8 +129,9 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
       setOk("Profil mis à jour");
       onSaved?.();
       setTimeout(() => onClose(), 600);
-    } catch (e: any) {
-      setErr(e?.errors?.[0]?.message ?? e?.message ?? "Erreur");
+    } catch (e: unknown) {
+      const clerkMsg = (e as { errors?: Array<{ message?: string }> })?.errors?.[0]?.message;
+      setErr(clerkMsg ?? formatApiError(e, t.errors));
     } finally {
       setSaving(false);
     }
