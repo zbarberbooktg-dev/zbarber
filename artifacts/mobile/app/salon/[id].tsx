@@ -1,10 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import {
+  useAddFavorite,
   useGetBarber,
   useGetBarberGallery,
   useGetBarberSchedule,
+  useGetMyLoyalty,
+  useListBarberRealisations,
   useListBarberServices,
+  useListFavorites,
   useListReviews,
+  useRemoveFavorite,
 } from "@workspace/api-client-react";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useAuth } from "@clerk/expo";
@@ -23,6 +28,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   Text,
   View,
 } from "react-native";
@@ -79,6 +85,59 @@ export default function PublicSalonDetail() {
   const [selectedService, setSelectedService] = useState<number | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
+
+  // Favorites (only meaningful when signed in as a client)
+  const { data: favorites, refetch: refetchFavorites } = useListFavorites({ query: { enabled: isSignedIn } as never });
+  const addFavorite = useAddFavorite();
+  const removeFavorite = useRemoveFavorite();
+  const isFavorite = (favorites ?? []).some((f) => f.id === barberId);
+  const togglingFavorite = addFavorite.isPending || removeFavorite.isPending;
+
+  // Loyalty status (only when signed in)
+  const { data: loyalty } = useGetMyLoyalty(barberId, { query: { enabled: isSignedIn } as never });
+
+  // Before/after realisations (public)
+  const { data: realisationsData } = useListBarberRealisations(barberId);
+  const realisations = realisationsData ?? [];
+
+  const isFr = String(locale).startsWith("fr");
+  const handleToggleFavorite = async () => {
+    if (!isSignedIn) {
+      Alert.alert(
+        isFr ? "Connexion requise" : "Sign in required",
+        isFr ? "Connectez-vous pour enregistrer vos salons favoris." : "Sign in to save your favorite salons.",
+        [
+          { text: isFr ? "Annuler" : "Cancel", style: "cancel" },
+          { text: isFr ? "Se connecter" : "Sign in", onPress: () => router.push("/(auth)/sign-in") },
+        ]);
+      return;
+    }
+    try {
+      if (isFavorite) {
+        await removeFavorite.mutateAsync({ barberId });
+      } else {
+        await addFavorite.mutateAsync({ data: { barberId } });
+      }
+      refetchFavorites();
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message ?? "Action impossible.");
+    }
+  };
+
+  const handleShare = async () => {
+    if (!barber) return;
+    const domain = process.env.EXPO_PUBLIC_DOMAIN;
+    const url = domain ? `https://${domain}/salon/${barberId}` : `mobile://salon/${barberId}`;
+    try {
+      await Share.share({
+        message: `${t.shareMessage} : ${barber.salonName}\n${url}`,
+        url,
+        title: barber.salonName,
+      });
+    } catch {
+      // user dismissed share sheet — no-op
+    }
+  };
 
   const services = (servicesData ?? []).filter((s) => s.isActive);
   const reviews = reviewsData?.data ?? [];
@@ -187,13 +246,24 @@ export default function PublicSalonDetail() {
           {barber.salonName}
         </Text>
         {avgRating > 0 && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginRight: 14 }}>
             <Feather name="star" size={13} color={PALETTE.gold} />
             <Text style={{ color: PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 13 }}>
               {avgRating.toFixed(1)}
             </Text>
           </View>
         )}
+        <Pressable onPress={handleShare} hitSlop={10} style={{ marginRight: 14 }}>
+          <Feather name="share-2" size={20} color={PALETTE.text} />
+        </Pressable>
+        <Pressable onPress={handleToggleFavorite} hitSlop={10} disabled={togglingFavorite}>
+          <Feather
+            name="heart"
+            size={21}
+            color={isFavorite ? PALETTE.gold : PALETTE.text}
+            style={{ opacity: togglingFavorite ? 0.5 : 1 }}
+          />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -361,6 +431,60 @@ export default function PublicSalonDetail() {
               <Text style={{ color: PALETTE.text, fontFamily: "Inter_400Regular", fontSize: 13 }}>{barber.phone}</Text>
             </View>
           )}
+          {isSignedIn && loyalty && (
+            <View
+              style={{
+                marginTop: 16,
+                backgroundColor: `${PALETTE.gold}12`,
+                borderColor: `${PALETTE.gold}40`,
+                borderWidth: 1,
+                borderRadius: 14,
+                padding: 14,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Feather name="award" size={16} color={PALETTE.gold} />
+                <Text style={{ color: PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 14 }}>{t.loyaltyTitle}</Text>
+              </View>
+              {loyalty.freeAvailable > 0 ? (
+                <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 13, marginBottom: 10 }}>
+                  {loyalty.freeAvailable > 1
+                    ? t.loyaltyFreeAvailablePlural.replace("{n}", String(loyalty.freeAvailable))
+                    : t.loyaltyFreeAvailable}
+                </Text>
+              ) : (
+                <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, marginBottom: 10 }}>
+                  {t.loyaltyUntilNext.replace("{n}", String(loyalty.untilNext))}
+                </Text>
+              )}
+              <View style={{ flexDirection: "row", gap: 5, flexWrap: "wrap" }}>
+                {Array.from({ length: loyalty.threshold }).map((_, i) => {
+                  const filled = i < loyalty.completed % loyalty.threshold || (loyalty.completed > 0 && loyalty.completed % loyalty.threshold === 0);
+                  return (
+                    <View
+                      key={i}
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: filled ? PALETTE.gold : "transparent",
+                        borderWidth: 1,
+                        borderColor: filled ? PALETTE.gold : PALETTE.border,
+                      }}
+                    >
+                      {i === loyalty.threshold - 1 ? (
+                        <Feather name="gift" size={11} color={filled ? PALETTE.bg : PALETTE.textDim} />
+                      ) : (
+                        <Feather name="scissors" size={10} color={filled ? PALETTE.bg : PALETTE.textDim} />
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
           {barber.latitude && barber.longitude ? (
             <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
               <Pressable
@@ -495,6 +619,34 @@ export default function PublicSalonDetail() {
                 )}
               </Pressable>
             ))}
+          </View>
+        )}
+
+        {/* Before / after realisations */}
+        {realisations.length > 0 && (
+          <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+            <SectionTitle title="Avant / Après" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 4 }}>
+              {realisations.map((r) => (
+                <View key={r.id} style={{ width: 240, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, borderRadius: 12, overflow: "hidden" }}>
+                  <View style={{ flexDirection: "row" }}>
+                    {[{ uri: resolveObjectUrl(r.beforeUrl), tag: "Avant" }, { uri: resolveObjectUrl(r.afterUrl), tag: "Après" }].map((img, i) => (
+                      <View key={i} style={{ flex: 1, aspectRatio: 1, position: "relative" }}>
+                        {img.uri && <Image source={{ uri: img.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />}
+                        <View style={{ position: "absolute", top: 6, left: 6, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
+                          <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 10 }}>{img.tag}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                  {(r.caption || services.find((s) => s.id === r.serviceId)) && (
+                    <Text numberOfLines={1} style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 12, padding: 10 }}>
+                      {r.caption || services.find((s) => s.id === r.serviceId)?.name}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </ScrollView>
           </View>
         )}
 
