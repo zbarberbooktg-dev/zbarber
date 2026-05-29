@@ -925,6 +925,125 @@ export interface ArticleUpdate {
   endsAt?: string | null;
 }
 
+export interface Favorite {
+  id: number;
+  userId: number;
+  barberId: number;
+  createdAt: string;
+}
+
+export interface FavoriteInput {
+  barberId: number;
+}
+
+export interface LoyaltyStatus {
+  /** Number of completed cuts at this salon */
+  completed: number;
+  /** Completed cuts required to earn one free cut */
+  threshold: number;
+  /** Completed cuts remaining before the next free cut is earned */
+  untilNext: number;
+  /** Free cuts earned but not yet redeemed */
+  freeAvailable: number;
+  /** Whether the client qualifies as a regular client */
+  isRegular: boolean;
+}
+
+export interface LoyaltyRedeemInput {
+  clientId: number;
+}
+
+export type AdvancedStatsTopServicesItem = {
+  serviceId: number | null;
+  name: string;
+  count: number;
+  revenue: number;
+};
+
+export type AdvancedStatsPeakHoursItem = {
+  hour: number;
+  count: number;
+};
+
+export type AdvancedStatsPeakDaysItem = {
+  day: number;
+  count: number;
+};
+
+export interface AdvancedStats {
+  topServices: AdvancedStatsTopServicesItem[];
+  /** 24 buckets (index = hour of day) with completed counts */
+  peakHours: AdvancedStatsPeakHoursItem[];
+  /** 7 buckets (index 0 = Monday) with completed counts */
+  peakDays: AdvancedStatsPeakDaysItem[];
+  /** Cancelled / (all non-pending) as a 0..1 ratio */
+  cancellationRate: number;
+  /** Reserved for future use; currently 0 */
+  noShowRate: number;
+  completedTotal: number;
+  cancelledTotal: number;
+}
+
+export interface Realisation {
+  id: number;
+  barberId: number;
+  serviceId?: number | null;
+  beforeUrl: string;
+  afterUrl: string;
+  caption?: string | null;
+  createdAt: string;
+}
+
+export interface RealisationInput {
+  beforeUrl: string;
+  afterUrl: string;
+  serviceId?: number | null;
+  caption?: string | null;
+}
+
+export type WalkInStatus = typeof WalkInStatus[keyof typeof WalkInStatus];
+
+
+export const WalkInStatus = {
+  waiting: 'waiting',
+  in_progress: 'in_progress',
+  done: 'done',
+  cancelled: 'cancelled',
+} as const;
+
+export interface WalkIn {
+  id: number;
+  barberId: number;
+  serviceId?: number | null;
+  clientName: string;
+  clientPhone?: string | null;
+  status: WalkInStatus;
+  position: number;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface WalkInInput {
+  clientName: string;
+  clientPhone?: string | null;
+  serviceId?: number | null;
+  notes?: string | null;
+}
+
+export type WalkInStatusInputStatus = typeof WalkInStatusInputStatus[keyof typeof WalkInStatusInputStatus];
+
+
+export const WalkInStatusInputStatus = {
+  waiting: 'waiting',
+  in_progress: 'in_progress',
+  done: 'done',
+  cancelled: 'cancelled',
+} as const;
+
+export interface WalkInStatusInput {
+  status: WalkInStatusInputStatus;
+}
+
 export interface AuthSyncResult {
   user: User;
   barber?: Barber | null;

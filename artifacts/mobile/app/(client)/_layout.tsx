@@ -49,6 +49,13 @@ export default function ClientTabs() {
         }}
       />
       <Tabs.Screen
+        name="favorites"
+        options={{
+          title: t.tabFavorites,
+          tabBarIcon: ({ color, size }) => <Feather name="heart" size={size - 2} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: t.tabProfile,

@@ -22,6 +22,7 @@ import type {
 import type {
   ActivityItem,
   AdminStats,
+  AdvancedStats,
   Article,
   ArticleInput,
   ArticleUpdate,
@@ -37,6 +38,8 @@ import type {
   ConferenceInput,
   ConferenceListResponse,
   ConferenceUpdate,
+  Favorite,
+  FavoriteInput,
   FinancingInput,
   FinancingListResponse,
   FinancingRequest,
@@ -57,9 +60,13 @@ import type {
   ListSubscriptionsParams,
   ListUsersParams,
   LoginInput,
+  LoyaltyRedeemInput,
+  LoyaltyStatus,
   MonthlyStatPoint,
   Notification,
   NotificationInput,
+  Realisation,
+  RealisationInput,
   RegisterInput,
   RejectInput,
   Reservation,
@@ -92,7 +99,10 @@ import type {
   UploadUrlResponse,
   User,
   UserListResponse,
-  UserUpdate
+  UserUpdate,
+  WalkIn,
+  WalkInInput,
+  WalkInStatusInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -3217,6 +3227,1034 @@ export const useDeleteArticle = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteArticleMutationOptions(options));
+    }
+
+export const getListFavoritesUrl = () => {
+
+
+
+
+  return `/api/favorites`
+}
+
+/**
+ * @summary List the authenticated client's favorite salons
+ */
+export const listFavorites = async ( options?: RequestInit): Promise<Barber[]> => {
+
+  return customFetch<Barber[]>(getListFavoritesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListFavoritesQueryKey = () => {
+    return [
+    `/api/favorites`
+    ] as const;
+    }
+
+
+export const getListFavoritesQueryOptions = <TData = Awaited<ReturnType<typeof listFavorites>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFavorites>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFavoritesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFavorites>>> = ({ signal }) => listFavorites({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFavorites>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListFavoritesQueryResult = NonNullable<Awaited<ReturnType<typeof listFavorites>>>
+export type ListFavoritesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the authenticated client's favorite salons
+ */
+
+export function useListFavorites<TData = Awaited<ReturnType<typeof listFavorites>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFavorites>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListFavoritesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAddFavoriteUrl = () => {
+
+
+
+
+  return `/api/favorites`
+}
+
+/**
+ * @summary Add a salon to favorites
+ */
+export const addFavorite = async (favoriteInput: FavoriteInput, options?: RequestInit): Promise<Favorite> => {
+
+  return customFetch<Favorite>(getAddFavoriteUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      favoriteInput,)
+  }
+);}
+
+
+
+
+export const getAddFavoriteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addFavorite>>, TError,{data: BodyType<FavoriteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addFavorite>>, TError,{data: BodyType<FavoriteInput>}, TContext> => {
+
+const mutationKey = ['addFavorite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addFavorite>>, {data: BodyType<FavoriteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  addFavorite(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddFavoriteMutationResult = NonNullable<Awaited<ReturnType<typeof addFavorite>>>
+    export type AddFavoriteMutationBody = BodyType<FavoriteInput>
+    export type AddFavoriteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a salon to favorites
+ */
+export const useAddFavorite = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addFavorite>>, TError,{data: BodyType<FavoriteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addFavorite>>,
+        TError,
+        {data: BodyType<FavoriteInput>},
+        TContext
+      > => {
+      return useMutation(getAddFavoriteMutationOptions(options));
+    }
+
+export const getRemoveFavoriteUrl = (barberId: number,) => {
+
+
+
+
+  return `/api/favorites/${barberId}`
+}
+
+/**
+ * @summary Remove a salon from favorites
+ */
+export const removeFavorite = async (barberId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRemoveFavoriteUrl(barberId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveFavoriteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeFavorite>>, TError,{barberId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeFavorite>>, TError,{barberId: number}, TContext> => {
+
+const mutationKey = ['removeFavorite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeFavorite>>, {barberId: number}> = (props) => {
+          const {barberId} = props ?? {};
+
+          return  removeFavorite(barberId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveFavoriteMutationResult = NonNullable<Awaited<ReturnType<typeof removeFavorite>>>
+
+    export type RemoveFavoriteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a salon from favorites
+ */
+export const useRemoveFavorite = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeFavorite>>, TError,{barberId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeFavorite>>,
+        TError,
+        {barberId: number},
+        TContext
+      > => {
+      return useMutation(getRemoveFavoriteMutationOptions(options));
+    }
+
+export const getGetMyLoyaltyUrl = (id: number,) => {
+
+
+
+
+  return `/api/barbers/${id}/loyalty`
+}
+
+/**
+ * @summary Loyalty status of the authenticated client at a given salon
+ */
+export const getMyLoyalty = async (id: number, options?: RequestInit): Promise<LoyaltyStatus> => {
+
+  return customFetch<LoyaltyStatus>(getGetMyLoyaltyUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyLoyaltyQueryKey = (id: number,) => {
+    return [
+    `/api/barbers/${id}/loyalty`
+    ] as const;
+    }
+
+
+export const getGetMyLoyaltyQueryOptions = <TData = Awaited<ReturnType<typeof getMyLoyalty>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyLoyalty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyLoyaltyQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyLoyalty>>> = ({ signal }) => getMyLoyalty(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyLoyalty>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyLoyaltyQueryResult = NonNullable<Awaited<ReturnType<typeof getMyLoyalty>>>
+export type GetMyLoyaltyQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Loyalty status of the authenticated client at a given salon
+ */
+
+export function useGetMyLoyalty<TData = Awaited<ReturnType<typeof getMyLoyalty>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyLoyalty>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyLoyaltyQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRedeemLoyaltyUrl = () => {
+
+
+
+
+  return `/api/barbers/me/loyalty/redeem`
+}
+
+/**
+ * @summary Redeem an available free cut for one of the salon's clients (barber)
+ */
+export const redeemLoyalty = async (loyaltyRedeemInput: LoyaltyRedeemInput, options?: RequestInit): Promise<LoyaltyStatus> => {
+
+  return customFetch<LoyaltyStatus>(getRedeemLoyaltyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      loyaltyRedeemInput,)
+  }
+);}
+
+
+
+
+export const getRedeemLoyaltyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemLoyalty>>, TError,{data: BodyType<LoyaltyRedeemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof redeemLoyalty>>, TError,{data: BodyType<LoyaltyRedeemInput>}, TContext> => {
+
+const mutationKey = ['redeemLoyalty'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof redeemLoyalty>>, {data: BodyType<LoyaltyRedeemInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  redeemLoyalty(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RedeemLoyaltyMutationResult = NonNullable<Awaited<ReturnType<typeof redeemLoyalty>>>
+    export type RedeemLoyaltyMutationBody = BodyType<LoyaltyRedeemInput>
+    export type RedeemLoyaltyMutationError = ErrorType<void>
+
+    /**
+ * @summary Redeem an available free cut for one of the salon's clients (barber)
+ */
+export const useRedeemLoyalty = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof redeemLoyalty>>, TError,{data: BodyType<LoyaltyRedeemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof redeemLoyalty>>,
+        TError,
+        {data: BodyType<LoyaltyRedeemInput>},
+        TContext
+      > => {
+      return useMutation(getRedeemLoyaltyMutationOptions(options));
+    }
+
+export const getGetMyAdvancedStatsUrl = () => {
+
+
+
+
+  return `/api/barbers/me/stats/advanced`
+}
+
+/**
+ * @summary Advanced stats for the authenticated barber
+ */
+export const getMyAdvancedStats = async ( options?: RequestInit): Promise<AdvancedStats> => {
+
+  return customFetch<AdvancedStats>(getGetMyAdvancedStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyAdvancedStatsQueryKey = () => {
+    return [
+    `/api/barbers/me/stats/advanced`
+    ] as const;
+    }
+
+
+export const getGetMyAdvancedStatsQueryOptions = <TData = Awaited<ReturnType<typeof getMyAdvancedStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyAdvancedStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAdvancedStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAdvancedStats>>> = ({ signal }) => getMyAdvancedStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyAdvancedStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyAdvancedStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAdvancedStats>>>
+export type GetMyAdvancedStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Advanced stats for the authenticated barber
+ */
+
+export function useGetMyAdvancedStats<TData = Awaited<ReturnType<typeof getMyAdvancedStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyAdvancedStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyAdvancedStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListBarberRealisationsUrl = (id: number,) => {
+
+
+
+
+  return `/api/barbers/${id}/realisations`
+}
+
+/**
+ * @summary Public list of a barber's before/after photos
+ */
+export const listBarberRealisations = async (id: number, options?: RequestInit): Promise<Realisation[]> => {
+
+  return customFetch<Realisation[]>(getListBarberRealisationsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBarberRealisationsQueryKey = (id: number,) => {
+    return [
+    `/api/barbers/${id}/realisations`
+    ] as const;
+    }
+
+
+export const getListBarberRealisationsQueryOptions = <TData = Awaited<ReturnType<typeof listBarberRealisations>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBarberRealisations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBarberRealisationsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBarberRealisations>>> = ({ signal }) => listBarberRealisations(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBarberRealisations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBarberRealisationsQueryResult = NonNullable<Awaited<ReturnType<typeof listBarberRealisations>>>
+export type ListBarberRealisationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public list of a barber's before/after photos
+ */
+
+export function useListBarberRealisations<TData = Awaited<ReturnType<typeof listBarberRealisations>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBarberRealisations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBarberRealisationsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListMyRealisationsUrl = () => {
+
+
+
+
+  return `/api/barbers/me/realisations`
+}
+
+/**
+ * @summary List my before/after photos (barber)
+ */
+export const listMyRealisations = async ( options?: RequestInit): Promise<Realisation[]> => {
+
+  return customFetch<Realisation[]>(getListMyRealisationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyRealisationsQueryKey = () => {
+    return [
+    `/api/barbers/me/realisations`
+    ] as const;
+    }
+
+
+export const getListMyRealisationsQueryOptions = <TData = Awaited<ReturnType<typeof listMyRealisations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyRealisations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyRealisationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyRealisations>>> = ({ signal }) => listMyRealisations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyRealisations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMyRealisationsQueryResult = NonNullable<Awaited<ReturnType<typeof listMyRealisations>>>
+export type ListMyRealisationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List my before/after photos (barber)
+ */
+
+export function useListMyRealisations<TData = Awaited<ReturnType<typeof listMyRealisations>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyRealisations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMyRealisationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateRealisationUrl = () => {
+
+
+
+
+  return `/api/barbers/me/realisations`
+}
+
+/**
+ * @summary Add a before/after photo (barber)
+ */
+export const createRealisation = async (realisationInput: RealisationInput, options?: RequestInit): Promise<Realisation> => {
+
+  return customFetch<Realisation>(getCreateRealisationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      realisationInput,)
+  }
+);}
+
+
+
+
+export const getCreateRealisationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRealisation>>, TError,{data: BodyType<RealisationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRealisation>>, TError,{data: BodyType<RealisationInput>}, TContext> => {
+
+const mutationKey = ['createRealisation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRealisation>>, {data: BodyType<RealisationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createRealisation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRealisationMutationResult = NonNullable<Awaited<ReturnType<typeof createRealisation>>>
+    export type CreateRealisationMutationBody = BodyType<RealisationInput>
+    export type CreateRealisationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a before/after photo (barber)
+ */
+export const useCreateRealisation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRealisation>>, TError,{data: BodyType<RealisationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRealisation>>,
+        TError,
+        {data: BodyType<RealisationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateRealisationMutationOptions(options));
+    }
+
+export const getDeleteRealisationUrl = (realisationId: number,) => {
+
+
+
+
+  return `/api/barbers/me/realisations/${realisationId}`
+}
+
+/**
+ * @summary Delete a before/after photo (barber)
+ */
+export const deleteRealisation = async (realisationId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteRealisationUrl(realisationId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteRealisationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRealisation>>, TError,{realisationId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteRealisation>>, TError,{realisationId: number}, TContext> => {
+
+const mutationKey = ['deleteRealisation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRealisation>>, {realisationId: number}> = (props) => {
+          const {realisationId} = props ?? {};
+
+          return  deleteRealisation(realisationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteRealisationMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRealisation>>>
+
+    export type DeleteRealisationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a before/after photo (barber)
+ */
+export const useDeleteRealisation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteRealisation>>, TError,{realisationId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteRealisation>>,
+        TError,
+        {realisationId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteRealisationMutationOptions(options));
+    }
+
+export const getListMyQueueUrl = () => {
+
+
+
+
+  return `/api/barbers/me/queue`
+}
+
+/**
+ * @summary List my walk-in queue (barber)
+ */
+export const listMyQueue = async ( options?: RequestInit): Promise<WalkIn[]> => {
+
+  return customFetch<WalkIn[]>(getListMyQueueUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyQueueQueryKey = () => {
+    return [
+    `/api/barbers/me/queue`
+    ] as const;
+    }
+
+
+export const getListMyQueueQueryOptions = <TData = Awaited<ReturnType<typeof listMyQueue>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyQueue>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyQueueQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyQueue>>> = ({ signal }) => listMyQueue({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyQueue>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMyQueueQueryResult = NonNullable<Awaited<ReturnType<typeof listMyQueue>>>
+export type ListMyQueueQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List my walk-in queue (barber)
+ */
+
+export function useListMyQueue<TData = Awaited<ReturnType<typeof listMyQueue>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyQueue>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMyQueueQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAddWalkInUrl = () => {
+
+
+
+
+  return `/api/barbers/me/queue`
+}
+
+/**
+ * @summary Add a walk-in to the queue (barber)
+ */
+export const addWalkIn = async (walkInInput: WalkInInput, options?: RequestInit): Promise<WalkIn> => {
+
+  return customFetch<WalkIn>(getAddWalkInUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      walkInInput,)
+  }
+);}
+
+
+
+
+export const getAddWalkInMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addWalkIn>>, TError,{data: BodyType<WalkInInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addWalkIn>>, TError,{data: BodyType<WalkInInput>}, TContext> => {
+
+const mutationKey = ['addWalkIn'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addWalkIn>>, {data: BodyType<WalkInInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  addWalkIn(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddWalkInMutationResult = NonNullable<Awaited<ReturnType<typeof addWalkIn>>>
+    export type AddWalkInMutationBody = BodyType<WalkInInput>
+    export type AddWalkInMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a walk-in to the queue (barber)
+ */
+export const useAddWalkIn = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addWalkIn>>, TError,{data: BodyType<WalkInInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addWalkIn>>,
+        TError,
+        {data: BodyType<WalkInInput>},
+        TContext
+      > => {
+      return useMutation(getAddWalkInMutationOptions(options));
+    }
+
+export const getUpdateWalkInStatusUrl = (entryId: number,) => {
+
+
+
+
+  return `/api/barbers/me/queue/${entryId}`
+}
+
+/**
+ * @summary Update a walk-in status (barber)
+ */
+export const updateWalkInStatus = async (entryId: number,
+    walkInStatusInput: WalkInStatusInput, options?: RequestInit): Promise<WalkIn> => {
+
+  return customFetch<WalkIn>(getUpdateWalkInStatusUrl(entryId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      walkInStatusInput,)
+  }
+);}
+
+
+
+
+export const getUpdateWalkInStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWalkInStatus>>, TError,{entryId: number;data: BodyType<WalkInStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWalkInStatus>>, TError,{entryId: number;data: BodyType<WalkInStatusInput>}, TContext> => {
+
+const mutationKey = ['updateWalkInStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWalkInStatus>>, {entryId: number;data: BodyType<WalkInStatusInput>}> = (props) => {
+          const {entryId,data} = props ?? {};
+
+          return  updateWalkInStatus(entryId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWalkInStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateWalkInStatus>>>
+    export type UpdateWalkInStatusMutationBody = BodyType<WalkInStatusInput>
+    export type UpdateWalkInStatusMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a walk-in status (barber)
+ */
+export const useUpdateWalkInStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWalkInStatus>>, TError,{entryId: number;data: BodyType<WalkInStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWalkInStatus>>,
+        TError,
+        {entryId: number;data: BodyType<WalkInStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateWalkInStatusMutationOptions(options));
+    }
+
+export const getDeleteWalkInUrl = (entryId: number,) => {
+
+
+
+
+  return `/api/barbers/me/queue/${entryId}`
+}
+
+/**
+ * @summary Remove a walk-in from the queue (barber)
+ */
+export const deleteWalkIn = async (entryId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteWalkInUrl(entryId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteWalkInMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWalkIn>>, TError,{entryId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteWalkIn>>, TError,{entryId: number}, TContext> => {
+
+const mutationKey = ['deleteWalkIn'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWalkIn>>, {entryId: number}> = (props) => {
+          const {entryId} = props ?? {};
+
+          return  deleteWalkIn(entryId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteWalkInMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWalkIn>>>
+
+    export type DeleteWalkInMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a walk-in from the queue (barber)
+ */
+export const useDeleteWalkIn = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWalkIn>>, TError,{entryId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteWalkIn>>,
+        TError,
+        {entryId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteWalkInMutationOptions(options));
     }
 
 export const getGetBarberGalleryUrl = (id: number,) => {

@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Linking,
   Pressable,
@@ -25,6 +26,8 @@ type Client = {
   completedBookings: number;
   totalSpent: number;
   lastVisit: string | null;
+  isRegular: boolean;
+  freeCutsAvailable: number;
 };
 
 export default function BarberClients() {
@@ -32,12 +35,37 @@ export default function BarberClients() {
   const { locale } = useApp();
   const fetcher = useAuthedFetch();
 
+  const queryClient = useQueryClient();
   const { data, isLoading, refetch, isRefetching } = useQuery<{ data: Client[]; total: number }>({
     queryKey: ["myClients"],
     queryFn: () => fetcher<{ data: Client[]; total: number }>("/api/barbers/me/clients"),
   });
 
   const clients = data?.data ?? [];
+
+  const redeemFreeCut = (client: Client) => {
+    Alert.alert(
+      "Coupe offerte",
+      `Confirmer une coupe offerte pour ${client.name} ?`,
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Confirmer",
+          onPress: async () => {
+            try {
+              await fetcher("/api/barbers/me/loyalty/redeem", {
+                method: "POST",
+                body: JSON.stringify({ clientId: client.clientId }),
+              });
+              await queryClient.invalidateQueries({ queryKey: ["myClients"] });
+            } catch {
+              Alert.alert("Erreur", "Impossible d'enregistrer la coupe offerte.");
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
@@ -70,7 +98,15 @@ export default function BarberClients() {
                 <View style={{ flexDirection: "row", gap: 12 }}>
                   <Avatar name={item.name} size={48} />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>{item.name}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>{item.name}</Text>
+                      {item.isRegular && (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: c.accent, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
+                          <Feather name="star" size={9} color={c.primary} />
+                          <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 10 }}>Régulier</Text>
+                        </View>
+                      )}
+                    </View>
                     {item.phone && (
                       <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
                         {item.phone}
@@ -84,6 +120,20 @@ export default function BarberClients() {
                       <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11, marginTop: 8 }}>
                         Dernier rdv : {last.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })}
                       </Text>
+                    )}
+                    {item.freeCutsAvailable > 0 && (
+                      <Pressable
+                        onPress={() => redeemFreeCut(item)}
+                        style={{
+                          flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10,
+                          backgroundColor: c.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, alignSelf: "flex-start",
+                        }}
+                      >
+                        <Feather name="gift" size={13} color={c.primaryForeground} />
+                        <Text style={{ color: c.primaryForeground, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                          {item.freeCutsAvailable > 1 ? `${item.freeCutsAvailable} coupes offertes` : "Coupe offerte"} — utiliser
+                        </Text>
+                      </Pressable>
                     )}
                   </View>
                   {item.phone && (

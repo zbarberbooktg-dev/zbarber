@@ -14,3 +14,7 @@ export * from "./locations";
 export * from "./accountDeletionRequests";
 export * from "./adminAccounts";
 export * from "./articles";
+export * from "./favorites";
+export * from "./loyalty";
+export * from "./serviceRealisations";
+export * from "./walkInQueue";

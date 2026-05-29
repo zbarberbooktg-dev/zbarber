@@ -843,6 +843,248 @@ paths:
         "204":
           description: Deleted
 
+  # ── FAVORITES ─────────────────────────────────────────────────────────
+  /favorites:
+    get:
+      operationId: listFavorites
+      tags: [favorites]
+      summary: List the authenticated client's favorite salons
+      responses:
+        "200":
+          description: Favorite salons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Barber"
+    post:
+      operationId: addFavorite
+      tags: [favorites]
+      summary: Add a salon to favorites
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FavoriteInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Favorite"
+
+  /favorites/{barberId}:
+    delete:
+      operationId: removeFavorite
+      tags: [favorites]
+      summary: Remove a salon from favorites
+      parameters:
+        - in: path
+          name: barberId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Removed
+
+  # ── LOYALTY ───────────────────────────────────────────────────────────
+  /barbers/{id}/loyalty:
+    get:
+      operationId: getMyLoyalty
+      tags: [loyalty]
+      summary: Loyalty status of the authenticated client at a given salon
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Loyalty status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoyaltyStatus"
+
+  /barbers/me/loyalty/redeem:
+    post:
+      operationId: redeemLoyalty
+      tags: [loyalty]
+      summary: Redeem an available free cut for one of the salon's clients (barber)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoyaltyRedeemInput"
+      responses:
+        "201":
+          description: Redeemed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoyaltyStatus"
+        "409":
+          description: No free cut available
+
+  /barbers/me/stats/advanced:
+    get:
+      operationId: getMyAdvancedStats
+      tags: [barbers]
+      summary: Advanced stats for the authenticated barber
+      responses:
+        "200":
+          description: Advanced stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdvancedStats"
+
+  # ── REALISATIONS (before/after) ───────────────────────────────────────
+  /barbers/{id}/realisations:
+    get:
+      operationId: listBarberRealisations
+      tags: [realisations]
+      summary: Public list of a barber's before/after photos
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Realisations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Realisation"
+
+  /barbers/me/realisations:
+    get:
+      operationId: listMyRealisations
+      tags: [realisations]
+      summary: List my before/after photos (barber)
+      responses:
+        "200":
+          description: Realisations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Realisation"
+    post:
+      operationId: createRealisation
+      tags: [realisations]
+      summary: Add a before/after photo (barber)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RealisationInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Realisation"
+
+  /barbers/me/realisations/{realisationId}:
+    delete:
+      operationId: deleteRealisation
+      tags: [realisations]
+      summary: Delete a before/after photo (barber)
+      parameters:
+        - in: path
+          name: realisationId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── WALK-IN QUEUE ─────────────────────────────────────────────────────
+  /barbers/me/queue:
+    get:
+      operationId: listMyQueue
+      tags: [queue]
+      summary: List my walk-in queue (barber)
+      responses:
+        "200":
+          description: Queue entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WalkIn"
+    post:
+      operationId: addWalkIn
+      tags: [queue]
+      summary: Add a walk-in to the queue (barber)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalkInInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalkIn"
+
+  /barbers/me/queue/{entryId}:
+    patch:
+      operationId: updateWalkInStatus
+      tags: [queue]
+      summary: Update a walk-in status (barber)
+      parameters:
+        - in: path
+          name: entryId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalkInStatusInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalkIn"
+    delete:
+      operationId: deleteWalkIn
+      tags: [queue]
+      summary: Remove a walk-in from the queue (barber)
+      parameters:
+        - in: path
+          name: entryId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   # ── GALLERY ───────────────────────────────────────────────────────────
   /barbers/{id}/gallery:
     get:
@@ -2848,6 +3090,195 @@ components:
         endsAt:
           type: ["string", "null"]
           format: date-time
+
+    Favorite:
+      type: object
+      required: [id, userId, barberId, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        barberId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    FavoriteInput:
+      type: object
+      required: [barberId]
+      properties:
+        barberId:
+          type: integer
+
+    LoyaltyStatus:
+      type: object
+      required: [completed, threshold, untilNext, freeAvailable, isRegular]
+      properties:
+        completed:
+          type: integer
+          description: Number of completed cuts at this salon
+        threshold:
+          type: integer
+          description: Completed cuts required to earn one free cut
+        untilNext:
+          type: integer
+          description: Completed cuts remaining before the next free cut is earned
+        freeAvailable:
+          type: integer
+          description: Free cuts earned but not yet redeemed
+        isRegular:
+          type: boolean
+          description: Whether the client qualifies as a regular client
+
+    LoyaltyRedeemInput:
+      type: object
+      required: [clientId]
+      properties:
+        clientId:
+          type: integer
+
+    AdvancedStats:
+      type: object
+      required: [topServices, peakHours, peakDays, cancellationRate, completedTotal, cancelledTotal, noShowRate]
+      properties:
+        topServices:
+          type: array
+          items:
+            type: object
+            required: [serviceId, name, count, revenue]
+            properties:
+              serviceId:
+                type: integer
+                nullable: true
+              name:
+                type: string
+              count:
+                type: integer
+              revenue:
+                type: number
+        peakHours:
+          type: array
+          description: 24 buckets (index = hour of day) with completed counts
+          items:
+            type: object
+            required: [hour, count]
+            properties:
+              hour:
+                type: integer
+              count:
+                type: integer
+        peakDays:
+          type: array
+          description: 7 buckets (index 0 = Monday) with completed counts
+          items:
+            type: object
+            required: [day, count]
+            properties:
+              day:
+                type: integer
+              count:
+                type: integer
+        cancellationRate:
+          type: number
+          description: Cancelled / (all non-pending) as a 0..1 ratio
+        noShowRate:
+          type: number
+          description: Reserved for future use; currently 0
+        completedTotal:
+          type: integer
+        cancelledTotal:
+          type: integer
+
+    Realisation:
+      type: object
+      required: [id, barberId, beforeUrl, afterUrl, createdAt]
+      properties:
+        id:
+          type: integer
+        barberId:
+          type: integer
+        serviceId:
+          type: integer
+          nullable: true
+        beforeUrl:
+          type: string
+        afterUrl:
+          type: string
+        caption:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    RealisationInput:
+      type: object
+      required: [beforeUrl, afterUrl]
+      properties:
+        beforeUrl:
+          type: string
+        afterUrl:
+          type: string
+        serviceId:
+          type: integer
+          nullable: true
+        caption:
+          type: string
+          nullable: true
+
+    WalkIn:
+      type: object
+      required: [id, barberId, clientName, status, position, createdAt]
+      properties:
+        id:
+          type: integer
+        barberId:
+          type: integer
+        serviceId:
+          type: integer
+          nullable: true
+        clientName:
+          type: string
+        clientPhone:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [waiting, in_progress, done, cancelled]
+        position:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    WalkInInput:
+      type: object
+      required: [clientName]
+      properties:
+        clientName:
+          type: string
+        clientPhone:
+          type: string
+          nullable: true
+        serviceId:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    WalkInStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [waiting, in_progress, done, cancelled]
 
     AuthSyncResult:
       type: object

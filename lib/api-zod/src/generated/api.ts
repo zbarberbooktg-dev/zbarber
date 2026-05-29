@@ -1064,6 +1064,212 @@ export const DeleteArticleParams = zod.object({
 
 
 /**
+ * @summary List the authenticated client's favorite salons
+ */
+export const ListFavoritesResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+export const ListFavoritesResponse = zod.array(ListFavoritesResponseItem)
+
+
+/**
+ * @summary Add a salon to favorites
+ */
+export const AddFavoriteBody = zod.object({
+  "barberId": zod.number()
+})
+
+
+/**
+ * @summary Remove a salon from favorites
+ */
+export const RemoveFavoriteParams = zod.object({
+  "barberId": zod.coerce.number()
+})
+
+
+/**
+ * @summary Loyalty status of the authenticated client at a given salon
+ */
+export const GetMyLoyaltyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetMyLoyaltyResponse = zod.object({
+  "completed": zod.number().describe('Number of completed cuts at this salon'),
+  "threshold": zod.number().describe('Completed cuts required to earn one free cut'),
+  "untilNext": zod.number().describe('Completed cuts remaining before the next free cut is earned'),
+  "freeAvailable": zod.number().describe('Free cuts earned but not yet redeemed'),
+  "isRegular": zod.boolean().describe('Whether the client qualifies as a regular client')
+})
+
+
+/**
+ * @summary Redeem an available free cut for one of the salon's clients (barber)
+ */
+export const RedeemLoyaltyBody = zod.object({
+  "clientId": zod.number()
+})
+
+
+/**
+ * @summary Advanced stats for the authenticated barber
+ */
+export const GetMyAdvancedStatsResponse = zod.object({
+  "topServices": zod.array(zod.object({
+  "serviceId": zod.number().nullable(),
+  "name": zod.string(),
+  "count": zod.number(),
+  "revenue": zod.number()
+})),
+  "peakHours": zod.array(zod.object({
+  "hour": zod.number(),
+  "count": zod.number()
+})).describe('24 buckets (index = hour of day) with completed counts'),
+  "peakDays": zod.array(zod.object({
+  "day": zod.number(),
+  "count": zod.number()
+})).describe('7 buckets (index 0 = Monday) with completed counts'),
+  "cancellationRate": zod.number().describe('Cancelled \/ (all non-pending) as a 0..1 ratio'),
+  "noShowRate": zod.number().describe('Reserved for future use; currently 0'),
+  "completedTotal": zod.number(),
+  "cancelledTotal": zod.number()
+})
+
+
+/**
+ * @summary Public list of a barber's before/after photos
+ */
+export const ListBarberRealisationsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListBarberRealisationsResponseItem = zod.object({
+  "id": zod.number(),
+  "barberId": zod.number(),
+  "serviceId": zod.number().nullish(),
+  "beforeUrl": zod.string(),
+  "afterUrl": zod.string(),
+  "caption": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+export const ListBarberRealisationsResponse = zod.array(ListBarberRealisationsResponseItem)
+
+
+/**
+ * @summary List my before/after photos (barber)
+ */
+export const ListMyRealisationsResponseItem = zod.object({
+  "id": zod.number(),
+  "barberId": zod.number(),
+  "serviceId": zod.number().nullish(),
+  "beforeUrl": zod.string(),
+  "afterUrl": zod.string(),
+  "caption": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+export const ListMyRealisationsResponse = zod.array(ListMyRealisationsResponseItem)
+
+
+/**
+ * @summary Add a before/after photo (barber)
+ */
+export const CreateRealisationBody = zod.object({
+  "beforeUrl": zod.string(),
+  "afterUrl": zod.string(),
+  "serviceId": zod.number().nullish(),
+  "caption": zod.string().nullish()
+})
+
+
+/**
+ * @summary Delete a before/after photo (barber)
+ */
+export const DeleteRealisationParams = zod.object({
+  "realisationId": zod.coerce.number()
+})
+
+
+/**
+ * @summary List my walk-in queue (barber)
+ */
+export const ListMyQueueResponseItem = zod.object({
+  "id": zod.number(),
+  "barberId": zod.number(),
+  "serviceId": zod.number().nullish(),
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "status": zod.enum(['waiting', 'in_progress', 'done', 'cancelled']),
+  "position": zod.number(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+export const ListMyQueueResponse = zod.array(ListMyQueueResponseItem)
+
+
+/**
+ * @summary Add a walk-in to the queue (barber)
+ */
+export const AddWalkInBody = zod.object({
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "serviceId": zod.number().nullish(),
+  "notes": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update a walk-in status (barber)
+ */
+export const UpdateWalkInStatusParams = zod.object({
+  "entryId": zod.coerce.number()
+})
+
+export const UpdateWalkInStatusBody = zod.object({
+  "status": zod.enum(['waiting', 'in_progress', 'done', 'cancelled'])
+})
+
+export const UpdateWalkInStatusResponse = zod.object({
+  "id": zod.number(),
+  "barberId": zod.number(),
+  "serviceId": zod.number().nullish(),
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "status": zod.enum(['waiting', 'in_progress', 'done', 'cancelled']),
+  "position": zod.number(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove a walk-in from the queue (barber)
+ */
+export const DeleteWalkInParams = zod.object({
+  "entryId": zod.coerce.number()
+})
+
+
+/**
  * @summary Get barber gallery
  */
 export const GetBarberGalleryParams = zod.object({

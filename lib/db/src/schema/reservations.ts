@@ -15,6 +15,7 @@ export const reservationsTable = pgTable("reservations", {
   scheduledAt: timestamp("scheduled_at").notNull(),
   status: reservationStatusEnum("status").notNull().default("pending"),
   notes: text("notes"),
+  reminderSentAt: timestamp("reminder_sent_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

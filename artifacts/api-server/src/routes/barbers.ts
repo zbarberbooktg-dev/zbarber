@@ -1,12 +1,43 @@
 import { Router } from "express";
-import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable } from "@workspace/db";
-import { eq, avg, count, and, lt, lte, gte, inArray, sql } from "drizzle-orm";
+import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable } from "@workspace/db";
+import { eq, avg, count, and, lt, lte, gte, inArray, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAdminAuth } from "../lib/adminAuth";
 import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
 
 const router = Router();
+
+// Loyalty program: every LOYALTY_THRESHOLD completed cuts earns 1 free cut.
+// A client is flagged "regular" once they reach REGULAR_THRESHOLD completed cuts.
+const LOYALTY_THRESHOLD = 11;
+const REGULAR_THRESHOLD = 5;
+
+async function loyaltyFor(barberId: number, clientId: number) {
+  const completedRes = await db.select({ c: count() }).from(reservationsTable)
+    .where(and(
+      eq(reservationsTable.barberId, barberId),
+      eq(reservationsTable.clientId, clientId),
+      eq(reservationsTable.status, "completed"),
+    ));
+  const redeemedRes = await db.select({ c: count() }).from(loyaltyRedemptionsTable)
+    .where(and(
+      eq(loyaltyRedemptionsTable.barberId, barberId),
+      eq(loyaltyRedemptionsTable.clientId, clientId),
+    ));
+  const completed = Number(completedRes[0]?.c ?? 0);
+  const redeemed = Number(redeemedRes[0]?.c ?? 0);
+  const earned = Math.floor(completed / LOYALTY_THRESHOLD);
+  const freeAvailable = Math.max(0, earned - redeemed);
+  const untilNext = LOYALTY_THRESHOLD - (completed % LOYALTY_THRESHOLD);
+  return {
+    completed,
+    threshold: LOYALTY_THRESHOLD,
+    untilNext: untilNext === LOYALTY_THRESHOLD ? 0 : untilNext,
+    freeAvailable,
+    isRegular: completed >= REGULAR_THRESHOLD,
+  };
+}
 
 // Auto-archive: any reservation whose scheduled time is in the past and still
 // "pending" or "confirmed" is marked "completed". Cutoff is `now` (UTC, same
@@ -134,6 +165,61 @@ router.get("/barbers/me/revenue", requireAuth, async (req: AuthedRequest, res) =
   });
 });
 
+// ── Barber: advanced stats (top services, peak hours/days, cancellation rate) ───
+router.get("/barbers/me/stats/advanced", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  await archiveExpiredForBarber(b.id);
+
+  const rows = await db
+    .select({
+      scheduledAt: reservationsTable.scheduledAt,
+      status: reservationsTable.status,
+      serviceId: reservationsTable.serviceId,
+      serviceName: servicesTable.name,
+      price: servicesTable.price,
+    })
+    .from(reservationsTable)
+    .leftJoin(servicesTable, eq(reservationsTable.serviceId, servicesTable.id))
+    .where(eq(reservationsTable.barberId, b.id));
+
+  const completed = rows.filter((r) => r.status === "completed");
+  const cancelledTotal = rows.filter((r) => r.status === "cancelled").length;
+  // Cancellation rate over decided reservations (exclude still-pending/confirmed upcoming).
+  const decided = completed.length + cancelledTotal;
+  const cancellationRate = decided > 0 ? cancelledTotal / decided : 0;
+
+  // Top services (by completed count).
+  const svcMap = new Map<string, { serviceId: number | null; name: string; count: number; revenue: number }>();
+  for (const r of completed) {
+    const key = String(r.serviceId ?? "none");
+    const cur = svcMap.get(key) ?? { serviceId: r.serviceId ?? null, name: r.serviceName ?? "Service supprimé", count: 0, revenue: 0 };
+    cur.count += 1;
+    cur.revenue += Number(r.price) || 0;
+    svcMap.set(key, cur);
+  }
+  const topServices = Array.from(svcMap.values()).sort((a, b2) => b2.count - a.count).slice(0, 5);
+
+  // Peak hours (0..23) and peak days (0=Mon..6=Sun) from completed reservations.
+  const peakHours = Array.from({ length: 24 }, (_, hour) => ({ hour, count: 0 }));
+  const peakDays = Array.from({ length: 7 }, (_, day) => ({ day, count: 0 }));
+  for (const r of completed) {
+    const d = new Date(r.scheduledAt);
+    peakHours[d.getHours()]!.count += 1;
+    peakDays[(d.getDay() + 6) % 7]!.count += 1;
+  }
+
+  res.json({
+    topServices,
+    peakHours,
+    peakDays,
+    cancellationRate,
+    noShowRate: 0,
+    completedTotal: completed.length,
+    cancelledTotal,
+  });
+});
+
 // ── Barber: client list (unique clients who booked) ───
 router.get("/barbers/me/clients", requireAuth, async (req: AuthedRequest, res) => {
   const b = await getMyBarberOr404(req, res);
@@ -178,8 +264,41 @@ router.get("/barbers/me/clients", requireAuth, async (req: AuthedRequest, res) =
     if (!cur.lastVisit || d > cur.lastVisit) cur.lastVisit = d;
     byClient.set(r.clientId, cur);
   }
-  const list = Array.from(byClient.values()).sort((a, b2) => (b2.lastVisit ?? "").localeCompare(a.lastVisit ?? ""));
+  // Enrich each client with loyalty info (regular badge + available free cuts).
+  const redemptions = await db.select({ clientId: loyaltyRedemptionsTable.clientId })
+    .from(loyaltyRedemptionsTable)
+    .where(eq(loyaltyRedemptionsTable.barberId, b.id));
+  const redeemedByClient = new Map<number, number>();
+  for (const r of redemptions) redeemedByClient.set(r.clientId, (redeemedByClient.get(r.clientId) ?? 0) + 1);
+
+  const list = Array.from(byClient.values())
+    .map((cl) => {
+      const earned = Math.floor(cl.completedBookings / LOYALTY_THRESHOLD);
+      const freeCutsAvailable = Math.max(0, earned - (redeemedByClient.get(cl.clientId) ?? 0));
+      return { ...cl, isRegular: cl.completedBookings >= REGULAR_THRESHOLD, freeCutsAvailable };
+    })
+    .sort((a, b2) => (b2.lastVisit ?? "").localeCompare(a.lastVisit ?? ""));
   res.json({ data: list, total: list.length });
+});
+
+// ── Client: my loyalty status at a given salon ───
+router.get("/barbers/:id/loyalty", requireAuth, async (req: AuthedRequest, res) => {
+  const id = parseInt(String(req.params.id));
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid barber id" }); return; }
+  await archiveExpiredForBarber(id);
+  res.json(await loyaltyFor(id, req.localUser!.id));
+});
+
+// ── Barber: redeem an available free cut for one of my clients ───
+router.post("/barbers/me/loyalty/redeem", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const body = z.object({ clientId: z.number().int() }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  const status = await loyaltyFor(b.id, body.data.clientId);
+  if (status.freeAvailable < 1) { res.status(409).json({ error: "No free cut available" }); return; }
+  await db.insert(loyaltyRedemptionsTable).values({ barberId: b.id, clientId: body.data.clientId });
+  res.status(201).json(await loyaltyFor(b.id, body.data.clientId));
 });
 
 // ── Barber: weekly working hours ───
@@ -545,6 +664,113 @@ router.delete("/barbers/:barberId/gallery/:photoId", requireAuth, async (req: Au
   if (!b || (b.userId !== req.localUser!.id && req.localUser!.role !== "admin")) { res.status(403).json({ error: "Forbidden" }); return; }
   // Scope delete by both barberId AND photoId to prevent IDOR cross-barber deletion
   await db.delete(galleryPhotosTable).where(and(eq(galleryPhotosTable.id, photoId), eq(galleryPhotosTable.barberId, barberId)));
+  res.status(204).send();
+});
+
+// ── REALISATIONS (before/after photos) ───
+router.get("/barbers/me/realisations", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const rows = await db.select().from(serviceRealisationsTable)
+    .where(eq(serviceRealisationsTable.barberId, b.id))
+    .orderBy(desc(serviceRealisationsTable.createdAt));
+  res.json(rows);
+});
+
+router.post("/barbers/me/realisations", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const body = z.object({
+    beforeUrl: z.string(),
+    afterUrl: z.string(),
+    serviceId: z.number().int().nullish(),
+    caption: z.string().nullish(),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  // If a service is given, make sure it belongs to this barber.
+  if (body.data.serviceId != null) {
+    const [svc] = await db.select({ id: servicesTable.id }).from(servicesTable)
+      .where(and(eq(servicesTable.id, body.data.serviceId), eq(servicesTable.barberId, b.id))).limit(1);
+    if (!svc) { res.status(400).json({ error: "Invalid service" }); return; }
+  }
+  const [row] = await db.insert(serviceRealisationsTable).values({ barberId: b.id, ...body.data }).returning();
+  res.status(201).json(row);
+});
+
+router.delete("/barbers/me/realisations/:realisationId", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const realisationId = parseInt(String(req.params.realisationId));
+  // Scope delete by both realisationId AND barberId to prevent IDOR.
+  await db.delete(serviceRealisationsTable)
+    .where(and(eq(serviceRealisationsTable.id, realisationId), eq(serviceRealisationsTable.barberId, b.id)));
+  res.status(204).send();
+});
+
+router.get("/barbers/:id/realisations", async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const rows = await db.select().from(serviceRealisationsTable)
+    .where(eq(serviceRealisationsTable.barberId, id))
+    .orderBy(desc(serviceRealisationsTable.createdAt));
+  res.json(rows);
+});
+
+// ── WALK-IN QUEUE ──────────────────────────────────────────────────────
+router.get("/barbers/me/queue", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const rows = await db.select().from(walkInQueueTable)
+    .where(eq(walkInQueueTable.barberId, b.id))
+    .orderBy(walkInQueueTable.position, walkInQueueTable.createdAt);
+  res.json(rows);
+});
+
+router.post("/barbers/me/queue", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const body = z.object({
+    clientName: z.string().min(1),
+    clientPhone: z.string().nullish(),
+    serviceId: z.number().int().nullish(),
+    notes: z.string().nullish(),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  if (body.data.serviceId != null) {
+    const [svc] = await db.select({ id: servicesTable.id }).from(servicesTable)
+      .where(and(eq(servicesTable.id, body.data.serviceId), eq(servicesTable.barberId, b.id))).limit(1);
+    if (!svc) { res.status(400).json({ error: "Invalid service" }); return; }
+  }
+  // Append to the end of the queue.
+  const [maxRow] = await db.select({ max: sql<number>`coalesce(max(${walkInQueueTable.position}), 0)` })
+    .from(walkInQueueTable)
+    .where(and(eq(walkInQueueTable.barberId, b.id), eq(walkInQueueTable.status, "waiting")));
+  const nextPos = (maxRow?.max ?? 0) + 1;
+  const [row] = await db.insert(walkInQueueTable).values({ barberId: b.id, position: nextPos, ...body.data }).returning();
+  res.status(201).json(row);
+});
+
+router.patch("/barbers/me/queue/:entryId", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const entryId = parseInt(String(req.params.entryId));
+  const body = z.object({ status: z.enum(["waiting", "in_progress", "done", "cancelled"]) }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  // Scope update by both entryId AND barberId to prevent IDOR.
+  const [row] = await db.update(walkInQueueTable)
+    .set({ status: body.data.status, updatedAt: new Date() })
+    .where(and(eq(walkInQueueTable.id, entryId), eq(walkInQueueTable.barberId, b.id)))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(row);
+});
+
+router.delete("/barbers/me/queue/:entryId", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const entryId = parseInt(String(req.params.entryId));
+  // Scope delete by both entryId AND barberId to prevent IDOR.
+  await db.delete(walkInQueueTable)
+    .where(and(eq(walkInQueueTable.id, entryId), eq(walkInQueueTable.barberId, b.id)));
   res.status(204).send();
 });
 
