@@ -72,6 +72,8 @@ export * from './notification';
 export * from './notificationInput';
 export * from './notificationInputType';
 export * from './notificationType';
+export * from './panorama';
+export * from './panoramaInput';
 export * from './realisation';
 export * from './realisationInput';
 export * from './registerInput';

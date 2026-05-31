@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable } from "@workspace/db";
+import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable, panoramasTable } from "@workspace/db";
 import { eq, avg, count, and, lt, lte, gte, inArray, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
@@ -712,6 +712,51 @@ router.get("/barbers/:id/realisations", async (req, res) => {
   const rows = await db.select().from(serviceRealisationsTable)
     .where(eq(serviceRealisationsTable.barberId, id))
     .orderBy(desc(serviceRealisationsTable.createdAt));
+  res.json(rows);
+});
+
+// ── PANORAMAS (360° TOUR) ──────────────────────────────────────────────
+router.get("/barbers/me/panoramas", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const rows = await db.select().from(panoramasTable)
+    .where(eq(panoramasTable.barberId, b.id))
+    .orderBy(panoramasTable.sortOrder, panoramasTable.createdAt);
+  res.json(rows);
+});
+
+router.post("/barbers/me/panoramas", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const body = z.object({
+    title: z.string().min(1).max(80),
+    // Only accept object-storage paths produced by our upload flow (no external/inline URLs).
+    imageUrl: z.string().min(1).refine((v) => v.startsWith("/objects/"), "Invalid image path"),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  const [maxRow] = await db.select({ max: sql<number>`coalesce(max(${panoramasTable.sortOrder}), 0)` })
+    .from(panoramasTable)
+    .where(eq(panoramasTable.barberId, b.id));
+  const nextOrder = (maxRow?.max ?? 0) + 1;
+  const [row] = await db.insert(panoramasTable).values({ barberId: b.id, sortOrder: nextOrder, ...body.data }).returning();
+  res.status(201).json(row);
+});
+
+router.delete("/barbers/me/panoramas/:panoramaId", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const panoramaId = parseInt(String(req.params.panoramaId));
+  // Scope delete by both panoramaId AND barberId to prevent IDOR.
+  await db.delete(panoramasTable)
+    .where(and(eq(panoramasTable.id, panoramaId), eq(panoramasTable.barberId, b.id)));
+  res.status(204).send();
+});
+
+router.get("/barbers/:id/panoramas", async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const rows = await db.select().from(panoramasTable)
+    .where(eq(panoramasTable.barberId, id))
+    .orderBy(panoramasTable.sortOrder, panoramasTable.createdAt);
   res.json(rows);
 });
 

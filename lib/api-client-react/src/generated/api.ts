@@ -65,6 +65,8 @@ import type {
   MonthlyStatPoint,
   Notification,
   NotificationInput,
+  Panorama,
+  PanoramaInput,
   Realisation,
   RealisationInput,
   RegisterInput,
@@ -3965,6 +3967,301 @@ export const useDeleteRealisation = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteRealisationMutationOptions(options));
+    }
+
+export const getListBarberPanoramasUrl = (id: number,) => {
+
+
+
+
+  return `/api/barbers/${id}/panoramas`
+}
+
+/**
+ * @summary Public list of a salon's 360° tour scenes
+ */
+export const listBarberPanoramas = async (id: number, options?: RequestInit): Promise<Panorama[]> => {
+
+  return customFetch<Panorama[]>(getListBarberPanoramasUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBarberPanoramasQueryKey = (id: number,) => {
+    return [
+    `/api/barbers/${id}/panoramas`
+    ] as const;
+    }
+
+
+export const getListBarberPanoramasQueryOptions = <TData = Awaited<ReturnType<typeof listBarberPanoramas>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBarberPanoramas>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBarberPanoramasQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBarberPanoramas>>> = ({ signal }) => listBarberPanoramas(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBarberPanoramas>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBarberPanoramasQueryResult = NonNullable<Awaited<ReturnType<typeof listBarberPanoramas>>>
+export type ListBarberPanoramasQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public list of a salon's 360° tour scenes
+ */
+
+export function useListBarberPanoramas<TData = Awaited<ReturnType<typeof listBarberPanoramas>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBarberPanoramas>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBarberPanoramasQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListMyPanoramasUrl = () => {
+
+
+
+
+  return `/api/barbers/me/panoramas`
+}
+
+/**
+ * @summary List my 360° tour scenes (barber)
+ */
+export const listMyPanoramas = async ( options?: RequestInit): Promise<Panorama[]> => {
+
+  return customFetch<Panorama[]>(getListMyPanoramasUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyPanoramasQueryKey = () => {
+    return [
+    `/api/barbers/me/panoramas`
+    ] as const;
+    }
+
+
+export const getListMyPanoramasQueryOptions = <TData = Awaited<ReturnType<typeof listMyPanoramas>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyPanoramas>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyPanoramasQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyPanoramas>>> = ({ signal }) => listMyPanoramas({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyPanoramas>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMyPanoramasQueryResult = NonNullable<Awaited<ReturnType<typeof listMyPanoramas>>>
+export type ListMyPanoramasQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List my 360° tour scenes (barber)
+ */
+
+export function useListMyPanoramas<TData = Awaited<ReturnType<typeof listMyPanoramas>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyPanoramas>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMyPanoramasQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreatePanoramaUrl = () => {
+
+
+
+
+  return `/api/barbers/me/panoramas`
+}
+
+/**
+ * @summary Add a 360° tour scene (barber)
+ */
+export const createPanorama = async (panoramaInput: PanoramaInput, options?: RequestInit): Promise<Panorama> => {
+
+  return customFetch<Panorama>(getCreatePanoramaUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      panoramaInput,)
+  }
+);}
+
+
+
+
+export const getCreatePanoramaMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPanorama>>, TError,{data: BodyType<PanoramaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPanorama>>, TError,{data: BodyType<PanoramaInput>}, TContext> => {
+
+const mutationKey = ['createPanorama'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPanorama>>, {data: BodyType<PanoramaInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPanorama(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePanoramaMutationResult = NonNullable<Awaited<ReturnType<typeof createPanorama>>>
+    export type CreatePanoramaMutationBody = BodyType<PanoramaInput>
+    export type CreatePanoramaMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a 360° tour scene (barber)
+ */
+export const useCreatePanorama = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPanorama>>, TError,{data: BodyType<PanoramaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPanorama>>,
+        TError,
+        {data: BodyType<PanoramaInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePanoramaMutationOptions(options));
+    }
+
+export const getDeletePanoramaUrl = (panoramaId: number,) => {
+
+
+
+
+  return `/api/barbers/me/panoramas/${panoramaId}`
+}
+
+/**
+ * @summary Delete a 360° tour scene (barber)
+ */
+export const deletePanorama = async (panoramaId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeletePanoramaUrl(panoramaId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeletePanoramaMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePanorama>>, TError,{panoramaId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePanorama>>, TError,{panoramaId: number}, TContext> => {
+
+const mutationKey = ['deletePanorama'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePanorama>>, {panoramaId: number}> = (props) => {
+          const {panoramaId} = props ?? {};
+
+          return  deletePanorama(panoramaId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePanoramaMutationResult = NonNullable<Awaited<ReturnType<typeof deletePanorama>>>
+
+    export type DeletePanoramaMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a 360° tour scene (barber)
+ */
+export const useDeletePanorama = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePanorama>>, TError,{panoramaId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deletePanorama>>,
+        TError,
+        {panoramaId: number},
+        TContext
+      > => {
+      return useMutation(getDeletePanoramaMutationOptions(options));
     }
 
 export const getListMyQueueUrl = () => {

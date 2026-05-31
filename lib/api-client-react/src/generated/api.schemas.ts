@@ -1001,6 +1001,20 @@ export interface RealisationInput {
   caption?: string | null;
 }
 
+export interface Panorama {
+  id: number;
+  barberId: number;
+  title: string;
+  imageUrl: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface PanoramaInput {
+  title: string;
+  imageUrl: string;
+}
+
 export type WalkInStatus = typeof WalkInStatus[keyof typeof WalkInStatus];
 
 
