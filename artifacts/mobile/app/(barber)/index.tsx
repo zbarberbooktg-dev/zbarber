@@ -225,6 +225,7 @@ export default function BarberDashboard() {
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="layers" label="Avant / Après" onPress={() => router.push("/(barber)/realisations")} />
+        <Shortcut c={c} icon="compass" label="Visite 360°" onPress={() => router.push("/(barber)/panoramas")} />
         <Shortcut c={c} icon="dollar-sign" label="Financement" onPress={() => router.push("/(barber)/financing")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>

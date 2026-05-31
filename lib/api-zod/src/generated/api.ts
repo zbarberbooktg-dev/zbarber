@@ -1210,6 +1210,55 @@ export const DeleteRealisationParams = zod.object({
 
 
 /**
+ * @summary Public list of a salon's 360° tour scenes
+ */
+export const ListBarberPanoramasParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListBarberPanoramasResponseItem = zod.object({
+  "id": zod.number(),
+  "barberId": zod.number(),
+  "title": zod.string(),
+  "imageUrl": zod.string(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+export const ListBarberPanoramasResponse = zod.array(ListBarberPanoramasResponseItem)
+
+
+/**
+ * @summary List my 360° tour scenes (barber)
+ */
+export const ListMyPanoramasResponseItem = zod.object({
+  "id": zod.number(),
+  "barberId": zod.number(),
+  "title": zod.string(),
+  "imageUrl": zod.string(),
+  "sortOrder": zod.number(),
+  "createdAt": zod.coerce.date()
+})
+export const ListMyPanoramasResponse = zod.array(ListMyPanoramasResponseItem)
+
+
+/**
+ * @summary Add a 360° tour scene (barber)
+ */
+export const CreatePanoramaBody = zod.object({
+  "title": zod.string(),
+  "imageUrl": zod.string()
+})
+
+
+/**
+ * @summary Delete a 360° tour scene (barber)
+ */
+export const DeletePanoramaParams = zod.object({
+  "panoramaId": zod.coerce.number()
+})
+
+
+/**
  * @summary List my walk-in queue (barber)
  */
 export const ListMyQueueResponseItem = zod.object({

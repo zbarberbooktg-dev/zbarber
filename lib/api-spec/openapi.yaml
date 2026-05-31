@@ -1014,6 +1014,75 @@ paths:
         "204":
           description: Deleted
 
+  # ── PANORAMAS (360° TOUR) ─────────────────────────────────────────────
+  /barbers/{id}/panoramas:
+    get:
+      operationId: listBarberPanoramas
+      tags: [panoramas]
+      summary: Public list of a salon's 360° tour scenes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Panoramas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Panorama"
+
+  /barbers/me/panoramas:
+    get:
+      operationId: listMyPanoramas
+      tags: [panoramas]
+      summary: List my 360° tour scenes (barber)
+      responses:
+        "200":
+          description: Panoramas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Panorama"
+    post:
+      operationId: createPanorama
+      tags: [panoramas]
+      summary: Add a 360° tour scene (barber)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PanoramaInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Panorama"
+
+  /barbers/me/panoramas/{panoramaId}:
+    delete:
+      operationId: deletePanorama
+      tags: [panoramas]
+      summary: Delete a 360° tour scene (barber)
+      parameters:
+        - in: path
+          name: panoramaId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   # ── WALK-IN QUEUE ─────────────────────────────────────────────────────
   /barbers/me/queue:
     get:
@@ -3227,6 +3296,33 @@ components:
         caption:
           type: string
           nullable: true
+
+    Panorama:
+      type: object
+      required: [id, barberId, title, imageUrl, sortOrder, createdAt]
+      properties:
+        id:
+          type: integer
+        barberId:
+          type: integer
+        title:
+          type: string
+        imageUrl:
+          type: string
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    PanoramaInput:
+      type: object
+      required: [title, imageUrl]
+      properties:
+        title:
+          type: string
+        imageUrl:
+          type: string
 
     WalkIn:
       type: object

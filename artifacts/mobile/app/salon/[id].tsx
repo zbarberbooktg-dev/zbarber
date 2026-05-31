@@ -8,6 +8,7 @@ import {
   useListBarberRealisations,
   useListBarberServices,
   useListFavorites,
+  useListBarberPanoramas,
   useListReviews,
   useRemoveFavorite,
 } from "@workspace/api-client-react";
@@ -38,6 +39,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ScrollHint } from "@/components/ScrollHint";
+import { PanoramaViewer } from "@/components/PanoramaViewer";
 
 const WEEK_DAYS_ORDER: Array<{ key: string; label: string }> = [
   { key: "monday", label: "Lundi" },
@@ -99,6 +101,11 @@ export default function PublicSalonDetail() {
   // Before/after realisations (public)
   const { data: realisationsData } = useListBarberRealisations(barberId);
   const realisations = realisationsData ?? [];
+
+  // 360° virtual tour (public)
+  const { data: panoramasData } = useListBarberPanoramas(barberId);
+  const panoramas = panoramasData ?? [];
+  const [tourOpen, setTourOpen] = useState(false);
 
   const isFr = String(locale).startsWith("fr");
   const handleToggleFavorite = async () => {
@@ -622,6 +629,34 @@ export default function PublicSalonDetail() {
           </View>
         )}
 
+        {/* 360° virtual tour */}
+        {panoramas.length > 0 && (
+          <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
+            <SectionTitle title="Visite 360°" />
+            <Pressable
+              onPress={() => setTourOpen(true)}
+              style={{ borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: PALETTE.border, position: "relative" }}
+            >
+              <Image
+                source={{ uri: resolveObjectUrl(panoramas[0].imageUrl)! }}
+                style={{ width: "100%", height: 170 }}
+                resizeMode="cover"
+              />
+              <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: PALETTE.gold, alignItems: "center", justifyContent: "center" }}>
+                  <Feather name="compass" size={26} color="#000" />
+                </View>
+                <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 14, marginTop: 10 }}>
+                  Explorer en 360°
+                </Text>
+                <Text style={{ color: "rgba(255,255,255,0.85)", fontFamily: "Inter_500Medium", fontSize: 12, marginTop: 2 }}>
+                  {panoramas.length > 1 ? `${panoramas.length} pièces à visiter` : "Visite immersive"}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+        )}
+
         {/* Before / after realisations */}
         {realisations.length > 0 && (
           <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
@@ -783,6 +818,14 @@ export default function PublicSalonDetail() {
             </Text>
           </Pressable>
         </View>
+      )}
+
+      {panoramas.length > 0 && (
+        <PanoramaViewer
+          scenes={panoramas.map((p) => ({ id: p.id, title: p.title, imageUrl: p.imageUrl }))}
+          visible={tourOpen}
+          onClose={() => setTourOpen(false)}
+        />
       )}
     </View>
   );
