@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { db, usersTable, accountDeletionRequestsTable } from "@workspace/db";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
+import { notifyAdmin } from "../lib/email";
 
 const router = Router();
 
@@ -68,6 +69,11 @@ router.post("/account-deletion-requests", async (req, res) => {
     reason: body.data.reason ?? null,
     userId: linked?.id ?? null,
   }).returning({ id: accountDeletionRequestsTable.id });
+
+  notifyAdmin(
+    "Nouvelle demande de suppression de compte",
+    `Une demande de suppression de compte a été reçue.\n\nEmail : ${body.data.email.toLowerCase()}\nNom : ${body.data.fullName ?? "—"}\nMotif : ${body.data.reason ?? "—"}\nCompte lié : ${linked?.id ? `#${linked.id}` : "aucun"}`,
+  );
 
   res.status(201).json({ id: created.id, ok: true });
 });

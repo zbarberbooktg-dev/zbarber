@@ -23,7 +23,7 @@ export const translations = {
       eyebrow: "Deux faces, un même écosystème",
       title: "Plus qu'une app. Une communauté.",
       lead:
-        "Global Barber Corp connecte le talent exceptionnel des barbiers africains aux clients en quête d'un grooming premium. Nous gérons la friction, vous vous concentrez sur l'art.",
+        "Zbarber connecte le talent exceptionnel des barbiers africains aux clients en quête d'un grooming premium. Nous gérons la friction, vous vous concentrez sur l'art.",
       forClients: "Pour les clients",
       forClientsDesc:
         "Trouvez les meilleurs barbiers à proximité, réservez instantanément sans téléphoner et payez sans friction. Votre standard, sublimé.",
@@ -87,7 +87,7 @@ export const translations = {
     },
     ctaBarbers: {
       title: "Prêt à faire passer votre salon au niveau supérieur ?",
-      desc: "Rejoignez des centaines de barbiers africains de premier plan qui développent leur clientèle avec Global Barber Corp.",
+      desc: "Rejoignez des centaines de barbiers africains de premier plan qui développent leur clientèle avec Zbarber.",
       become: "Devenir partenaire",
       benefits: "Voir les avantages partenaires",
     },
@@ -95,7 +95,7 @@ export const translations = {
       title: "Questions fréquentes",
       items: [
         { q: "Comment réserver un rendez-vous ?", a: "Téléchargez l'app, créez un compte et autorisez la géolocalisation pour trouver des barbiers à proximité. Choisissez un barbier, un service, un créneau et confirmez." },
-        { q: "Puis-je payer via l'app ?", a: "Oui. Global Barber Corp propose des paiements sécurisés intégrés. Carte bancaire ou mobile money local — vous payez avant même de quitter le fauteuil." },
+        { q: "Puis-je payer via l'app ?", a: "Oui. Zbarber propose des paiements sécurisés intégrés. Carte bancaire ou mobile money local — vous payez avant même de quitter le fauteuil." },
         { q: "Comment devenir barbier partenaire ?", a: "Cliquez sur « Devenir partenaire » pour envoyer votre candidature. Notre équipe étudie votre portfolio et vos références. Une fois approuvé, vous configurez votre profil et acceptez les réservations." },
         { q: "Qu'est-ce que le programme de financement matériel ?", a: "Les partenaires Premium avec un historique régulier peuvent demander un micro-financement pour renouveler leurs outils, acheter de nouveaux fauteuils ou rénover leur espace." },
         { q: "Que se passe-t-il si je dois annuler ?", a: "Vous pouvez annuler depuis l'app jusqu'à 24 h avant le rendez-vous sans pénalité. Les annulations tardives peuvent être facturées selon la politique du barbier." },
@@ -161,7 +161,7 @@ export const translations = {
       eyebrow: "Two Sides, One Ecosystem",
       title: "More than an app. It's a community.",
       lead:
-        "Global Barber Corp bridges the gap between exceptional African barbering talent and clients seeking premium grooming. We handle the friction so you can focus on the craft.",
+        "Zbarber bridges the gap between exceptional African barbering talent and clients seeking premium grooming. We handle the friction so you can focus on the craft.",
       forClients: "For Clients",
       forClientsDesc:
         "Find top-rated barbers nearby, book instantly without calling, and pay seamlessly. Your grooming standard, elevated.",
@@ -225,7 +225,7 @@ export const translations = {
     },
     ctaBarbers: {
       title: "Ready to elevate your shop?",
-      desc: "Join hundreds of top African barbers who are growing their client base and managing their business with Global Barber Corp.",
+      desc: "Join hundreds of top African barbers who are growing their client base and managing their business with Zbarber.",
       become: "Become a Partner",
       benefits: "View Partner Benefits",
     },
@@ -233,7 +233,7 @@ export const translations = {
       title: "Frequently Asked Questions",
       items: [
         { q: "How do I book an appointment?", a: "Simply download the app, create an account, and allow location services to find barbers near you. Select a barber, choose your service, pick an available time slot, and confirm." },
-        { q: "Can I pay through the app?", a: "Yes. Global Barber Corp offers secure, seamless in-app payments. You can add a credit/debit card or use supported local mobile money services to pay for your cut before you even leave the chair." },
+        { q: "Can I pay through the app?", a: "Yes. Zbarber offers secure, seamless in-app payments. You can add a credit/debit card or use supported local mobile money services to pay for your cut before you even leave the chair." },
         { q: "How do I become a barber partner?", a: "Click 'Become a Partner' to submit your application. Our team will review your portfolio and credentials. Once approved, you can set up your profile and start accepting bookings." },
         { q: "What is the equipment financing program?", a: "Premium partners with consistent booking history on our platform can apply for micro-financing to upgrade their tools, buy new chairs, or renovate their space." },
         { q: "What happens if I need to cancel my appointment?", a: "You can cancel through the app up to 24 hours before your appointment without penalty. Late cancellations may be subject to a fee depending on the specific barber's stated policy." },

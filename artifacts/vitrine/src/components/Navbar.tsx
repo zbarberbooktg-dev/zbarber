@@ -28,8 +28,8 @@ export function Navbar() {
         <div className="flex items-center justify-between h-20">
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="font-display font-bold text-2xl tracking-tighter text-primary flex items-center gap-2">
-              <span className="w-8 h-8 rounded bg-primary flex items-center justify-center text-primary-foreground text-sm">GB</span>
-              GLOBAL BARBER
+              <span className="w-8 h-8 rounded bg-primary flex items-center justify-center text-primary-foreground text-sm">ZB</span>
+              ZBARBER
             </Link>
           </div>
 

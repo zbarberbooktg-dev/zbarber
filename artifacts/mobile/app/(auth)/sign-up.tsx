@@ -201,7 +201,7 @@ export default function SignUpScreen() {
                 Créer un compte
               </Text>
               <Text style={{ fontFamily: "Inter_400Regular", color: c.mutedForeground }}>
-                Rejoignez la plateforme Global Barber
+                Rejoignez la plateforme Zbarber
               </Text>
             </View>
 

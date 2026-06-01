@@ -12,8 +12,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="font-display font-bold text-2xl tracking-tighter text-primary flex items-center gap-2 mb-4">
-              <span className="w-8 h-8 rounded bg-primary flex items-center justify-center text-primary-foreground text-sm">GB</span>
-              GLOBAL BARBER
+              <span className="w-8 h-8 rounded bg-primary flex items-center justify-center text-primary-foreground text-sm">ZB</span>
+              ZBARBER
             </Link>
             <p className="text-sm text-muted-foreground mb-6">{t.footer.tagline}</p>
             <div className="flex space-x-4">
@@ -59,7 +59,7 @@ export function Footer() {
 
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Global Barber Corp. {t.footer.copyright}
+            &copy; {new Date().getFullYear()} Zbarber. {t.footer.copyright}
           </p>
           <p className="text-sm text-muted-foreground mt-2 md:mt-0 flex items-center">
             {t.footer.slogan}

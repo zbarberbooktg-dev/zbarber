@@ -72,7 +72,7 @@ export async function runReminderSweep(): Promise<number> {
       await sendEmail({
         to: r.clientEmail,
         subject: `Rappel : votre rendez-vous chez ${salon} demain`,
-        text: `Bonjour ${r.clientName ?? ""},\n\nCeci est un rappel pour votre rendez-vous "${service}" chez ${salon}, prévu ${when}.\n\nÀ bientôt !\nGlobal Barber Corp`,
+        text: `Bonjour ${r.clientName ?? ""},\n\nCeci est un rappel pour votre rendez-vous "${service}" chez ${salon}, prévu ${when}.\n\nÀ bientôt !\nZbarber`,
       });
       sent += 1;
     } catch (err) {

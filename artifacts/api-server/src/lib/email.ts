@@ -67,3 +67,24 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ delivered: bo
 export function isSmtpConfigured(): boolean {
   return readSmtpConfig() !== null;
 }
+
+/**
+ * The address that receives all platform notifications destined for the admin
+ * team (new barber registrations, financing requests, account-deletion
+ * requests, etc.). Overridable via ADMIN_NOTIFICATION_EMAIL; defaults to the
+ * Zbarber contact inbox.
+ */
+export const ADMIN_NOTIFICATION_EMAIL =
+  process.env.ADMIN_NOTIFICATION_EMAIL?.trim() || "zbarberbook@gmail.com";
+
+/**
+ * Send a notification email to the admin team. Fire-and-forget: never throws,
+ * so callers can invoke it without awaiting and a mail failure can never break
+ * the originating request. If SMTP is unconfigured the message is logged (see
+ * sendEmail).
+ */
+export function notifyAdmin(subject: string, text: string): void {
+  void sendEmail({ to: ADMIN_NOTIFICATION_EMAIL, subject: `[Zbarber] ${subject}`, text }).catch((err) => {
+    logger.error({ err, subject }, "Failed to send admin notification email");
+  });
+}

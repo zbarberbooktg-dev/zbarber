@@ -54,7 +54,7 @@ export default function BarberPending() {
         >
           {isSuspended
             ? "Votre compte barbier a été suspendu. Contactez l'administration pour plus d'informations."
-            : "Votre demande d'inscription en tant que barbier est en cours d'examen par l'équipe Global Barber. Vous recevrez une notification dès la validation de votre compte."}
+            : "Votre demande d'inscription en tant que barbier est en cours d'examen par l'équipe Zbarber. Vous recevrez une notification dès la validation de votre compte."}
         </Text>
       </View>
 

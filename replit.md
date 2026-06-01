@@ -1,4 +1,4 @@
-# Global Barber Corp
+# Zbarber
 
 Plateforme multi-artifacts pour la réservation de salons de coiffure en RDC — app mobile publique (Expo), vitrine web, dashboard admin, et API REST.
 

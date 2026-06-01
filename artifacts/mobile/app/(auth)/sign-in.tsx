@@ -195,7 +195,7 @@ export default function SignInScreen() {
                 Bon retour
               </Text>
               <Text style={{ fontFamily: "Inter_400Regular", color: c.mutedForeground }}>
-                Connectez-vous à votre compte Global Barber
+                Connectez-vous à votre compte Zbarber
               </Text>
             </View>
 
