@@ -4,7 +4,7 @@ export type Lang = "fr" | "en";
 
 export const translations = {
   fr: {
-    brand: { name: "Global Barber", role: "Admin" },
+    brand: { name: "Zbarber", role: "Admin" },
     common: {
       loading: "Chargement...",
       noData: "Aucune donnée",
@@ -40,7 +40,7 @@ export const translations = {
     },
     dashboard: {
       title: "Tableau de bord",
-      subtitle: "Vue globale de la plateforme Global Barber Corp",
+      subtitle: "Vue globale de la plateforme Zbarber",
       users: "Utilisateurs",
       barbers: "Barbiers",
       reservations: "Réservations",
@@ -362,7 +362,7 @@ export const translations = {
     notFound: { title: "404 — Page introuvable" },
   },
   en: {
-    brand: { name: "Global Barber", role: "Admin" },
+    brand: { name: "Zbarber", role: "Admin" },
     common: {
       loading: "Loading...",
       noData: "No data",
@@ -398,7 +398,7 @@ export const translations = {
     },
     dashboard: {
       title: "Dashboard",
-      subtitle: "Global overview of the Global Barber Corp platform",
+      subtitle: "Global overview of the Zbarber platform",
       users: "Users",
       barbers: "Barbers",
       reservations: "Bookings",

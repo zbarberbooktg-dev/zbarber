@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAdminAuth } from "../lib/adminAuth";
 import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
+import { notifyAdmin } from "../lib/email";
 
 const router = Router();
 
@@ -363,6 +364,10 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
   if (user.role === "client") {
     await db.update(usersTable).set({ role: "barber" }).where(eq(usersTable.id, user.id));
   }
+  notifyAdmin(
+    "Nouvelle inscription barbier à valider",
+    `Un nouveau salon est en attente de validation.\n\nSalon : ${barber.salonName}\nVille : ${barber.city ?? "—"}\nPays : ${barber.country ?? "—"}\nDemandeur : ${user.name ?? user.email ?? `#${user.id}`}`,
+  );
   res.status(201).json(barber);
 });
 
@@ -404,6 +409,10 @@ router.post("/barbers/me/financing", requireAuth, requireApprovedBarber, async (
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [created] = await db.insert(financingRequestsTable).values({ ...body.data, barberId: req.barberId! }).returning();
+  notifyAdmin(
+    "Nouvelle demande de financement",
+    `Une demande de financement a été soumise (salon #${req.barberId}).\n\nMontant : ${body.data.amount} FC\nObjet : ${body.data.purpose}\nDescription : ${body.data.description}`,
+  );
   res.status(201).json(created);
 });
 

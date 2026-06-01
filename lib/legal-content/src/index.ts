@@ -23,8 +23,8 @@ export const LEGAL: Record<LegalLang, LegalContent> = {
       title: "Conditions d'utilisation",
       lastUpdated: "Dernière mise à jour :",
       sections: [
-        { heading: "1. Acceptation des conditions", body: "En accédant à l'application et au site Global Barber Corp, vous acceptez d'être lié par ces conditions et toutes les lois applicables. Si vous n'acceptez pas, vous ne pouvez pas utiliser la plateforme." },
-        { heading: "2. Licence d'utilisation", body: "Permission est accordée de télécharger temporairement une copie des contenus de Global Barber Corp pour un usage personnel et non commercial. Cette licence ne vous permet pas de :", list: [
+        { heading: "1. Acceptation des conditions", body: "En accédant à l'application et au site Zbarber, vous acceptez d'être lié par ces conditions et toutes les lois applicables. Si vous n'acceptez pas, vous ne pouvez pas utiliser la plateforme." },
+        { heading: "2. Licence d'utilisation", body: "Permission est accordée de télécharger temporairement une copie des contenus de Zbarber pour un usage personnel et non commercial. Cette licence ne vous permet pas de :", list: [
           "Modifier ou copier les contenus ;",
           "Utiliser les contenus à des fins commerciales ;",
           "Décompiler ou faire de l'ingénierie inverse sur tout logiciel de la plateforme ;",
@@ -43,15 +43,15 @@ export const LEGAL: Record<LegalLang, LegalContent> = {
           "Laisser des avis honnêtes et équitables.",
           "Payer pour les services réservés et rendus.",
         ] },
-        { heading: "5. Avertissement", body: "Les contenus sont fournis « en l'état ». Global Barber Corp ne donne aucune garantie expresse ou implicite et décline toute garantie de qualité marchande, d'adéquation à un usage particulier ou de non-violation." },
-        { heading: "6. Loi applicable", body: "Ces conditions sont régies par les lois de la juridiction dans laquelle Global Barber Corp opère." },
+        { heading: "5. Avertissement", body: "Les contenus sont fournis « en l'état ». Zbarber ne donne aucune garantie expresse ou implicite et décline toute garantie de qualité marchande, d'adéquation à un usage particulier ou de non-violation." },
+        { heading: "6. Loi applicable", body: "Ces conditions sont régies par les lois de la juridiction dans laquelle Zbarber opère." },
       ],
     },
     privacy: {
       title: "Politique de confidentialité",
       lastUpdated: "Dernière mise à jour :",
       sections: [
-        { heading: "1. Informations que nous collectons", body: "Global Barber Corp (« nous », « notre ») collecte les informations que vous nous fournissez directement, notamment :", list: [
+        { heading: "1. Informations que nous collectons", body: "Zbarber (« nous », « notre ») collecte les informations que vous nous fournissez directement, notamment :", list: [
           "Informations de compte : nom, email, téléphone et mot de passe.",
           "Informations de profil : photo, préférences et historique de réservations.",
           "Informations barbiers : références professionnelles, adresse du salon, photos de portfolio et coordonnées bancaires.",
@@ -70,7 +70,7 @@ export const LEGAL: Record<LegalLang, LegalContent> = {
           "En réponse à une demande légale si nous estimons la divulgation conforme à la loi.",
         ] },
         { heading: "4. Sécurité", body: "Nous prenons des mesures raisonnables pour protéger vos informations contre la perte, le vol et l'accès non autorisé. Nous utilisons des protocoles de chiffrement standards." },
-        { heading: "5. Nous contacter", body: "Pour toute question sur cette politique, contactez-nous à privacy@globalbarber.com." },
+        { heading: "5. Nous contacter", body: "Pour toute question sur cette politique, contactez-nous à zbarberbook@gmail.com." },
       ],
     },
   },
@@ -79,8 +79,8 @@ export const LEGAL: Record<LegalLang, LegalContent> = {
       title: "Terms of Use",
       lastUpdated: "Last updated:",
       sections: [
-        { heading: "1. Acceptance of Terms", body: "By accessing or using the Global Barber Corp application and website, you agree to be bound by these Terms of Use and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this platform." },
-        { heading: "2. Use License", body: "Permission is granted to temporarily download one copy of the materials on Global Barber Corp's platform for personal, non-commercial transitory viewing only. Under this license you may not:", list: [
+        { heading: "1. Acceptance of Terms", body: "By accessing or using the Zbarber application and website, you agree to be bound by these Terms of Use and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this platform." },
+        { heading: "2. Use License", body: "Permission is granted to temporarily download one copy of the materials on Zbarber's platform for personal, non-commercial transitory viewing only. Under this license you may not:", list: [
           "Modify or copy the materials;",
           "Use the materials for any commercial purpose, or for any public display;",
           "Attempt to decompile or reverse engineer any software contained on the platform;",
@@ -99,15 +99,15 @@ export const LEGAL: Record<LegalLang, LegalContent> = {
           "Provide fair and honest reviews.",
           "Pay for all services booked and received.",
         ] },
-        { heading: "5. Disclaimer", body: "The materials on Global Barber Corp's platform are provided on an 'as is' basis. Global Barber Corp makes no warranties, expressed or implied, and disclaims all other warranties including, without limitation, implied warranties of merchantability, fitness for a particular purpose, or non-infringement." },
-        { heading: "6. Governing Law", body: "These terms are governed by the laws of the jurisdiction in which Global Barber Corp operates." },
+        { heading: "5. Disclaimer", body: "The materials on Zbarber's platform are provided on an 'as is' basis. Zbarber makes no warranties, expressed or implied, and disclaims all other warranties including, without limitation, implied warranties of merchantability, fitness for a particular purpose, or non-infringement." },
+        { heading: "6. Governing Law", body: "These terms are governed by the laws of the jurisdiction in which Zbarber operates." },
       ],
     },
     privacy: {
       title: "Privacy Policy",
       lastUpdated: "Last updated:",
       sections: [
-        { heading: "1. Information We Collect", body: 'Global Barber Corp ("we", "our") collects information you provide directly to us, including:', list: [
+        { heading: "1. Information We Collect", body: 'Zbarber ("we", "our") collects information you provide directly to us, including:', list: [
           "Account Information: name, email, phone number, and password.",
           "Profile Information: profile photo, preferences, and booking history.",
           "Barber-Specific Information: professional credentials, salon location, portfolio images, and payout details.",
@@ -126,7 +126,7 @@ export const LEGAL: Record<LegalLang, LegalContent> = {
           "In response to a legal request if we believe disclosure is required by law.",
         ] },
         { heading: "4. Security", body: "We take reasonable measures to protect information about you from loss, theft, and unauthorized access. We use industry-standard encryption protocols." },
-        { heading: "5. Contact Us", body: "For any question about this policy, contact us at privacy@globalbarber.com." },
+        { heading: "5. Contact Us", body: "For any question about this policy, contact us at zbarberbook@gmail.com." },
       ],
     },
   },

@@ -159,10 +159,7 @@ export default function PublicHome() {
       }}>
         <View>
           <Text style={{ color: PALETTE.gold, fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase" }}>
-            Global Barber
-          </Text>
-          <Text style={{ color: PALETTE.textDim, fontFamily: "Inter_400Regular", fontSize: 9, letterSpacing: 1.5, textTransform: "uppercase", marginTop: 1 }}>
-            Corp.
+            Zbarber
           </Text>
         </View>
 
@@ -269,7 +266,7 @@ export default function PublicHome() {
                 <Text style={{ color: "#000", fontSize: 10, letterSpacing: 1.5, fontFamily: "Inter_700Bold", textTransform: "uppercase" }}>L'Édito</Text>
               </View>
               <Text style={{ color: PALETTE.textMuted, fontFamily: serifItalic, fontSize: 13 }}>
-                Le journal Global Barber
+                Le journal Zbarber
               </Text>
             </View>
             <ScrollView

@@ -287,7 +287,7 @@ export default function Home() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-4 text-foreground">
                     <Mail className="w-6 h-6 text-primary" />
-                    <span className="text-lg font-medium">contact@globalbarber.com</span>
+                    <a href="mailto:zbarberbook@gmail.com" className="text-lg font-medium hover:text-primary transition-colors">zbarberbook@gmail.com</a>
                   </div>
                   <div className="flex items-center gap-4 text-foreground">
                     <MapPin className="w-6 h-6 text-primary" />

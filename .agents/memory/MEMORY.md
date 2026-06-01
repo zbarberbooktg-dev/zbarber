@@ -13,6 +13,7 @@
 - [Dual-role accounts](dual-role.md) — one Clerk user, both client & barber capabilities; users.role is the active role; switching to barber requires an existing barber profile (or fresh-signup exception in /auth/sync).
 - [Admin auth split from Clerk](admin-auth-split.md) — admins are self-managed (cookie JWT, bcrypt, separate adminAccountsTable); mobile clients/barbers stay on Clerk; hybrid routes use requireAuthOrAdmin and branch on req.admin.
 - [Shared legal content lib](legal-content-lib.md) — CGU + privacy live in lib/legal-content; consumed by mobile + vitrine; single source of truth, structured sections (no si/sip/sil keys).
+- [Rebrand & contact config](rebrand-and-contact.md) — brand is "Zbarber"; on rebrand do NOT rename internal gbc.* storage/cookie/CSS keys; admin emails via fire-and-forget notifyAdmin() → ADMIN_NOTIFICATION_EMAIL.
 - [360° panorama viewer](panorama-360-viewer.md) — Pannellum in WebView/iframe; same-origin baseUrl for WebGL CORS, escape `<` to stop stored XSS, switch scenes via injectJS (native) / postMessage (web).
 - [Articles (L'édito)](articles-edito.md) — server-side sanitize-html on contentHtml is the only XSS defense (mobile RenderHTML trusts API); sortOrder = max+1 server-side; visibility window = published + startsAt≤now + (endsAt null or future).
 - [Reminder scheduler](reminder-scheduler.md) — 24h email reminders must claim-then-send (atomic UPDATE...RETURNING on reminderSentAt) to avoid double-emails; window is upper-bound (now..now+24h) to survive downtime.

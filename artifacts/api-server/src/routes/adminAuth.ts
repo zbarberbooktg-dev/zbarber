@@ -103,10 +103,10 @@ router.post("/admin-auth/invite", requireAdminAuth, async (req: AdminAuthedReque
     invitedByAdminId: req.admin!.id,
   }).returning();
 
-  const subject = "Invitation à la console admin Global Barber Corp";
+  const subject = "Invitation à la console admin Zbarber";
   const text = `Bonjour ${body.data.name},
 
-Vous avez été invité(e) à la console d'administration Global Barber Corp par ${req.admin!.name}.
+Vous avez été invité(e) à la console d'administration Zbarber par ${req.admin!.name}.
 
 Vos identifiants temporaires :
   Email      : ${email}

@@ -4,6 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAdminAuth, requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
+import { notifyAdmin } from "../lib/email";
 
 const router = Router();
 
@@ -72,6 +73,10 @@ router.post("/financing-requests", requireAuth, async (req: AuthedRequest, res) 
       const [row] = await tx.insert(financingRequestsTable).values({ ...body.data, barberId: b.id }).returning();
       return row;
     });
+    notifyAdmin(
+      "Nouvelle demande de financement",
+      `Le salon "${b.salonName}" (#${b.id}) a soumis une demande de financement.\n\nMontant : ${body.data.amount} FC\nObjet : ${body.data.purpose}\nDurée de remboursement : ${body.data.repaymentMonths} mois`,
+    );
     res.status(201).json(created);
   } catch (e) {
     if (e instanceof Error && e.message === "ACTIVE_REQUEST_EXISTS") {
