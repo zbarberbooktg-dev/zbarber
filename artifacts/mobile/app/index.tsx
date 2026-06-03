@@ -67,6 +67,7 @@ export default function PublicHome() {
     textDim: tp.mutedForeground,
     gold: tp.primary,
   };
+  const buttonBorder = effective === "dark" ? PALETTE.border : "#000";
   const fetcher = useAuthedFetch();
   const [query, setQuery] = useState("");
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -172,7 +173,7 @@ export default function PublicHome() {
             <Pressable
               onPress={handleRefreshLocation}
               disabled={locationRefreshing}
-              style={{ width: 36, height: 36, borderWidth: 1, borderColor: PALETTE.border, alignItems: "center", justifyContent: "center" }}
+              style={{ width: 36, height: 36, borderWidth: 1, borderColor: buttonBorder, alignItems: "center", justifyContent: "center" }}
               hitSlop={6}
             >
               {locationRefreshing
@@ -181,7 +182,7 @@ export default function PublicHome() {
             </Pressable>
             <Pressable
               onPress={() => router.push("/(client)/bookings")}
-              style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: PALETTE.border }}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: buttonBorder }}
             >
               <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
                 {lang === "fr" ? "Mes réservations" : "My bookings"}
@@ -192,7 +193,7 @@ export default function PublicHome() {
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Pressable
               onPress={() => router.push("/(auth)/sign-in")}
-              style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: PALETTE.border }}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: buttonBorder }}
             >
               <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>Connexion</Text>
             </Pressable>
