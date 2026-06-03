@@ -25,25 +25,16 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useColorScheme,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/contexts/AppContext";
+import colors from "@/constants/colors";
 import { useAuthedFetch } from "@/lib/api";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ONBOARDING_KEY } from "./onboarding";
-
-const PALETTE = {
-  bg: "#0A0A0A",
-  surface: "#141414",
-  surfaceAlt: "#1A1A1A",
-  border: "#2A2A2A",
-  text: "#F3F0E9",
-  textMuted: "#A09D94",
-  textDim: "#5A5A5A",
-  gold: "#D4AF37",
-};
 
 const heroImage = require("../assets/images/client-home/hero.png");
 const salonFallbacks: ImageSourcePropType[] = [
@@ -62,7 +53,20 @@ export default function PublicHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isSignedIn, isLoaded } = useAuth();
-  const { ready, syncing, user, role, lang, syncAuth } = useApp();
+  const { ready, syncing, user, role, lang, syncAuth, themePref } = useApp();
+  const systemScheme = useColorScheme();
+  const effective = themePref === "system" ? (systemScheme ?? "dark") : themePref;
+  const tp = effective === "dark" ? colors.dark : colors.light;
+  const PALETTE = {
+    bg: tp.background,
+    surface: tp.card,
+    surfaceAlt: tp.secondary,
+    border: tp.border,
+    text: tp.foreground,
+    textMuted: tp.mutedForeground,
+    textDim: tp.mutedForeground,
+    gold: tp.primary,
+  };
   const fetcher = useAuthedFetch();
   const [query, setQuery] = useState("");
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -158,7 +162,7 @@ export default function PublicHome() {
         backgroundColor: PALETTE.bg,
       }}>
         <View>
-          <Text style={{ color: PALETTE.gold, fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase" }}>
+          <Text style={{ color: effective === "dark" ? PALETTE.gold : PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase" }}>
             Zbarber
           </Text>
         </View>
@@ -210,7 +214,7 @@ export default function PublicHome() {
       >
         {/* Hero + search */}
         <View style={{ paddingHorizontal: 20, marginTop: 8, marginBottom: 24 }}>
-          <Text style={{ color: "#fff", fontFamily: serifBold, fontSize: 36, lineHeight: 42 }}>
+          <Text style={{ color: PALETTE.text, fontFamily: serifBold, fontSize: 36, lineHeight: 42 }}>
             {isSignedIn && user ? `Bonjour,\n${user.name?.split(" ")[0] ?? "vous"}.` : "Découvrez\nl'excellence."}
           </Text>
           <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 6, marginBottom: 20 }}>
@@ -291,7 +295,7 @@ export default function PublicHome() {
                     <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(10,10,10,0.30)" }} />
                   </View>
                   <Text
-                    style={{ color: "#fff", fontFamily: serif, fontSize: 18, lineHeight: 24, marginTop: 12 }}
+                    style={{ color: PALETTE.text, fontFamily: serif, fontSize: 18, lineHeight: 24, marginTop: 12 }}
                     numberOfLines={2}
                   >
                     {a.title}
@@ -320,6 +324,8 @@ export default function PublicHome() {
           action={query ? "" : "Tout voir"}
           serifFont={serif}
           onPressAction={() => router.push("/salons" as never)}
+          textColor={PALETTE.text}
+          accentColor={PALETTE.gold}
         />
         </View>
         {isLoading ? (
@@ -350,7 +356,7 @@ export default function PublicHome() {
                     </View>
                   )}
                 </View>
-                <Text style={{ color: "#fff", fontFamily: serif, fontSize: 18, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
+                <Text style={{ color: PALETTE.text, fontFamily: serif, fontSize: 18, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                   <Feather name="map-pin" size={10} color={PALETTE.textMuted} />
                   <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 11 }} numberOfLines={1}>
@@ -370,6 +376,8 @@ export default function PublicHome() {
               action="Galerie"
               serifFont={serif}
               onPressAction={() => router.push("/gallery")}
+              textColor={PALETTE.text}
+              accentColor={PALETTE.gold}
             />
             <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
@@ -403,7 +411,7 @@ export default function PublicHome() {
                     >
                       <Image source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: 72, height: 72 }} resizeMode="cover" />
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: "#fff", fontFamily: serif, fontSize: 16, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
+                        <Text style={{ color: PALETTE.text, fontFamily: serif, fontSize: 16, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>
                           <Feather name="map-pin" size={10} color={PALETTE.textMuted} />
                           <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 11 }} numberOfLines={1}>
@@ -413,7 +421,7 @@ export default function PublicHome() {
                         {b.rating && Number(b.rating) > 0 ? (
                           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                             <Feather name="star" size={10} color={PALETTE.gold} />
-                            <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>{Number(b.rating).toFixed(1)}</Text>
+                            <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 11 }}>{Number(b.rating).toFixed(1)}</Text>
                           </View>
                         ) : (
                           <Text style={{ color: PALETTE.gold, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1, textTransform: "uppercase" }}>Nouveau</Text>
@@ -436,7 +444,7 @@ export default function PublicHome() {
                     <Feather name="scissors" size={22} color={PALETTE.gold} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: "#fff", fontFamily: serif, fontSize: 17, marginBottom: 4 }}>Vous êtes barbier ?</Text>
+                    <Text style={{ color: PALETTE.text, fontFamily: serif, fontSize: 17, marginBottom: 4 }}>Vous êtes barbier ?</Text>
                     <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18 }}>
                       Publiez votre salon, gérez vos rdv.
                     </Text>
@@ -476,13 +484,13 @@ export default function PublicHome() {
   );
 }
 
-function SectionHeader({ title, action, serifFont, onPressAction }: { title: string; action: string; serifFont: string; onPressAction?: () => void }) {
+function SectionHeader({ title, action, serifFont, onPressAction, textColor, accentColor }: { title: string; action: string; serifFont: string; onPressAction?: () => void; textColor: string; accentColor: string }) {
   return (
     <View style={{ paddingHorizontal: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16 }}>
-      <Text style={{ color: PALETTE.text, fontFamily: serifFont, fontSize: 22 }}>{title}</Text>
+      <Text style={{ color: textColor, fontFamily: serifFont, fontSize: 22 }}>{title}</Text>
       {action ? (
         <Pressable onPress={onPressAction} hitSlop={8}>
-          <Text style={{ color: PALETTE.gold, fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, textTransform: "uppercase" }}>{action}</Text>
+          <Text style={{ color: accentColor, fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, textTransform: "uppercase" }}>{action}</Text>
         </Pressable>
       ) : null}
     </View>
