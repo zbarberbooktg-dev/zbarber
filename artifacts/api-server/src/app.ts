@@ -15,6 +15,10 @@ import { ensureRootAdmin } from "./lib/adminSeed";
 
 const app: Express = express();
 
+// Behind nginx (TLS terminated by the reverse proxy): trust the first proxy hop
+// so `req.secure`, `req.protocol` and the client IP (X-Forwarded-*) are correct.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
