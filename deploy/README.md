@@ -180,6 +180,13 @@ right checkout, then runs `deploy/deploy.sh <service> <env>` (pnpm install → b
 for the API, `systemctl restart`). Prod and test deploys are serialized via the
 `concurrency` group so two prod jobs never overlap.
 
+After building/restarting, `deploy.sh` runs a **post-deploy health check**: it curls
+the live domain(s) for that service (the API `/api/healthz`, plus the SPA index and
+proxied `/api/healthz` for the vitrine/admin frontends), retrying briefly to let a
+freshly-restarted service come up. A non-2xx (or no) response makes the script exit
+non-zero, which fails the SSH step and turns the GitHub Actions run red — so a broken
+deploy is obvious immediately instead of relying on manual checking.
+
 You can also deploy by hand on the VPS:
 
 ```bash

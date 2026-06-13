@@ -55,4 +55,48 @@ case "$SERVICE" in
     ;;
 esac
 
+# --- Post-deploy smoke check ------------------------------------------------
+# Curl the live domain(s) for the service we just deployed. A non-2xx response
+# (or no response) makes this script exit non-zero, which fails the SSH step in
+# GitHub Actions so a broken deploy is immediately obvious (red run).
+if [ "$ENVIRONMENT" = "prod" ]; then
+  VITRINE_HOST="zbarber.net"
+  ADMIN_HOST="admin.zbarber.net"
+  API_HOST="api.zbarber.net"
+else
+  VITRINE_HOST="test.zbarber.net"
+  ADMIN_HOST="admin.test.zbarber.net"
+  API_HOST="api.test.zbarber.net"
+fi
+
+check_url() {
+  local url="$1"
+  local code
+  echo "==> Health check: $url"
+  # Retry to give a freshly-restarted service time to start accepting traffic.
+  if code="$(curl -fsSL -o /dev/null -w '%{http_code}' \
+      --retry 6 --retry-delay 3 --retry-connrefused --max-time 20 "$url")"; then
+    echo "    OK (HTTP $code)"
+    return 0
+  fi
+  echo "!! Health check FAILED for $url (curl exit / non-2xx)" >&2
+  return 1
+}
+
+echo "==> Running post-deploy health check for '$SERVICE' ($ENVIRONMENT)"
+case "$SERVICE" in
+  api)
+    check_url "https://$API_HOST/api/healthz"
+    ;;
+  vitrine)
+    check_url "https://$VITRINE_HOST/"
+    check_url "https://$VITRINE_HOST/api/healthz"
+    ;;
+  admin)
+    check_url "https://$ADMIN_HOST/"
+    check_url "https://$ADMIN_HOST/api/healthz"
+    ;;
+esac
+echo "==> Health check passed for '$SERVICE' ($ENVIRONMENT)"
+
 echo "==> Done: $SERVICE ($ENVIRONMENT)"
