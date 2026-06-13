@@ -49,6 +49,14 @@ Thumbs.db
 .env.*
 !.env.example
 
+# SSH keys / credentials — never commit private keys
+zbarber_deploy
+zbarber_deploy.pub
+*.pem
+id_rsa
+id_ed25519
+id_ecdsa
+
 # Replit
 .cache/
 .local/
