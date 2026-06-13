@@ -1,0 +1,82 @@
+zbarber@vps121492:~$ ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+git clone -b main git@github.com:zbarberbooktg-dev/zbarber.git /srv/zbarber/prod
+git clone -b test git@github.com:zbarberbooktg-dev/zbarber.git /srv/zbarber/test
+
+ls -la /srv/zbarber/prod /srv/zbarber/test
+exit
+Cloning into '/srv/zbarber/prod'...
+remote: Enumerating objects: 1941, done.
+remote: Total 1941 (delta 0), reused 0 (delta 0), pack-reused 1941 (from 1)
+Receiving objects: 100% (1941/1941), 42.82 MiB | 15.07 MiB/s, done.
+Resolving deltas: 100% (1195/1195), done.
+Cloning into '/srv/zbarber/test'...
+remote: Enumerating objects: 1941, done.
+remote: Total 1941 (delta 0), reused 0 (delta 0), pack-reused 1941 (from 1)
+Receiving objects: 100% (1941/1941), 42.82 MiB | 15.57 MiB/s, done.
+Resolving deltas: 100% (1195/1195), done.
+/srv/zbarber/prod:
+total 632
+drwxr-xr-x 10 zbarber zbarber   4096 juin  13 20:48 .
+drwxr-xr-x  4 zbarber zbarber   4096 juin  13 20:17 ..
+drwxrwxr-x  3 zbarber zbarber   4096 juin  13 20:48 .agents
+drwxrwxr-x  7 zbarber zbarber   4096 juin  13 20:48 artifacts
+drwxrwxr-x  2 zbarber zbarber   4096 juin  13 20:48 attached_assets
+drwxrwxr-x  5 zbarber zbarber   4096 juin  13 20:48 deploy
+drwxrwxr-x  8 zbarber zbarber   4096 juin  13 20:48 .git
+drwxrwxr-x  3 zbarber zbarber   4096 juin  13 20:48 .github
+-rw-rw-r--  1 zbarber zbarber    719 juin  13 20:48 .gitignore
+drwxrwxr-x  7 zbarber zbarber   4096 juin  13 20:48 lib
+-rw-rw-r--  1 zbarber zbarber     56 juin  13 20:48 .npmrc
+-rw-rw-r--  1 zbarber zbarber    585 juin  13 20:48 package.json
+-rw-rw-r--  1 zbarber zbarber 557506 juin  13 20:48 pnpm-lock.yaml
+-rw-rw-r--  1 zbarber zbarber   4555 juin  13 20:48 pnpm-workspace.yaml
+-rw-rw-r--  1 zbarber zbarber   1021 juin  13 20:48 .replit
+-rw-rw-r--  1 zbarber zbarber    201 juin  13 20:48 .replitignore
+-rw-rw-r--  1 zbarber zbarber   4273 juin  13 20:48 replit.md
+drwxrwxr-x  3 zbarber zbarber   4096 juin  13 20:48 scripts
+-rw-rw-r--  1 zbarber zbarber    667 juin  13 20:48 tsconfig.base.json
+-rw-rw-r--  1 zbarber zbarber    285 juin  13 20:48 tsconfig.json
+
+/srv/zbarber/test:
+total 632
+drwxr-xr-x 10 zbarber zbarber   4096 juin  13 20:48 .
+drwxr-xr-x  4 zbarber zbarber   4096 juin  13 20:17 ..
+drwxrwxr-x  3 zbarber zbarber   4096 juin  13 20:48 .agents
+drwxrwxr-x  7 zbarber zbarber   4096 juin  13 20:48 artifacts
+drwxrwxr-x  2 zbarber zbarber   4096 juin  13 20:48 attached_assets
+drwxrwxr-x  5 zbarber zbarber   4096 juin  13 20:48 deploy
+drwxrwxr-x  8 zbarber zbarber   4096 juin  13 20:48 .git
+drwxrwxr-x  3 zbarber zbarber   4096 juin  13 20:48 .github
+-rw-rw-r--  1 zbarber zbarber    719 juin  13 20:48 .gitignore
+drwxrwxr-x  7 zbarber zbarber   4096 juin  13 20:48 lib
+-rw-rw-r--  1 zbarber zbarber     56 juin  13 20:48 .npmrc
+-rw-rw-r--  1 zbarber zbarber    585 juin  13 20:48 package.json
+-rw-rw-r--  1 zbarber zbarber 557506 juin  13 20:48 pnpm-lock.yaml
+-rw-rw-r--  1 zbarber zbarber   4555 juin  13 20:48 pnpm-workspace.yaml
+-rw-rw-r--  1 zbarber zbarber   1021 juin  13 20:48 .replit
+-rw-rw-r--  1 zbarber zbarber    201 juin  13 20:48 .replitignore
+-rw-rw-r--  1 zbarber zbarber   4273 juin  13 20:48 replit.md
+drwxrwxr-x  3 zbarber zbarber   4096 juin  13 20:48 scripts
+-rw-rw-r--  1 zbarber zbarber    667 juin  13 20:48 tsconfig.base.json
+-rw-rw-r--  1 zbarber zbarber    285 juin  13 20:48 tsconfig.json
+logout
+Generating public/private ed25519 key pair.
+Your identification has been saved in /root/.ssh/github_deploy
+Your public key has been saved in /root/.ssh/github_deploy.pub
+The key fingerprint is:
+SHA256:JVAePljhMmYrWe5IHjnYRBZEySIS0dBLs000tQbdWuA zbarber-vps
+The key's randomart image is:
++--[ED25519 256]--+
+|+* =X=++=.       |
+|o *o++.Oo.       |
+|.o B. Eo* .      |
+|  o+.O.+ +       |
+|  . O o S        |
+|   o *           |
+|    o .          |
+|                 |
+|                 |
++----[SHA256]-----+
+----- CLÉ PUBLIQUE À COLLER DANS GITHUB -----
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDBUBeOydFC+oST4RPgCvhT8/W0ebrroezl0H0yvQeZj zbarber-vps
