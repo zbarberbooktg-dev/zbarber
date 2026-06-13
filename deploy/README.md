@@ -217,6 +217,27 @@ cd /srv/zbarber/prod && git pull && bash deploy/deploy.sh api prod
   With those set, image upload (presigned PUT) and serving work end-to-end off Replit.
   If `OBJECT_STORAGE_PROVIDER` is unset and no credentials are present, the API falls
   back to the Replit sidecar (which only works on Replit).
+
+  **Confirm it works against the real bucket** (run once per environment after the
+  env file + service-account key are in place). The smoke test is bundled with the
+  API build (`dist/scripts/storageSmoke.mjs`) and exercises the full cycle —
+  presigned PUT upload, ACL metadata round-trip, download/serve, and the public
+  search path — using the same code the API serves with:
+
+  ```bash
+  sudo -iu zbarber
+  # The API build (deploy/deploy.sh api <env>) produces dist/scripts/storageSmoke.mjs.
+  cd /srv/zbarber/prod/artifacts/api-server
+  node --env-file=/etc/zbarber/api-prod.env dist/scripts/storageSmoke.mjs   # prod bucket
+  cd /srv/zbarber/test/artifacts/api-server
+  node --env-file=/etc/zbarber/api-test.env dist/scripts/storageSmoke.mjs   # test bucket
+  ```
+
+  A green `✓ Storage smoke test PASSED (provider: gcs)` for both prod and test
+  confirms photos upload and display correctly on the live server. The script
+  creates and then deletes its own throwaway objects, so it leaves the bucket
+  clean. (It can also be run on Replit with no flags — it will report
+  `provider: replit` and verify the sidecar path.)
 - **Separate databases** for prod and test; run `@workspace/db push` once per env.
 - **Clerk**: use the live/production Clerk keys in `api-prod.env` and the appropriate
   keys in `api-test.env`. The mobile app must point `EXPO_PUBLIC_DOMAIN` at

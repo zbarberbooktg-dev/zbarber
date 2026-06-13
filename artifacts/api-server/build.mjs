@@ -15,7 +15,12 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    entryPoints: [
+      path.resolve(artifactDir, "src/index.ts"),
+      // Standalone operational smoke test bundled alongside the server so it can
+      // run on the VPS (`node dist/scripts/storageSmoke.mjs`) without tsx/devDeps.
+      path.resolve(artifactDir, "src/scripts/storageSmoke.ts"),
+    ],
     platform: "node",
     bundle: true,
     format: "esm",
