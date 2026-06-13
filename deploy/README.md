@@ -180,6 +180,13 @@ right checkout, then runs `deploy/deploy.sh <service> <env>` (pnpm install → b
 for the API, `systemctl restart`). Prod and test deploys are serialized via the
 `concurrency` group so two prod jobs never overlap.
 
+After building/restarting, `deploy.sh` runs a **post-deploy health check**: it curls
+the live domain(s) for that service (the API `/api/healthz`, plus the SPA index and
+proxied `/api/healthz` for the vitrine/admin frontends), retrying briefly to let a
+freshly-restarted service come up. A non-2xx (or no) response makes the script exit
+non-zero, which fails the SSH step and turns the GitHub Actions run red — so a broken
+deploy is obvious immediately instead of relying on manual checking.
+
 You can also deploy by hand on the VPS:
 
 ```bash
@@ -193,10 +200,44 @@ cd /srv/zbarber/prod && git pull && bash deploy/deploy.sh api prod
 
 - **Push to GitHub** and the **`test` branch** must be created by you (Replit Git pane / shell).
 - **DNS A/AAAA records** for all six domains must be set before running certbot.
-- **Object storage**: the app currently uses Replit-managed object storage (GCS via the
-  Replit sidecar). This will **not** work off-Replit as-is — image upload/serving will
-  fail until a real GCS bucket + service-account credentials are provisioned (or storage
-  is swapped). The image-related endpoints are the only affected surface.
+- **Object storage**: images are stored in Google Cloud Storage. On Replit a managed
+  sidecar brokers credentials; on the VPS the API talks to a **real GCS bucket** using a
+  service-account key. You must, per environment (prod + test):
+  1. Create a GCS bucket (e.g. `zbarber-prod`, `zbarber-test`).
+  2. Create a service account with **Storage Object Admin** on the bucket and the ability
+     to sign URLs (a downloaded JSON key includes a private key, which is what V4 signing
+     needs).
+  3. Drop the JSON key on the VPS (e.g. `/etc/zbarber/gcs-prod-sa.json`, `chmod 600`,
+     owned by `zbarber`).
+  4. In `/etc/zbarber/api-{prod,test}.env` set `OBJECT_STORAGE_PROVIDER=gcs`,
+     `GOOGLE_APPLICATION_CREDENTIALS=<path to key>` (or `GCS_CREDENTIALS_JSON=<inline>`),
+     and the bucket layout vars `PRIVATE_OBJECT_DIR` / `PUBLIC_OBJECT_SEARCH_PATHS`
+     (first path segment is the bucket name). See `env/api.env.example`.
+
+  With those set, image upload (presigned PUT) and serving work end-to-end off Replit.
+  If `OBJECT_STORAGE_PROVIDER` is unset and no credentials are present, the API falls
+  back to the Replit sidecar (which only works on Replit).
+
+  **Confirm it works against the real bucket** (run once per environment after the
+  env file + service-account key are in place). The smoke test is bundled with the
+  API build (`dist/scripts/storageSmoke.mjs`) and exercises the full cycle —
+  presigned PUT upload, ACL metadata round-trip, download/serve, and the public
+  search path — using the same code the API serves with:
+
+  ```bash
+  sudo -iu zbarber
+  # The API build (deploy/deploy.sh api <env>) produces dist/scripts/storageSmoke.mjs.
+  cd /srv/zbarber/prod/artifacts/api-server
+  node --env-file=/etc/zbarber/api-prod.env dist/scripts/storageSmoke.mjs   # prod bucket
+  cd /srv/zbarber/test/artifacts/api-server
+  node --env-file=/etc/zbarber/api-test.env dist/scripts/storageSmoke.mjs   # test bucket
+  ```
+
+  A green `✓ Storage smoke test PASSED (provider: gcs)` for both prod and test
+  confirms photos upload and display correctly on the live server. The script
+  creates and then deletes its own throwaway objects, so it leaves the bucket
+  clean. (It can also be run on Replit with no flags — it will report
+  `provider: replit` and verify the sidecar path.)
 - **Separate databases** for prod and test; run `@workspace/db push` once per env.
 - **Clerk**: use the live/production Clerk keys in `api-prod.env` and the appropriate
   keys in `api-test.env`. The mobile app must point `EXPO_PUBLIC_DOMAIN` at
