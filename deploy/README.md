@@ -193,10 +193,23 @@ cd /srv/zbarber/prod && git pull && bash deploy/deploy.sh api prod
 
 - **Push to GitHub** and the **`test` branch** must be created by you (Replit Git pane / shell).
 - **DNS A/AAAA records** for all six domains must be set before running certbot.
-- **Object storage**: the app currently uses Replit-managed object storage (GCS via the
-  Replit sidecar). This will **not** work off-Replit as-is — image upload/serving will
-  fail until a real GCS bucket + service-account credentials are provisioned (or storage
-  is swapped). The image-related endpoints are the only affected surface.
+- **Object storage**: images are stored in Google Cloud Storage. On Replit a managed
+  sidecar brokers credentials; on the VPS the API talks to a **real GCS bucket** using a
+  service-account key. You must, per environment (prod + test):
+  1. Create a GCS bucket (e.g. `zbarber-prod`, `zbarber-test`).
+  2. Create a service account with **Storage Object Admin** on the bucket and the ability
+     to sign URLs (a downloaded JSON key includes a private key, which is what V4 signing
+     needs).
+  3. Drop the JSON key on the VPS (e.g. `/etc/zbarber/gcs-prod-sa.json`, `chmod 600`,
+     owned by `zbarber`).
+  4. In `/etc/zbarber/api-{prod,test}.env` set `OBJECT_STORAGE_PROVIDER=gcs`,
+     `GOOGLE_APPLICATION_CREDENTIALS=<path to key>` (or `GCS_CREDENTIALS_JSON=<inline>`),
+     and the bucket layout vars `PRIVATE_OBJECT_DIR` / `PUBLIC_OBJECT_SEARCH_PATHS`
+     (first path segment is the bucket name). See `env/api.env.example`.
+
+  With those set, image upload (presigned PUT) and serving work end-to-end off Replit.
+  If `OBJECT_STORAGE_PROVIDER` is unset and no credentials are present, the API falls
+  back to the Replit sidecar (which only works on Replit).
 - **Separate databases** for prod and test; run `@workspace/db push` once per env.
 - **Clerk**: use the live/production Clerk keys in `api-prod.env` and the appropriate
   keys in `api-test.env`. The mobile app must point `EXPO_PUBLIC_DOMAIN` at
