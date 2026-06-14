@@ -20,4 +20,5 @@
 - [360° panorama viewer](panorama-360-viewer.md) — Pannellum in WebView/iframe; same-origin baseUrl for WebGL CORS, escape `<` to stop stored XSS, switch scenes via injectJS (native) / postMessage (web).
 - [Articles (L'édito)](articles-edito.md) — server-side sanitize-html on contentHtml is the only XSS defense (mobile RenderHTML trusts API); sortOrder = max+1 server-side; visibility window = published + startsAt≤now + (endsAt null or future).
 - [Reminder scheduler](reminder-scheduler.md) — 24h email reminders must claim-then-send (atomic UPDATE...RETURNING on reminderSentAt) to avoid double-emails; window is upper-bound (now..now+24h) to survive downtime.
+- [Pushing workflow files from Replit](vps-deploy-ops.md) — Replit's GitHub OAuth lacks `workflow` scope (token via GIT_ASKPASS); push .github/workflows/* edits with a PAT via `env -u GIT_ASKPASS GIT_TERMINAL_PROMPT=1 ... -c core.askpass=`.
 - [Barber /me routes are primary-salon only](multi-salon.md) — all `/barbers/me/*` self-service routes resolve via getMyBarberOr404 = salons[0]; mobile must NOT show a salon selector on /me-backed screens (queue, realisations) or it falsely implies per-salon scoping.
