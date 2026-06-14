@@ -1,7 +1,9 @@
 name: Deploy — api (test) → api.test.zbarber.net
 
-# Manual only: this never runs automatically.
+# Auto-deploys on push to the `test` branch; can also be run manually.
 on:
+  push:
+    branches: [test]
   workflow_dispatch:
 
 concurrency:
