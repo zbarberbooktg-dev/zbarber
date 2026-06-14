@@ -1,8 +1,11 @@
-name: Deploy — admin (test) → admin.test.zbarber.net
+name: Deploy — all (test) → *.test.zbarber.net
 
-# Manual only — push-to-test auto-deploy is handled by deploy-test.yml.
-# Use this to redeploy ONLY the admin service to test on demand.
+# Auto-deploys the whole test platform on push to the `test` branch.
+# Runs the three services sequentially in a single run so they never collide
+# on the shared /srv/zbarber/test checkout. Can also be run manually.
 on:
+  push:
+    branches: [test]
   workflow_dispatch:
 
 concurrency:
@@ -25,4 +28,6 @@ jobs:
             REPO=/srv/zbarber/test
             git -C "$REPO" fetch --depth=1 origin test
             git -C "$REPO" reset --hard origin/test
+            bash "$REPO/deploy/deploy.sh" vitrine test
             bash "$REPO/deploy/deploy.sh" admin test
+            bash "$REPO/deploy/deploy.sh" api test

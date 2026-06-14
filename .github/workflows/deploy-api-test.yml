@@ -1,9 +1,8 @@
 name: Deploy — api (test) → api.test.zbarber.net
 
-# Auto-deploys on push to the `test` branch; can also be run manually.
+# Manual only — push-to-test auto-deploy is handled by deploy-test.yml.
+# Use this to redeploy ONLY the api service to test on demand.
 on:
-  push:
-    branches: [test]
   workflow_dispatch:
 
 concurrency:
