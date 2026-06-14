@@ -14,10 +14,12 @@
       "backgroundColor": "#0C1118"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "net.zbarber.app"
     },
     "android": {
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "package": "net.zbarber.app"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
