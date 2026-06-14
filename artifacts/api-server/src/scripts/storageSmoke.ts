@@ -2,14 +2,13 @@
  * Object-storage smoke test.
  *
  * Exercises the FULL image upload + serve cycle against whatever storage
- * backend the current environment is configured for (Replit sidecar in dev, a
- * real Google Cloud Storage bucket on the VPS). It deliberately uses the same
- * `objectStorage` / `objectAcl` code the API serves with, so a green run proves
- * the live wiring — credentials, V4 URL signing, upload, ACL metadata, download
- * streaming, and the public search path — actually works end to end.
+ * backend the current environment is configured for:
+ *   - Replit sidecar (dev) / real GCS bucket → presigned-URL upload + ACL metadata.
+ *   - local (VPS disk) → direct write under LOCAL_STORAGE_DIR + sidecar meta.
+ * It uses the same `objectStorage` code the API serves with, so a green run
+ * proves the live wiring (upload, download streaming, public search path) works.
  *
- * Run it on the VPS, per environment, to confirm photos upload and display
- * correctly on the live server:
+ * Run it on the VPS, per environment, to confirm photos upload and display:
  *
  *   node --env-file=/etc/zbarber/api-prod.env dist/storage-smoke.mjs
  *   node --env-file=/etc/zbarber/api-test.env dist/storage-smoke.mjs
@@ -20,10 +19,15 @@
  * Exits 0 on success, non-zero (with a clear message) on the first failure.
  * It cleans up every object it creates.
  */
+import fs from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
 import {
   objectStorageClient,
   ObjectStorageService,
   getStorageProvider,
+  getLocalStorageDir,
+  type StoredObject,
 } from "../lib/objectStorage";
 import { setObjectAclPolicy, getObjectAclPolicy } from "../lib/objectAcl";
 
@@ -45,22 +49,75 @@ function fail(step: string, err: unknown): never {
   process.exit(1);
 }
 
-async function main() {
-  const provider = getStorageProvider();
+async function verifyDownload(svc: ObjectStorageService, obj: StoredObject): Promise<void> {
+  const res = await svc.downloadObject(obj);
+  const bytes = Buffer.from(await res.arrayBuffer());
+  if (bytes.length !== PNG_1x1.length || !bytes.equals(PNG_1x1)) {
+    throw new Error(
+      `downloaded bytes differ (got ${bytes.length}, expected ${PNG_1x1.length})`,
+    );
+  }
+  log(
+    `downloaded + verified ${bytes.length} bytes (content-type ${res.headers.get("content-type")})`,
+  );
+}
+
+async function runLocal(svc: ObjectStorageService): Promise<void> {
+  const base = path.resolve(getLocalStorageDir());
+  console.log(`  LOCAL_STORAGE_DIR: ${base}\n`);
+
+  // ---- 1. Private entity flow (/objects/uploads/<uuid>) ----
+  console.log("[1/2] Private entity write + serve (/objects/*)");
+  const objectName = `uploads/${randomUUID()}`;
+  const privAbs = path.join(base, objectName);
+  try {
+    await svc.putLocalObject(objectName, "image/png", PNG_1x1);
+    log(`wrote ${objectName}`);
+
+    const objectPath = `/objects/${objectName}`;
+    const stored = await svc.getObjectEntityFile(objectPath);
+    log(`object resolved on disk`);
+
+    await verifyDownload(svc, stored);
+  } catch (err) {
+    fail("local private entity flow", err);
+  } finally {
+    await fs.promises.unlink(privAbs).catch(() => {});
+    await fs.promises.unlink(`${privAbs}.meta.json`).catch(() => {});
+  }
+  console.log("  ✓ private entity flow OK\n");
+
+  // ---- 2. Public search-path flow (/public-objects/*) ----
+  console.log("[2/2] Public object write + serve (/public-objects/*)");
+  const relName = `smoke-${Date.now()}.png`;
+  const pubAbs = path.join(base, "public", relName);
+  try {
+    await svc.putLocalObject(`public/${relName}`, "image/png", PNG_1x1);
+    log(`wrote public/${relName}`);
+
+    const found = await svc.searchPublicObject(relName);
+    if (!found) throw new Error(`searchPublicObject did not find ${relName}`);
+    log("searchPublicObject located the file");
+
+    await verifyDownload(svc, found);
+  } catch (err) {
+    fail("local public object flow", err);
+  } finally {
+    await fs.promises.unlink(pubAbs).catch(() => {});
+    await fs.promises.unlink(`${pubAbs}.meta.json`).catch(() => {});
+  }
+  console.log("  ✓ public object flow OK\n");
+}
+
+async function runGcs(svc: ObjectStorageService): Promise<void> {
   const privateDir = process.env.PRIVATE_OBJECT_DIR ?? "(unset)";
   const publicPaths = process.env.PUBLIC_OBJECT_SEARCH_PATHS ?? "(unset)";
-
-  console.log("Object-storage smoke test");
-  console.log(`  provider: ${provider}`);
   console.log(`  PRIVATE_OBJECT_DIR: ${privateDir}`);
   console.log(`  PUBLIC_OBJECT_SEARCH_PATHS: ${publicPaths}\n`);
 
-  const svc = new ObjectStorageService();
-
   // ---- 1. Private entity flow (the avatar / logo / gallery / realisation path) ----
   console.log("[1/2] Private entity upload + serve (/objects/*)");
-  let objectPath = "";
-  let entityFile: import("@google-cloud/storage").File | undefined;
+  let stored: StoredObject | undefined;
   try {
     const uploadURL = await svc.getObjectEntityUploadURL();
     log("got presigned PUT url");
@@ -75,32 +132,27 @@ async function main() {
     }
     log("uploaded test PNG via presigned url");
 
-    objectPath = svc.normalizeObjectEntityPath(uploadURL);
+    const objectPath = svc.normalizeObjectEntityPath(uploadURL);
     log(`normalized object path: ${objectPath}`);
 
-    entityFile = await svc.getObjectEntityFile(objectPath);
+    stored = await svc.getObjectEntityFile(objectPath);
     log("object exists in bucket");
 
-    await setObjectAclPolicy(entityFile, { owner: "smoke-test", visibility: "public" });
-    const acl = await getObjectAclPolicy(entityFile);
-    if (acl?.visibility !== "public") {
-      throw new Error("ACL metadata did not round-trip (expected visibility=public)");
+    if (stored.provider !== "local") {
+      await setObjectAclPolicy(stored.file, { owner: "smoke-test", visibility: "public" });
+      const acl = await getObjectAclPolicy(stored.file);
+      if (acl?.visibility !== "public") {
+        throw new Error("ACL metadata did not round-trip (expected visibility=public)");
+      }
+      log("ACL metadata written + read back");
     }
-    log("ACL metadata written + read back");
 
-    const res = await svc.downloadObject(entityFile);
-    const bytes = Buffer.from(await res.arrayBuffer());
-    if (bytes.length !== PNG_1x1.length || !bytes.equals(PNG_1x1)) {
-      throw new Error(
-        `downloaded bytes differ (got ${bytes.length}, expected ${PNG_1x1.length})`,
-      );
-    }
-    log(`downloaded + verified ${bytes.length} bytes (content-type ${res.headers.get("content-type")})`);
+    await verifyDownload(svc, stored);
   } catch (err) {
     fail("private entity flow", err);
   } finally {
-    if (entityFile) {
-      await entityFile.delete().catch(() => {});
+    if (stored && stored.provider !== "local") {
+      await stored.file.delete().catch(() => {});
     }
   }
   console.log("  ✓ private entity flow OK\n");
@@ -124,20 +176,27 @@ async function main() {
     }
     log("searchPublicObject located the file");
 
-    const res = await svc.downloadObject(found);
-    const bytes = Buffer.from(await res.arrayBuffer());
-    if (bytes.length !== PNG_1x1.length || !bytes.equals(PNG_1x1)) {
-      throw new Error(
-        `downloaded bytes differ (got ${bytes.length}, expected ${PNG_1x1.length})`,
-      );
-    }
-    log(`downloaded + verified ${bytes.length} bytes`);
+    await verifyDownload(svc, found);
   } catch (err) {
     fail("public object flow", err);
   } finally {
     await publicFile.delete().catch(() => {});
   }
   console.log("  ✓ public object flow OK\n");
+}
+
+async function main() {
+  const provider = getStorageProvider();
+  console.log("Object-storage smoke test");
+  console.log(`  provider: ${provider}\n`);
+
+  const svc = new ObjectStorageService();
+
+  if (provider === "local") {
+    await runLocal(svc);
+  } else {
+    await runGcs(svc);
+  }
 
   console.log(`✓ Storage smoke test PASSED (provider: ${provider})`);
   process.exit(0);

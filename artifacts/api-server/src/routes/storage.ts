@@ -17,7 +17,13 @@ import {
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { getAuth } from "@clerk/express";
-import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
+import {
+  ObjectStorageService,
+  ObjectNotFoundError,
+  getStorageProvider,
+  isValidLocalUploadName,
+  verifyLocalUploadToken,
+} from "../lib/objectStorage";
 import { requireAuth, provisionUserFromClerk, type AuthedRequest } from "../lib/clerkAuth";
 
 async function attachOptionalUser(req: AuthedRequest, _res: Response, next: NextFunction): Promise<void> {
@@ -49,7 +55,9 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
 
   try {
     const { name, size, contentType } = parsed.data;
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    // `trust proxy` is on, so protocol/host reflect the public nginx host.
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL(baseUrl);
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
 
     res.json(
@@ -62,6 +70,48 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
   } catch (error) {
     req.log.error({ err: error }, "Error generating upload URL");
     res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
+/**
+ * PUT /storage/local-upload/*objectName
+ *
+ * Receives a file uploaded by the client when OBJECT_STORAGE_PROVIDER=local.
+ * NOT Clerk-gated: the client PUTs directly to this URL (mirroring how it would
+ * PUT to a presigned GCS URL). Authorization is the HMAC-signed, time-limited
+ * token issued by `getObjectEntityUploadURL`. The object name is constrained to
+ * `uploads/<uuid>` to prevent path traversal.
+ */
+router.put("/storage/local-upload/*objectName", async (req: Request, res: Response) => {
+  if (getStorageProvider() !== "local") {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const raw = req.params.objectName;
+  const objectName = Array.isArray(raw) ? raw.join("/") : raw;
+  if (!isValidLocalUploadName(objectName)) {
+    res.status(400).json({ error: "Invalid object name" });
+    return;
+  }
+  const exp = typeof req.query.exp === "string" ? req.query.exp : undefined;
+  const sig = typeof req.query.sig === "string" ? req.query.sig : undefined;
+  if (!verifyLocalUploadToken(objectName, exp, sig)) {
+    res.status(403).json({ error: "Invalid or expired upload token" });
+    return;
+  }
+  try {
+    const contentType =
+      (typeof req.headers["content-type"] === "string" && req.headers["content-type"]) ||
+      "application/octet-stream";
+    await objectStorageService.putLocalObject(objectName, contentType, req);
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Object too large") {
+      res.status(413).json({ error: "File too large" });
+      return;
+    }
+    req.log.error({ err: error }, "Error storing local upload");
+    res.status(500).json({ error: "Failed to store upload" });
   }
 });
 

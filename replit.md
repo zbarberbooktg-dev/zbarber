@@ -73,6 +73,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 - **`/barbers/me` returns an array** (multi-salon). All consumers must type it as `MyBarber[]` and extract `[0]` for the primary salon.
 - **Gallery delete IDOR fix**: scope `DELETE /barbers/:barberId/gallery/:photoId` by both `barberId` AND `photoId` in the WHERE clause.
 - **Client reservation status**: clients may only set `cancelled`; barbers/admins can set any status.
+- **Object storage has 3 backends** (`OBJECT_STORAGE_PROVIDER=local|gcs|replit`). On the VPS use `local` (disk under `LOCAL_STORAGE_DIR`, no cloud cost; back it up yourself). Local uploads flow through nginx via an HMAC-signed `PUT /api/storage/local-upload/...` (signed with `SESSION_SECRET`), so nginx `client_max_body_size` must cover image size (25m). Object-path shape stays identical across backends — clients are unchanged.
 
 ## Pointers
 
