@@ -1,0 +1,64 @@
+ot@vps121492:~# # Le check env masqué (bloc 1 sauté)
+for e in prod test; do
+  echo "--- $e ---"
+  sed -E '/^\s*#/d; /^\s*$/d; s/=(.+)/=<SET>/; s/=$/=<EMPTY>/' /etc/zbarber/api-$e.env
+done
+
+# La vraie cause du crash
+journalctl -u zbarber-api-prod -n 40 --no-pager
+echo "==================== TEST ===================="
+journalctl -u zbarber-api-test -n 40 --no-pager
+--- prod ---
+NODE_ENV=<SET>
+PORT=<SET>
+DATABASE_URL=<SET>
+SESSION_SECRET=<SET>
+ADMIN_JWT_SECRET=<SET>
+ADMIN_ROOT_EMAIL=<SET>
+ADMIN_ROOT_PASSWORD=<SET>
+ADMIN_LOGIN_URL=<SET>
+ADMIN_NOTIFICATION_EMAIL=<SET>
+CLERK_SECRET_KEY=<SET>
+CLERK_PUBLISHABLE_KEY=<SET>
+SMTP_HOST=<SET>
+SMTP_PORT=<SET>
+SMTP_USER=<SET>
+SMTP_PASS=<SET>
+SMTP_FROM=<SET>
+OBJECT_STORAGE_PROVIDER=<SET>
+GOOGLE_APPLICATION_CREDENTIALS=<SET>
+PRIVATE_OBJECT_DIR=<SET>
+PUBLIC_OBJECT_SEARCH_PATHS=<SET>
+--- test ---
+NODE_ENV=<SET>
+PORT=<SET>
+DATABASE_URL=<SET>
+SESSION_SECRET=<SET>
+ADMIN_JWT_SECRET=<SET>
+ADMIN_ROOT_EMAIL=<SET>
+ADMIN_ROOT_PASSWORD=<SET>
+ADMIN_LOGIN_URL=<SET>
+ADMIN_NOTIFICATION_EMAIL=<SET>
+CLERK_SECRET_KEY=<SET>
+CLERK_PUBLISHABLE_KEY=<SET>
+SMTP_HOST=<SET>
+SMTP_PORT=<SET>
+SMTP_USER=<SET>
+SMTP_PASS=<SET>
+SMTP_FROM=<SET>
+OBJECT_STORAGE_PROVIDER=<SET>
+GOOGLE_APPLICATION_CREDENTIALS=<SET>
+PRIVATE_OBJECT_DIR=<SET>
+PUBLIC_OBJECT_SEARCH_PATHS=<SET>
+juin 14 02:54:13 vps121492 systemd[1]: Started zbarber-api-prod.service - Zbarber API (production).
+juin 14 02:54:15 vps121492 node[30313]: {"level":30,"time":1781398455080,"pid":30313,"hostname":"vps121492","port":5001,"msg":"Server listening"}
+juin 14 02:54:15 vps121492 node[30313]: {"level":30,"time":1781398455094,"pid":30313,"hostname":"vps121492","intervalMs":900000,"msg":"Reservation reminder scheduler started"}
+juin 14 02:54:15 vps121492 node[30313]: {"level":50,"time":1781398455145,"pid":30313,"hostname":"vps121492","err":{"type":"_DrizzleQueryError","message":"Failed query: select \"id\", \"email\", \"password_hash\", \"name\", \"is_root\", \"must_change_password\", \"status\", \"invited_by_admin_id\", \"last_login_at\", \"created_at\", \"updated_at\" from \"admin_accounts\" where \"admin_accounts\".\"is_root\" = $1 limit $2\nparams: true,1: password authentication failed for user \"user\"","stack":"Error: Failed query: select \"id\", \"email\", \"password_hash\", \"name\", \"is_root\", \"must_change_password\", \"status\", \"invited_by_admin_id\", \"last_login_at\", \"created_at\", \"updated_at\" from \"admin_accounts\" where \"admin_accounts\".\"is_root\" = $1 limit $2\nparams: true,1\n    at NodePgPreparedQuery.queryWithCache (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async ensureRootAdmin (/srv/zbarber/prod/artifacts/api-server/src/lib/adminSeed.ts:16:26)\ncaused by: error: password authentication failed for user \"user\"\n    at <anonymous> (/srv/zbarber/prod/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:161:13)\n    at async NodePgPreparedQuery.queryWithCache (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)\n    at async <anonymous> (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async ensureRootAdmin (/srv/zbarber/prod/artifacts/api-server/src/lib/adminSeed.ts:16:26)","query":"select \"id\", \"email\", \"password_hash\", \"name\", \"is_root\", \"must_change_password\", \"status\", \"invited_by_admin_id\", \"last_login_at\", \"created_at\", \"updated_at\" from \"admin_accounts\" where \"admin_accounts\".\"is_root\" = $1 limit $2","params":[true,1]},"msg":"ensureRootAdmin failed"}
+juin 14 02:54:45 vps121492 node[30313]: {"level":50,"time":1781398485134,"pid":30313,"hostname":"vps121492","err":{"type":"_DrizzleQueryError","message":"Failed query: update \"reservations\" set \"reminder_sent_at\" = $1 where (\"reservations\".\"status\" in ($2, $3) and \"reservations\".\"reminder_sent_at\" is null and \"reservations\".\"scheduled_at\" > $4 and \"reservations\".\"scheduled_at\" <= $5) returning \"id\"\nparams: 2026-06-14T00:54:45.095Z,pending,confirmed,2026-06-14T00:54:45.095Z,2026-06-15T00:54:45.095Z: password authentication failed for user \"user\"","stack":"Error: Failed query: update \"reservations\" set \"reminder_sent_at\" = $1 where (\"reservations\".\"status\" in ($2, $3) and \"reservations\".\"reminder_sent_at\" is null and \"reservations\".\"scheduled_at\" > $4 and \"reservations\".\"scheduled_at\" <= $5) returning \"id\"\nparams: 2026-06-14T00:54:45.095Z,pending,confirmed,2026-06-14T00:54:45.095Z,2026-06-15T00:54:45.095Z\n    at NodePgPreparedQuery.queryWithCache (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async runReminderSweep (/srv/zbarber/prod/artifacts/api-server/src/lib/reminderScheduler.ts:33:19)\ncaused by: error: password authentication failed for user \"user\"\n    at <anonymous> (/srv/zbarber/prod/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:161:13)\n    at async NodePgPreparedQuery.queryWithCache (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)\n    at async <anonymous> (/srv/zbarber/prod/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async runReminderSweep (/srv/zbarber/prod/artifacts/api-server/src/lib/reminderScheduler.ts:33:19)","query":"update \"reservations\" set \"reminder_sent_at\" = $1 where (\"reservations\".\"status\" in ($2, $3) and \"reservations\".\"reminder_sent_at\" is null and \"reservations\".\"scheduled_at\" > $4 and \"reservations\".\"scheduled_at\" <= $5) returning \"id\"","params":["2026-06-14T00:54:45.095Z","pending","confirmed","2026-06-14T00:54:45.095Z","2026-06-15T00:54:45.095Z"]},"msg":"Reminder sweep failed"}
+==================== TEST ====================
+juin 14 02:54:13 vps121492 systemd[1]: Started zbarber-api-test.service - Zbarber API (test).
+juin 14 02:54:15 vps121492 node[30314]: {"level":30,"time":1781398455140,"pid":30314,"hostname":"vps121492","port":5002,"msg":"Server listening"}
+juin 14 02:54:15 vps121492 node[30314]: {"level":30,"time":1781398455142,"pid":30314,"hostname":"vps121492","intervalMs":900000,"msg":"Reservation reminder scheduler started"}
+juin 14 02:54:15 vps121492 node[30314]: {"level":50,"time":1781398455232,"pid":30314,"hostname":"vps121492","err":{"type":"_DrizzleQueryError","message":"Failed query: select \"id\", \"email\", \"password_hash\", \"name\", \"is_root\", \"must_change_password\", \"status\", \"invited_by_admin_id\", \"last_login_at\", \"created_at\", \"updated_at\" from \"admin_accounts\" where \"admin_accounts\".\"is_root\" = $1 limit $2\nparams: true,1: password authentication failed for user \"user\"","stack":"Error: Failed query: select \"id\", \"email\", \"password_hash\", \"name\", \"is_root\", \"must_change_password\", \"status\", \"invited_by_admin_id\", \"last_login_at\", \"created_at\", \"updated_at\" from \"admin_accounts\" where \"admin_accounts\".\"is_root\" = $1 limit $2\nparams: true,1\n    at NodePgPreparedQuery.queryWithCache (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async ensureRootAdmin (/srv/zbarber/test/artifacts/api-server/src/lib/adminSeed.ts:16:26)\ncaused by: error: password authentication failed for user \"user\"\n    at <anonymous> (/srv/zbarber/test/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:161:13)\n    at async NodePgPreparedQuery.queryWithCache (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)\n    at async <anonymous> (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async ensureRootAdmin (/srv/zbarber/test/artifacts/api-server/src/lib/adminSeed.ts:16:26)","query":"select \"id\", \"email\", \"password_hash\", \"name\", \"is_root\", \"must_change_password\", \"status\", \"invited_by_admin_id\", \"last_login_at\", \"created_at\", \"updated_at\" from \"admin_accounts\" where \"admin_accounts\".\"is_root\" = $1 limit $2","params":[true,1]},"msg":"ensureRootAdmin failed"}
+juin 14 02:54:45 vps121492 node[30314]: {"level":50,"time":1781398485160,"pid":30314,"hostname":"vps121492","err":{"type":"_DrizzleQueryError","message":"Failed query: update \"reservations\" set \"reminder_sent_at\" = $1 where (\"reservations\".\"status\" in ($2, $3) and \"reservations\".\"reminder_sent_at\" is null and \"reservations\".\"scheduled_at\" > $4 and \"reservations\".\"scheduled_at\" <= $5) returning \"id\"\nparams: 2026-06-14T00:54:45.144Z,pending,confirmed,2026-06-14T00:54:45.144Z,2026-06-15T00:54:45.144Z: password authentication failed for user \"user\"","stack":"Error: Failed query: update \"reservations\" set \"reminder_sent_at\" = $1 where (\"reservations\".\"status\" in ($2, $3) and \"reservations\".\"reminder_sent_at\" is null and \"reservations\".\"scheduled_at\" > $4 and \"reservations\".\"scheduled_at\" <= $5) returning \"id\"\nparams: 2026-06-14T00:54:45.144Z,pending,confirmed,2026-06-14T00:54:45.144Z,2026-06-15T00:54:45.144Z\n    at NodePgPreparedQuery.queryWithCache (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async runReminderSweep (/srv/zbarber/test/artifacts/api-server/src/lib/reminderScheduler.ts:33:19)\ncaused by: error: password authentication failed for user \"user\"\n    at <anonymous> (/srv/zbarber/test/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async <anonymous> (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:161:13)\n    at async NodePgPreparedQuery.queryWithCache (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)\n    at async <anonymous> (/srv/zbarber/test/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)\n    at async runReminderSweep (/srv/zbarber/test/artifacts/api-server/src/lib/reminderScheduler.ts:33:19)","query":"update \"reservations\" set \"reminder_sent_at\" = $1 where (\"reservations\".\"status\" in ($2, $3) and \"reservations\".\"reminder_sent_at\" is null and \"reservations\".\"scheduled_at\" > $4 and \"reservations\".\"scheduled_at\" <= $5) returning \"id\"","params":["2026-06-14T00:54:45.144Z","pending","confirmed","2026-06-14T00:54:45.144Z","2026-06-15T00:54:45.144Z"]},"msg":"Reminder sweep failed"}
+root@vps121492:~#
