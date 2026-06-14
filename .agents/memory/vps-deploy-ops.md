@@ -46,3 +46,18 @@ env -u GIT_ASKPASS GIT_TERMINAL_PROMPT=1 git -c credential.helper= -c core.askpa
 ```
 At the prompt enter the GitHub username + the PAT as password (keeps PAT out of shell
 history). After this, advise the user to revoke/rotate the PAT.
+
+## Don't fan out N workflows sharing one concurrency group on a single trigger
+
+The 3 test deploy workflows all used `concurrency.group: deploy-test`
+(`cancel-in-progress: false`). That serializes *manual* runs fine, but when ONE push to
+`test` triggered all three at once, GitHub keeps only **one pending run per group**: it
+runs the first, queues the second, and **cancels** it the instant the third enters the
+group (cancelled in ~1s). `cancel-in-progress: false` does NOT prevent this — it only
+governs the *in-progress* run, not the already-pending one.
+**Why it matters here:** all three deploy into the same `/srv/zbarber/test` checkout and
+do `git reset --hard`, so they must NOT run in parallel either.
+**How to apply:** for "deploy everything on push", use a **single** workflow that runs
+the services sequentially in one job (one `git reset` + `deploy.sh a`, `deploy.sh b`,
+`deploy.sh c`). Keep the per-service workflows as `workflow_dispatch`-only for targeted
+manual redeploys.
