@@ -168,17 +168,34 @@ sudo certbot --nginx \
 
 ## 9. Deploy
 
-Everything after the one-time setup is **manual** — each workflow is
-`workflow_dispatch` only (GitHub → Actions → pick a workflow → **Run workflow**).
-There are six, one per domain:
+Triggers differ between **test** (automatic) and **prod** (manual):
 
-- Deploy — vitrine (prod) / api (prod) / admin (prod)
-- Deploy — vitrine (test) / api (test) / admin (test)
+- **TEST — automatic.** A push to the `test` branch triggers `deploy-test.yml`, which
+  deploys all three test services **sequentially in one run** (vitrine → admin → api).
+  They share the `/srv/zbarber/test` checkout, so a single run (not three parallel ones)
+  avoids `git reset --hard` collisions and GitHub's per-concurrency-group cancellation.
+- **PROD — manual only.** The three prod workflows are `workflow_dispatch` only
+  (GitHub → Actions → pick a workflow → **Run workflow**).
+- **Per-service manual redeploys.** `deploy-{vitrine,admin,api}-test.yml` are kept as
+  `workflow_dispatch`-only so you can redeploy a single test service on demand without
+  redeploying the whole platform.
 
-Each one SSHes into the VPS, `git fetch && git reset --hard` the right branch into the
+The workflows:
+
+- Deploy — all (test)  ← auto on push to `test`
+- Deploy — vitrine (prod) / api (prod) / admin (prod)  ← manual
+- Deploy — vitrine (test) / api (test) / admin (test)  ← manual, single-service
+
+Each SSHes into the VPS, `git fetch && git reset --hard` the right branch into the
 right checkout, then runs `deploy/deploy.sh <service> <env>` (pnpm install → build →
 for the API, `systemctl restart`). Prod and test deploys are serialized via the
-`concurrency` group so two prod jobs never overlap.
+`concurrency` group so two jobs never overlap.
+
+> **Editing `.github/workflows/*` from Replit:** Replit's GitHub connection uses an
+> OAuth token without the `workflow` scope, so pushing workflow changes is rejected.
+> Push them with a personal access token (PAT) that has `repo` + `workflow` scopes:
+> `env -u GIT_ASKPASS GIT_TERMINAL_PROMPT=1 git -c credential.helper= -c core.askpass= push https://github.com/<owner>/<repo>.git <branch>`
+> (enter your GitHub username + the PAT at the prompt; revoke the PAT afterwards).
 
 After building/restarting, `deploy.sh` runs a **post-deploy health check**: it curls
 the live domain(s) for that service (the API `/api/healthz`, plus the SPA index and
