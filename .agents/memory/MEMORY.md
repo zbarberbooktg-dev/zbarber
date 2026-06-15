@@ -23,3 +23,4 @@
 - [Pushing workflow files from Replit](vps-deploy-ops.md) — Replit's GitHub OAuth lacks `workflow` scope (token via GIT_ASKPASS); push .github/workflows/* edits with a PAT via `env -u GIT_ASKPASS GIT_TERMINAL_PROMPT=1 ... -c core.askpass=`.
 - [Barber /me routes are primary-salon only](multi-salon.md) — all `/barbers/me/*` self-service routes resolve via getMyBarberOr404 = salons[0]; mobile must NOT show a salon selector on /me-backed screens (queue, realisations) or it falsely implies per-salon scoping.
 - [Mobile EAS profiles](mobile-eas-profiles.md) — native builds retarget backend via one host (EXPO_PUBLIC_DOMAIN) per eas.json profile; Clerk keys there are placeholders & proxy is prod-only (auth breaks silently if unset).
+- [Clerk prod proxy setup](clerk-prod-proxy-setup.md) — prod instance defaults to CNAME (no proxy_url); FAPI 400 host_invalid is EXPECTED until you PATCH /v1/domains proxy_url (dashboard form is unreliable).
