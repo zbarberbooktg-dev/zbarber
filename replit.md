@@ -64,7 +64,12 @@ Plateforme multi-artifacts pour la réservation de salons de coiffure en RDC —
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- **Branch workflow (staging → production) — ALWAYS follow this:**
+  - `test` = development/staging branch. `main` = production. Never commit new/unvalidated work directly to `main`.
+  - All changes go to **`test` first**. Pushing to `test` auto-deploys `*.test.zbarber.net` (via `deploy-test.yml`).
+  - `main` is updated **only** after the change is fully tested and validated on the test environment — `main` must always be 100% working since it deploys prod.
+  - Promote to prod: fast-forward/merge `test` → `main`, push `main`, then trigger the prod deploy workflows manually (`workflow_dispatch`: `deploy-api-prod`, `deploy-admin-prod`, `deploy-vitrine-prod`).
+  - One-time baseline (do this first): align `test` to current `main` (`git reset --hard origin/main` on `test`, force-push) so both share a clean starting point before the flow begins.
 
 ## Gotchas
 
