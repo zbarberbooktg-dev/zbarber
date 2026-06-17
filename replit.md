@@ -13,11 +13,12 @@ Plateforme multi-artifacts pour la réservation de salons de coiffure en RDC —
 
 ### Mobile store builds (EAS)
 
-- `eas.json` defines build profiles. Each bakes the target API host via `EXPO_PUBLIC_DOMAIN` + matching Clerk proxy URL (`https://<host>/api/__clerk`):
+- `eas.json` defines build profiles. Each bakes the target API host via `EXPO_PUBLIC_DOMAIN`:
   - `production` → `api.zbarber.net` (App Store / Play Store production)
   - `test` → `api.test.zbarber.net` (store internal-testing / TestFlight tracks)
   - `preview` → `api.test.zbarber.net` (internal distribution: APK / simulator)
   - `development` → `api.test.zbarber.net` (dev client)
+- **Clerk = prod app for all native builds (Option A)**: the Clerk proxy is production-only, so every build (incl. `test`) uses the **prod** Clerk app. All profiles set `EXPO_PUBLIC_CLERK_PROXY_URL=https://zbarber.net/api/__clerk` with the prod `pk_live_`, while `EXPO_PUBLIC_DOMAIN` stays the data API host per profile (`test` → `api.test.zbarber.net`, `production` → `api.zbarber.net`). The Clerk proxy host is the **root** `zbarber.net` (not `api.zbarber.net`) because the prod Clerk app is the **Primary** app for `zbarber.net`, which locks the proxy to that domain; `zbarber.net`'s nginx already routes `/api/` to the prod API (5001), so the proxy path must keep the `api/` prefix (`/__clerk` alone hits the static vitrine). Backend `api-test.env` must carry the **prod** `CLERK_SECRET_KEY`/`CLERK_PUBLISHABLE_KEY` (`sk_live_`/`pk_live_`), not `pk_test_`/`sk_test_`. Tradeoff: test sign-ups share the prod Clerk user pool.
 - App identity: `net.zbarber.app` (iOS `bundleIdentifier` + Android `package`). Single identity — `test` builds ship to testing tracks of the same store app, not a separate listing.
 - ⚠️ The `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` values in `eas.json` are placeholders (`pk_live_REPLACE_...`) — replace with the real Clerk **production** publishable keys before any real build (the Clerk proxy is prod-only). EAS builds: `pnpm --filter @workspace/mobile run eas:build:{preview,test,prod}`; submit: `eas:submit:{test,prod}`.
 - Replit dev (`pnpm run dev`) and the Replit static deploy (`scripts/build.js`) are unaffected by `eas.json` — they derive the domain from `REPLIT_*` env at runtime.
@@ -63,7 +64,12 @@ Plateforme multi-artifacts pour la réservation de salons de coiffure en RDC —
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- **Branch workflow (staging → production) — ALWAYS follow this:**
+  - `test` = development/staging branch. `main` = production. Never commit new/unvalidated work directly to `main`.
+  - All changes go to **`test` first**. Pushing to `test` auto-deploys `*.test.zbarber.net` (via `deploy-test.yml`).
+  - `main` is updated **only** after the change is fully tested and validated on the test environment — `main` must always be 100% working since it deploys prod.
+  - Promote to prod: fast-forward/merge `test` → `main`, push `main`, then trigger the prod deploy workflows manually (`workflow_dispatch`: `deploy-api-prod`, `deploy-admin-prod`, `deploy-vitrine-prod`).
+  - One-time baseline (do this first): align `test` to current `main` (`git reset --hard origin/main` on `test`, force-push) so both share a clean starting point before the flow begins.
 
 ## Gotchas
 
