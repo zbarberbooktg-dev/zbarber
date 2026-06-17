@@ -1,0 +1,31 @@
+~/workspace$ git remote -v        # repère le remote qui pointe vers github.com/zbarberbooktg-dev/zbarber
+                     # (ici il s'appelle "subrepl-apprprmp")
+
+git fetch subrepl-apprprmp
+git log --oneline -5 HEAD
+git log --oneline -5 subrepl-apprprmp/test
+gitsafe-backup  git://gitsafe:5418/backup.git (fetch)
+gitsafe-backup  git://gitsafe:5418/backup.git (push)
+subrepl-apprprmp    https://github.com/zbarberbooktg-dev/zbarber (fetch)
+subrepl-apprprmp    https://github.com/zbarberbooktg-dev/zbarber (push)
+subrepl-k6ziztbj    git+ssh://git@ssh.picard.replit.dev:/home/runner/workspace (fetch)
+subrepl-k6ziztbj    git+ssh://git@ssh.picard.replit.dev:/home/runner/workspace (push)
+subrepl-zpfyr1fs    git+ssh://git@ssh.picard.replit.dev:/home/runner/workspace (fetch)
+subrepl-zpfyr1fs    git+ssh://git@ssh.picard.replit.dev:/home/runner/workspace (push)
+error: cannot lock ref 'refs/remotes/subrepl-apprprmp/HEAD': Unable to create '/home/runner/workspace/.git/refs/remotes/subrepl-apprprmp/HEAD.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+f8baebe (HEAD -> main) Saved progress at the end of the loop
+65e571c Establish a standard branching workflow for development and production
+a726b60 Add documentation for Clerk production proxy setup
+057687f Update mobile app to use the main domain for authentication proxy
+be67146 Update mobile app builds to use production authentication
+8ec3270 (subrepl-apprprmp/test, subrepl-apprprmp/main, subrepl-apprprmp/HEAD) Implement local file storage for uploaded images and media
+ed18d31 Configure mobile app builds for different environments and stores
+eee6dd2 Document GitHub Actions concurrency group behavior and deployment strategy
+a00f749 Update test deployment to run all services sequentially
+c249eaf Add guide on how to push workflow files from Replit
