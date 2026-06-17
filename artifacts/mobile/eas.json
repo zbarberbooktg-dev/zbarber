@@ -10,7 +10,7 @@
       "env": {
         "EXPO_PUBLIC_DOMAIN": "api.test.zbarber.net",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://api.test.zbarber.net/api/__clerk",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_REPLACE_WITH_TEST_KEY"
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuemJhcmJlci5uZXQk"
       }
     },
     "preview": {
@@ -21,7 +21,7 @@
       "env": {
         "EXPO_PUBLIC_DOMAIN": "api.test.zbarber.net",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://api.test.zbarber.net/api/__clerk",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_REPLACE_WITH_TEST_KEY"
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuemJhcmJlci5uZXQk"
       }
     },
     "test": {
@@ -29,7 +29,7 @@
       "env": {
         "EXPO_PUBLIC_DOMAIN": "api.test.zbarber.net",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://api.test.zbarber.net/api/__clerk",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_REPLACE_WITH_TEST_KEY"
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuemJhcmJlci5uZXQk"
       }
     },
     "production": {
@@ -37,7 +37,7 @@
       "env": {
         "EXPO_PUBLIC_DOMAIN": "api.zbarber.net",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://api.zbarber.net/api/__clerk",
-        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_REPLACE_WITH_PROD_KEY"
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuemJhcmJlci5uZXQk"
       }
     }
   },
