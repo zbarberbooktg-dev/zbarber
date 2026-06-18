@@ -42,10 +42,23 @@ In order encountered, the durable fixes:
    only in spirit — revert with `git checkout -- artifacts/mobile/package.json` before any
    push so the catalog setup stays intact on `test`.
 
-5. **`EXPO_ROUTER_APP_ROOT` undefined at bundle time.** After the APK installs, Metro
-   bundling fails: "Invalid call ... `process.env.EXPO_ROUTER_APP_ROOT` / first argument of
-   `require.context` should be a string". In this monorepo the CLI's app-root auto-detection
-   flakes on Windows. Fix: set `EXPO_ROUTER_APP_ROOT=<abs path to artifacts/mobile/app>`
-   (shell `set`, or add to the gitignored local `artifacts/mobile/.env`) and restart Metro
-   with `-c`. babel-preset-expo + metro.config are already correct (Replit works), so don't
-   touch them.
+5. **`EXPO_ROUTER_APP_ROOT` not inlined → bundle fails (caused by fix #1's hoisted linker).**
+   After the APK installs, Metro bundling fails: "Invalid call ... `process.env.EXPO_ROUTER_APP_ROOT`
+   / first argument of `require.context` should be a string" in `expo-router/_ctx.<platform>.js`.
+   **Root cause (verified by reading babel-preset-expo source):** the EXPO_ROUTER_* env vars are
+   inlined by a Babel plugin that `babel-preset-expo` only registers when its internal
+   `hasModule("expo-router")` (a `require.resolve`) succeeds. The plugin reads its inputs from
+   Babel's `caller` (NOT `process.env`), so **setting the env var has zero effect** — that was a
+   wrong early guess. Under fix #1's `node-linker=hoisted` layout, `babel-preset-expo` and
+   `expo-router` resolve to different `node_modules` trees, so `hasModule` returns false and the
+   plugin is silently skipped → the raw `process.env.EXPO_ROUTER_APP_ROOT` survives → Metro errors.
+   On Replit/EAS (isolated linker) resolution succeeds, so it never reproduces there.
+   **Fix (in repo, `artifacts/mobile/babel.config.js`):** add a small self-contained Babel plugin
+   that re-implements the same inlining (EXPO_PROJECT_ROOT, EXPO_ROUTER_IMPORT_MODE,
+   EXPO_ROUTER_ABS_APP_ROOT, EXPO_ROUTER_APP_ROOT), reading from `this.file.opts.caller` per file
+   (cache-safe) with no module-resolution dependency. It runs before the preset and is idempotent
+   on layouts where the preset's own plugin still runs. **Why a repo fix, not an env var:** the env
+   var can't work (plugin ignores it), and the inlining must happen regardless of node-linker layout.
+   **How to verify standalone:** transform `_ctx.android.js` through `@babel/core` with ONLY this
+   plugin + a metro-like caller (`{platform:"android",projectRoot:<mobile>,routerRoot:"./app",isDev:true}`)
+   and confirm `process.env.EXPO_ROUTER_APP_ROOT` becomes a relative string and `_IMPORT_MODE` → `"sync"`.
