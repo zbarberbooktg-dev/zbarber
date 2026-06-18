@@ -128,7 +128,23 @@ function expoRouterEnvInlinePlugin({ types: t }) {
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [["babel-preset-expo", { unstable_transformImportMeta: true }]],
-    plugins: [expoRouterEnvInlinePlugin],
+    presets: [
+      [
+        "babel-preset-expo",
+        // Disable the preset's auto-add of the worklets/reanimated plugin. The
+        // preset only adds `react-native-worklets/plugin` when its internal
+        // `hasModule("react-native-worklets")` (a `require.resolve` from deep
+        // inside babel-preset-expo's own .pnpm dir) succeeds. Under pnpm's
+        // `node-linker=hoisted` layout (used for native Android builds on
+        // Windows) that resolve fails, so the plugin is silently skipped and the
+        // app crashes at runtime with "[Worklets] Failed to create a worklet".
+        // We add the plugin explicitly below instead — resolved from this
+        // config's location, which works on every node-linker layout — so we
+        // turn off the preset's copy to avoid a duplicate on isolated linkers.
+        { unstable_transformImportMeta: true, worklets: false, reanimated: false },
+      ],
+    ],
+    // `react-native-worklets/plugin` must be the LAST plugin.
+    plugins: [expoRouterEnvInlinePlugin, "react-native-worklets/plugin"],
   };
 };
