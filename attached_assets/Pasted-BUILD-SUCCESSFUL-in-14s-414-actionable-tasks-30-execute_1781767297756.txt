@@ -1,0 +1,51 @@
+BUILD SUCCESSFUL in 14s
+414 actionable tasks: 30 executed, 384 up-to-date
+React Compiler enabled
+Starting Metro Bundler
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ▄▄▄▄▄ ██▄▄ ▀▄██▄ ▀█ █ ███ ▄▄▄▄▄ █
+█ █   █ █▀▄  █▀ ▀ ███  █▄ █ █   █ █
+█ █▄▄▄█ █▄▀ █▄ ▀███ ▄███▄██ █▄▄▄█ █
+█▄▄▄▄▄▄▄█▄▀▄█ █▄█▄█▄█▄█ █▄█▄▄▄▄▄▄▄█
+█▄▄▀██ ▄ ▀▄ █▄▄█▀ ▄ ▀▄█   ██▀  ████
+███▀ █▄▄█▄▄▀ ▄▄▄ ▀███▀▄ █▄ █ █▀  ██
+█▄▄█▄▄▄▄ ▄▄ █▀█  ██▄ ▀▀█ █▀  █ ▀▄▀█
+█▄▀ ▄▄▀▄██  █▀█ ▄ ▄ ███ ▀▄▄█▀█▄ ▄██
+█ ▄█▀▄█▄ █▄ █▄▄█ ▄█▀▀ █  ▄▄▀▄▄▄██▀█
+█ ▀█▀█▄▄██▀▀▀▄▄▀  █▀▄▄▄█▄█▀▄▀▀▄▀▀ █
+█▀▄▄▀▀▄▄█▄▀▀▄ ▄█▀▀▄  █▀▀▀▄▄█  ▀█▄▄█
+█ █▄ ▄█▄ ▄ ██▀▄▀ ████ █ ██▄▄▄█▄▀ ██
+█▄▄▄█▄█▄▄▀▄█ ▀▄█ ██▄▀█▀ █ ▄▄▄  ██▀█
+█ ▄▄▄▄▄ █ ▀██ ██▄ ▄ ███▄  █▄█  ▀▄██
+█ █   █ ██▀█ ▀ ▀▀▄█▀ ▀█ █  ▄  ▀▀▄██
+█ █▄▄▄█ █▀██▄ ▄▄▄██▀ ▄▄▀ ▄ ▀█▄▀ █▄█
+█▄▄▄▄▄▄▄█▄▄███▄█▄▄▄▄█▄█▄▄▄▄▄▄▄▄█▄██
+
+› Metro waiting on mobile://expo-development-client/?url=http%3A%2F%2F192.168.1.64%3A8081
+› Scan the QR code above to open the project in a development build. Learn more: https://expo.fyi/start
+
+› Web is waiting on http://localhost:8081
+
+› Using development build
+› Press s │ switch to Expo Go
+
+› Press a │ open Android
+› Press w │ open web
+
+› Press j │ open debugger
+› Press r │ reload app
+› Press m │ toggle menu
+› shift+m │ more tools
+› Press o │ open project code in your editor
+
+› Press ? │ show all commands
+
+› Installing C:\zbarber\artifacts\mobile\android\app\build\outputs\apk\debug\app-debug.apk
+› Opening mobile://expo-development-client/?url=http%3A%2F%2F192.168.1.64%3A8081 on phone
+
+› Logs for your project will appear below. Press Ctrl+C to exit.
+Android Bundling failed 56227ms artifacts\mobile\node_modules\expo-router\entry.js (1071 modules)
+ ERROR  Error: node_modules\expo-router\_ctx.android.js:Invalid call at line 2: process.env.EXPO_ROUTER_APP_ROOT
+First argument of `require.context` should be a string denoting the directory to require.
+    at transformJS (C:\zbarber\artifacts\mobile\node_modules\@expo\metro-config\build\transform-worker\metro-transform-worker.js:337:23)
+    at transformJSWithBabel (C:\zbarber\artifacts\mobile\node_modules\@expo\metro-config\build\transform-worker\metro-transform-worker.js:487:18)
