@@ -76,3 +76,19 @@ In order encountered, the durable fixes:
    then clean-rebuild. **How to spot:** the crashing class lives in `expo-modules-core` but is absent
    from the installed version's source (`rg AnyTypeCache .../expo-modules-core` → no hits) while a
    peer module references it — that gap = an off-SDK Expo dep, not a stale build.
+
+7. **App launches then throws `@clerk/react: useAuth can only be used within the <ClerkProvider/>`
+   despite every import using `@clerk/expo` → duplicate React-context package under hoisting.**
+   `@clerk/expo` is built on `@clerk/react` (v6 rename of `@clerk/clerk-react`); Clerk's contexts
+   (`ClerkInstanceContext`, etc.) live in `@clerk/shared/react`. Under `node-linker=hoisted`, a request
+   for `@clerk/shared`/`react` originating *inside* `@clerk/expo`'s node_modules can resolve to a
+   different physical copy than app code sees → two context objects → the provider is invisible to the
+   hook. The lockfile shows a SINGLE version (it's a layout/dedup issue, not a version conflict), so it
+   never reproduces on Replit/EAS (isolated linker). **Fix (in repo, `artifacts/mobile/metro.config.js`):**
+   override `config.resolver.resolveRequest` to re-root every request whose specifier is or starts with
+   `react`, `react-dom`, `@clerk/react`, `@clerk/shared`, `@clerk/clerk-js` at the app dir (set
+   `originModulePath` to a fake `<app>/...js` path — Metro only uses its dirname), collapsing all copies
+   to one. No-op on isolated linker (already one copy). **Note:** on Replit, requesting the bundle via
+   curl fails with an unrelated `Unable to resolve ./node_modules/expo-router/entry from
+   <workspace-root>/.` — that's a monorepo-root quirk present with the DEFAULT config too, NOT caused by
+   the resolver override; verify the override by diffing against default, not by a clean Replit bundle.
