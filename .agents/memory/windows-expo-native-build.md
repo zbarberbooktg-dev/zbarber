@@ -62,3 +62,17 @@ In order encountered, the durable fixes:
    **How to verify standalone:** transform `_ctx.android.js` through `@babel/core` with ONLY this
    plugin + a metro-like caller (`{platform:"android",projectRoot:<mobile>,routerRoot:"./app",isDev:true}`)
    and confirm `process.env.EXPO_ROUTER_APP_ROOT` becomes a relative string and `_IMPORT_MODE` → `"sync"`.
+
+6. **App builds+installs but crashes at launch: `NoClassDefFoundError` for an `expo.modules.kotlin.*`
+   class (e.g. `AnyTypeCache`) → an `expo-*` package pinned to a future-SDK major.** A single
+   off-SDK Expo package (here `expo-document-picker@^56.0.4` while everything else was SDK 54)
+   depends on a newer `expo-modules-core` API that the SDK-pinned `expo-modules-core` (3.0.30) does
+   not contain. It still **compiles** (autolinking + Gradle resolve the newer module's classpath),
+   so the native build succeeds, then crashes during TurboModule init with
+   `java.lang.ClassNotFoundException: ...AnyTypeCache` at `DocumentPickerModule.definition`.
+   **Invisible on Replit/EAS:** Replit never builds native (Metro only bundles iOS/web), and EAS
+   uses SDK-aligned versions, so neither surfaces the mismatch. **Fix:** pin every `expo-*` package
+   to its SDK version from `node_modules/expo/bundledNativeModules.json` (or `npx expo install --check`);
+   then clean-rebuild. **How to spot:** the crashing class lives in `expo-modules-core` but is absent
+   from the installed version's source (`rg AnyTypeCache .../expo-modules-core` → no hits) while a
+   peer module references it — that gap = an off-SDK Expo dep, not a stale build.
