@@ -92,3 +92,18 @@ In order encountered, the durable fixes:
    curl fails with an unrelated `Unable to resolve ./node_modules/expo-router/entry from
    <workspace-root>/.` — that's a monorepo-root quirk present with the DEFAULT config too, NOT caused by
    the resolver override; verify the override by diffing against default, not by a clean Replit bundle.
+
+8. **Runtime `[Worklets] Failed to create a worklet` (reanimated 4) → preset's worklets-plugin
+   auto-add skipped under hoisting.** Same root cause as #5: `babel-preset-expo` only injects
+   `react-native-worklets/plugin` when its internal `hasModule('react-native-worklets')`
+   (`require.resolve` from deep inside the preset's own `.pnpm` dir) succeeds; under
+   `node-linker=hoisted` it fails, the plugin is silently dropped, and worklets throw at runtime
+   (a cascading `Route "./_layout.tsx" is missing the required default export` warning often
+   accompanies it — red herring, the layout's export is fine). Reanimated 4 needs
+   `react-native-worklets/plugin` (it moved out of `react-native-reanimated` in v4). **Fix (in repo,
+   `artifacts/mobile/babel.config.js`):** add `"react-native-worklets/plugin"` as the LAST plugin
+   (resolved from the config's own location, so hoisting-proof) AND pass `{ worklets: false,
+   reanimated: false }` to `babel-preset-expo` to suppress its auto-add and avoid a duplicate plugin
+   on isolated linkers (Replit/EAS). The preset adds the plugin with no options, so an explicit add
+   with defaults is equivalent. **General rule:** any babel-preset-expo feature gated on `hasModule`
+   (expo-router env inline, worklets) is unreliable under hoisting — add those plugins explicitly.
