@@ -27,3 +27,12 @@ On success the response shows `proxy_url` + `frontend_api_url` both = the proxy 
 4. If all 3 pass but FAPI still 400s → it's just the missing `proxy_url`. PATCH it.
 
 The proxy host must equal the domain `name` (e.g. `zbarber.net`). DKIM + `clkmail` cname_targets stay `required:true` regardless of proxy mode — they are for verification **emails** from the domain, still needed since the app uses email_code sign-in.
+
+## Native API must be enabled separately (the `@clerk/expo` white-screen trap)
+A Clerk **production** instance ships with the **Native API DISABLED** (dev instances have it on). `@clerk/expo` calls FAPI with `_is_native=1`, so Clerk returns `400 {"errors":[{"message":"Native API disabled"}]}`, clerk-js never finishes `load()`, `useAuth().isLoaded` stays `false` forever, and every screen gated on `isLoaded` renders blank → **white screen after splash**.
+
+**Why it's a trap:** a plain server-side `curl` of the proxy FAPI returns 200 (it omits `_is_native=1`), so the proxy looks 100% healthy. The failure only reproduces from a native client. To reproduce from anywhere, append `&_is_native=1` to the FAPI env URL.
+
+**Fix (independent of proxy_url):** Dashboard → Production instance → Configure → Native Applications → toggle Native API ON. Or Backend API: `PATCH https://api.clerk.com/v1/instance` `Authorization: Bearer sk_live_…` body `{"enable_native_api": true}` → 200.
+
+**How to diagnose isLoaded-stuck-false on device:** log gate flags (`isLoaded/isSignedIn/storageReady/initialSyncDone`); if `isLoaded:false` + `isSignedIn:undefined` persist, fetch the proxy FAPI env URL with `_is_native=1` from inside the app and read the status/body — `400 Native API disabled` is the tell.
