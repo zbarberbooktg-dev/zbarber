@@ -113,7 +113,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [barberProfile, setBarberProfile] = useState<SyncedBarber | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [initialSyncDone, setInitialSyncDone] = useState(false);
-
+  
   useEffect(() => {
     setAuthTokenGetter(() => getToken());
     return () => setAuthTokenGetter(null);
