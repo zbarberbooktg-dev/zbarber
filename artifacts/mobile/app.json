@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "net.zbarber.app"
+      "bundleIdentifier": "net.zbarber.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
