@@ -2,12 +2,24 @@
 #
 # IMPORTANT: when this file exists, EAS uses it INSTEAD of .gitignore. So it must
 # re-list EVERYTHING that should stay out of the archive (dependencies, caches,
-# AND secrets) — not just the extra heavy assets. EAS reinstalls deps from the
-# lockfile on the build server, so node_modules must not be uploaded.
+# native build folders, AND secrets). EAS reinstalls deps from the lockfile and
+# runs prebuild on its own servers, so none of this needs to be uploaded.
 
 # --- Dependencies (rebuilt on the EAS server from pnpm-lock.yaml) ---
+# Both forms for matcher compatibility (with and without trailing slash):
+node_modules
 node_modules/
+**/node_modules
 **/node_modules/
+.pnpm-store/
+**/.pnpm-store/
+
+# --- Local native projects & build caches (EAS prebuilds these itself) ---
+android/
+ios/
+**/.gradle/
+**/.cxx/
+**/.kotlin/
 
 # --- Build output / caches ---
 dist/
@@ -27,6 +39,8 @@ coverage/
 .env
 .env.*
 !.env.example
+*.keystore
+*.jks
 zbarber_deploy
 zbarber_deploy.pub
 *.pem
