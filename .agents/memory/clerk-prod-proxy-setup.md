@@ -36,3 +36,8 @@ A Clerk **production** instance ships with the **Native API DISABLED** (dev inst
 **Fix (independent of proxy_url):** Dashboard → Production instance → Configure → Native Applications → toggle Native API ON. Or Backend API: `PATCH https://api.clerk.com/v1/instance` `Authorization: Bearer sk_live_…` body `{"enable_native_api": true}` → 200.
 
 **How to diagnose isLoaded-stuck-false on device:** log gate flags (`isLoaded/isSignedIn/storageReady/initialSyncDone`); if `isLoaded:false` + `isSignedIn:undefined` persist, fetch the proxy FAPI env URL with `_is_native=1` from inside the app and read the status/body — `400 Native API disabled` is the tell.
+
+## Wrong proxy host in a native build = full BLACK screen after splash
+The mobile build's baked `EXPO_PUBLIC_CLERK_PROXY_URL` must use the **root** proxy host (the Clerk Primary domain, e.g. `https://zbarber.net/api/__clerk`), NOT an `api.*` subdomain. Clerk locks the proxy to the Primary domain, so `api.test.…`/`api.…` return `400 host_invalid`, clerk-js never loads, and because the whole RN tree is wrapped in `<ClerkLoaded>`, **even public/unauthed screens stay black** (not the app's ErrorBoundary "Something went wrong" screen — that boundary sits *below* `ClerkProvider`, so a Clerk-init failure is never caught).
+**Why:** EAS bakes env at build time; eas.json drifted from the documented Option A (all profiles → root host) and shipped `api.test.…` to TestFlight.
+**How to confirm in 5s before a ~30-min iOS rebuild:** `curl` each candidate `https://<host>/api/__clerk/v1/environment?__clerk_api_version=2021-02-05&_clerk_js_version=5.0.0 -H "Clerk-Publishable-Key: pk_live_…"` — the correct host returns **200** + env JSON, the wrong ones return **400 host_invalid**.
