@@ -1,0 +1,47 @@
+Bundle JavaScript
+
+11s
+
+
+React Compiler enabled
+Starting Metro Bundler
+iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__950497bba3dbc1f6b1863109f86ef06a/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 19.4% (145/329)
+iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__950497bba3dbc1f6b1863109f86ef06a/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 66.4% ( 963/1193)
+iOS Bundling failed 8097ms node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__950497bba3dbc1f6b1863109f86ef06a/node_modules/expo-router/entry.js (2238 modules)
+Unable to resolve module @clerk/react/internal from /Users/expo/workingdir/build/node_modules/.pnpm/@clerk+expo@3.2.16_@types+react@19.1.17_bs58@6.0.0_expo-auth-session@7.0.11_expo@54.0.3_ed7e824151178995288e7208bd320238/node_modules/@clerk/expo/dist/index.js: @clerk/react/internal could not be found within the project or in these directories:
+  node_modules
+  ../../node_modules
+  node_modules
+  ../../node_modules
+  28 | });
+  29 | module.exports = __toCommonJS(index_exports);
+> 30 | var import_internal = require("@clerk/react/internal");
+     |                                ^
+  31 | var import_errors = require("@clerk/react/errors");
+  32 | var import_singleton = require("./provider/singleton");
+  33 | __reExport(index_exports, require("./provider/ClerkProvider"), module.exports);
+Import stack:
+ node_modules/.pnpm/@clerk+expo@3.2.16_@types+react@19.1.17_bs58@6.0.0_expo-auth-session@7.0.11_expo@54.0.3_ed7e824151178995288e7208bd320238/node_modules/@clerk/expo/dist/index.js
+ | import "@clerk/react/internal"
+ artifacts/mobile/app/(barber)/_layout.tsx
+ | import "@clerk/expo"
+ artifacts/mobile/app (require.context)
+Error: Unable to resolve module @clerk/react/internal from /Users/expo/workingdir/build/node_modules/.pnpm/@clerk+expo@3.2.16_@types+react@19.1.17_bs58@6.0.0_expo-auth-session@7.0.11_expo@54.0.3_ed7e824151178995288e7208bd320238/node_modules/@clerk/expo/dist/index.js: @clerk/react/internal could not be found within the project or in these directories:
+  node_modules
+  ../../node_modules
+  node_modules
+  ../../node_modules
+  28 | });
+  29 | module.exports = __toCommonJS(index_exports);
+> 30 | var import_internal = require("@clerk/react/internal");
+     |                                ^
+  31 | var import_errors = require("@clerk/react/errors");
+  32 | var import_singleton = require("./provider/singleton");
+  33 | __reExport(index_exports, require("./provider/ClerkProvider"), module.exports);
+Import stack:
+ node_modules/.pnpm/@clerk+expo@3.2.16_@types+react@19.1.17_bs58@6.0.0_expo-auth-session@7.0.11_expo@54.0.3_ed7e824151178995288e7208bd320238/node_modules/@clerk/expo/dist/index.js
+ | import "@clerk/react/internal"
+ artifacts/mobile/app/(barber)/_layout.tsx
+ | import "@clerk/expo"
+ artifacts/mobile/app (require.context)
+pnpm expo export:embed --eager --platform ios --dev false exited with non-zero code: 1
