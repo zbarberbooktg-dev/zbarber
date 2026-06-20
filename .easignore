@@ -1,25 +1,31 @@
-# .easignore — controls what `eas build` uploads to EAS Build.
+# .easignore - controls what `eas build` uploads to EAS Build.
 #
 # IMPORTANT: when this file exists, EAS uses it INSTEAD of .gitignore. So it must
 # re-list EVERYTHING that should stay out of the archive (dependencies, caches,
 # native build folders, AND secrets). EAS reinstalls deps from the lockfile and
 # runs prebuild on its own servers, so none of this needs to be uploaded.
 
+# --- Local native projects & build caches (the 6.5 GB; EAS prebuilds these) ---
+artifacts/mobile/android/
+artifacts/mobile/ios/
+android/
+ios/
+**/android/
+**/ios/
+**/.gradle/
+**/.cxx/
+**/.kotlin/
+**/build/
+**/Pods/
+**/DerivedData/
+
 # --- Dependencies (rebuilt on the EAS server from pnpm-lock.yaml) ---
-# Both forms for matcher compatibility (with and without trailing slash):
 node_modules
 node_modules/
 **/node_modules
 **/node_modules/
 .pnpm-store/
 **/.pnpm-store/
-
-# --- Local native projects & build caches (EAS prebuilds these itself) ---
-android/
-ios/
-**/.gradle/
-**/.cxx/
-**/.kotlin/
 
 # --- Build output / caches ---
 dist/
@@ -35,7 +41,7 @@ coverage/
 .local/
 .turbo/
 
-# --- Secrets / credentials — NEVER upload to the build server ---
+# --- Secrets / credentials - NEVER upload to the build server ---
 .env
 .env.*
 !.env.example
@@ -63,7 +69,7 @@ screenshots/
 deploy/
 # Web/design artifacts' static images (large PNGs, unrelated to the Expo build).
 # Their package.json/source stay in the archive so the pnpm workspace install
-# still resolves — only the heavy public image dirs are excluded.
+# still resolves - only the heavy public image dirs are excluded.
 artifacts/mockup-sandbox/public/
 artifacts/vitrine/public/
 artifacts/admin/public/
