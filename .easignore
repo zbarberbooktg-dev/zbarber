@@ -1,0 +1,55 @@
+# .easignore — controls what `eas build` uploads to EAS Build.
+#
+# IMPORTANT: when this file exists, EAS uses it INSTEAD of .gitignore. So it must
+# re-list EVERYTHING that should stay out of the archive (dependencies, caches,
+# AND secrets) — not just the extra heavy assets. EAS reinstalls deps from the
+# lockfile on the build server, so node_modules must not be uploaded.
+
+# --- Dependencies (rebuilt on the EAS server from pnpm-lock.yaml) ---
+node_modules/
+**/node_modules/
+
+# --- Build output / caches ---
+dist/
+**/dist/
+tmp/
+out-tsc/
+*.tsbuildinfo
+.expo/
+**/.expo/
+.expo-shared/
+coverage/
+.cache/
+.local/
+.turbo/
+
+# --- Secrets / credentials — NEVER upload to the build server ---
+.env
+.env.*
+!.env.example
+zbarber_deploy
+zbarber_deploy.pub
+*.pem
+id_rsa
+id_ed25519
+id_ecdsa
+
+# --- System / editor files ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# --- Not needed for the mobile native build ---
+.agents/
+attached_assets/
+screenshots/
+.github/
+deploy/
+# Web/design artifacts' static images (large PNGs, unrelated to the Expo build).
+# Their package.json/source stay in the archive so the pnpm workspace install
+# still resolves — only the heavy public image dirs are excluded.
+artifacts/mockup-sandbox/public/
+artifacts/vitrine/public/
+artifacts/admin/public/
