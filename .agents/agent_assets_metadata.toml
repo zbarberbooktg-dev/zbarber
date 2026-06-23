@@ -173,3 +173,9 @@ id = "GEeabePDIZFdxLe2MjwhN"
 uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
 title = "Icône de l'application Zbarber"
+
+[[outputs]]
+id = "39GkDZ-Jw7iyr4Nk9SmW2"
+uri = "file://exports/zbarber-icon-512.png"
+type = "image"
+title = "Icône Zbarber 512×512"
