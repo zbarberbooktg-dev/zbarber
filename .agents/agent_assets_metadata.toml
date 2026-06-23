@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "w_dMFBwn4y8cCQN4MYk7K"
@@ -168,3 +167,9 @@ id = "3ydwQBs6cGniEvIQ47w-Z"
 uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/style-4.png"
 type = "image"
 title = "Taper fade style"
+
+[[outputs]]
+id = "GEeabePDIZFdxLe2MjwhN"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "Icône de l'application Zbarber"
