@@ -168,6 +168,12 @@ uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/style-4.p
 type = "image"
 title = "Taper fade style"
 
+[[generated]]
+id = "Sk52hrSWqkku5snkX6Ujl"
+uri = "file://exports/zbarber-feature-16x9.png"
+type = "image"
+title = "zbarber feature graphic"
+
 [[outputs]]
 id = "GEeabePDIZFdxLe2MjwhN"
 uri = "file://artifacts/mobile/assets/images/icon.png"
@@ -179,3 +185,9 @@ id = "39GkDZ-Jw7iyr4Nk9SmW2"
 uri = "file://exports/zbarber-icon-512.png"
 type = "image"
 title = "Icône Zbarber 512×512"
+
+[[outputs]]
+id = "Pp6MYvucGqD_6Nx32FSOr"
+uri = "file://exports/zbarber-feature-1024x500.png"
+type = "image"
+title = "Zbarber — visuel 1024×500 (feature graphic)"
