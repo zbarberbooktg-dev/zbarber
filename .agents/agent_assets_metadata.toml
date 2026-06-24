@@ -186,6 +186,12 @@ uri = "file://exports/zbarber-feature-barbers2-16x9.png"
 type = "image"
 title = "zbarber diverse barbers banner"
 
+[[generated]]
+id = "p1WynDeqMcDoCZPiAaNy8"
+uri = "file://exports/zbarber-feature-barbers3-16x9.png"
+type = "image"
+title = "zbarber diverse barbers v3"
+
 [[outputs]]
 id = "GEeabePDIZFdxLe2MjwhN"
 uri = "file://artifacts/mobile/assets/images/icon.png"
@@ -209,3 +215,9 @@ id = "07CFBahURC2VGBkApBdla"
 uri = "file://exports/zbarber-feature-barbers2-1024x500.png"
 type = "image"
 title = "Zbarber — barbiers (1024×500)"
+
+[[outputs]]
+id = "TZdsRhzQ608BSmvvnD4ya"
+uri = "file://exports/zbarber-feature-final-1024x500.png"
+type = "image"
+title = "Zbarber — visuel final (1024×500)"
