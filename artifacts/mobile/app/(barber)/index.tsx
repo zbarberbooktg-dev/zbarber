@@ -226,15 +226,14 @@ export default function BarberDashboard() {
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="layers" label="Avant / Après" onPress={() => router.push("/(barber)/realisations")} />
         <Shortcut c={c} icon="compass" label="Visite 360°" onPress={() => router.push("/(barber)/panoramas")} />
+      </View>
+      <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="dollar-sign" label="Financement" onPress={() => router.push("/(barber)/financing")} />
-      </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="bar-chart-2" label="Statistiques" onPress={() => router.push("/(barber)/stats")} />
-        <Shortcut c={c} icon="users" label="File d'attente" onPress={() => router.push("/(barber)/queue")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
+        <Shortcut c={c} icon="users" label="File d'attente" onPress={() => router.push("/(barber)/queue")} />
         <Shortcut c={c} icon="plus-circle" label="Nouveau salon" onPress={() => setCreateOpen(true)} />
-        <View style={{ flex: 1 }} />
       </View>
       <CreateSalonModal visible={createOpen} onClose={() => setCreateOpen(false)} />
 
@@ -294,11 +293,18 @@ function Shortcut({ c, icon, label, onPress }: {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={{
               width: 36, height: 36, borderRadius: 18, backgroundColor: c.accent,
-              alignItems: "center", justifyContent: "center",
+              alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>
               <Feather name={icon} size={16} color={c.primary} />
             </View>
-            <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>{label}</Text>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              style={{ flex: 1, color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}
+            >
+              {label}
+            </Text>
           </View>
         </Card>
       )}

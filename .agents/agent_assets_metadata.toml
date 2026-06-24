@@ -227,3 +227,33 @@ id = "TZdsRhzQ608BSmvvnD4ya"
 uri = "file://exports/zbarber-feature-final-1024x500.png"
 type = "image"
 title = "Zbarber — visuel final (1024×500)"
+
+[[outputs]]
+id = "IEIxeLdzVW-Itx3ms2MQc"
+uri = "file://exports/app-store/01-accueil-decouverte.png"
+type = "image"
+title = "Accueil / Découverte — salons près de chez vous"
+
+[[outputs]]
+id = "pvQSXAJ4Bhpr2xKdX0z7g"
+uri = "file://exports/app-store/02-liste-salons.png"
+type = "image"
+title = "Liste des salons certifiés"
+
+[[outputs]]
+id = "4u3MfgtFns8SkAf4pHPgx"
+uri = "file://exports/app-store/03-salon-kings.png"
+type = "image"
+title = "Détail salon — services & tarifs (Kings Barbershop)"
+
+[[outputs]]
+id = "0QlqsRFg-KhFZO-XewrV2"
+uri = "file://exports/app-store/04-salon-elite.png"
+type = "image"
+title = "Détail salon — Salon Elite Dakar"
+
+[[outputs]]
+id = "rLA8ynIh-sjnaIeadZ_ND"
+uri = "file://exports/app-store/05-onboarding.png"
+type = "image"
+title = "Onboarding — écran de bienvenue"
