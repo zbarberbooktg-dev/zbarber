@@ -257,3 +257,21 @@ id = "rLA8ynIh-sjnaIeadZ_ND"
 uri = "file://exports/app-store/05-onboarding.png"
 type = "image"
 title = "Onboarding — écran de bienvenue"
+
+[[outputs]]
+id = "-r-ENuR7Fo0G3KYriyVcn"
+uri = "file://exports/app-store/06-salon-services-avis.png"
+type = "image"
+title = "Salon — services, tarifs, avis & réservation"
+
+[[outputs]]
+id = "9G63KSvgjOuC-_Wl7xdTF"
+uri = "file://exports/app-store/07-onboarding-reservation.png"
+type = "image"
+title = "Onboarding — Réservez sans effort"
+
+[[outputs]]
+id = "cRxja6FFOZP7L5R3Hmo8A"
+uri = "file://exports/app-store/08-onboarding-barbier.png"
+type = "image"
+title = "Onboarding — Développez votre clientèle (barbier)"
