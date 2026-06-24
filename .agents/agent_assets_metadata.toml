@@ -192,6 +192,12 @@ uri = "file://exports/zbarber-feature-barbers3-16x9.png"
 type = "image"
 title = "zbarber diverse barbers v3"
 
+[[generated]]
+id = "J3dUR-l1RWZqYMJf6jy1p"
+uri = "file://exports/zbarber-feature-barbers-black-16x9.png"
+type = "image"
+title = "zbarber black barbers banner"
+
 [[outputs]]
 id = "GEeabePDIZFdxLe2MjwhN"
 uri = "file://artifacts/mobile/assets/images/icon.png"
