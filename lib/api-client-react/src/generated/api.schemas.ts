@@ -133,11 +133,22 @@ export interface SuspendInput {
   reason?: string | null;
 }
 
+export interface DocumentRejectInput {
+  /** @nullable */
+  reason?: string | null;
+}
+
+export interface SubmitDocumentInput {
+  /** Object-storage path (starts with /objects/) of the uploaded document. */
+  documentUrl: string;
+}
+
 export type BarberStatus = typeof BarberStatus[keyof typeof BarberStatus];
 
 
 export const BarberStatus = {
   pending: 'pending',
+  awaiting_document: 'awaiting_document',
   approved: 'approved',
   rejected: 'rejected',
   suspended: 'suspended',
@@ -172,6 +183,16 @@ export interface Barber {
   rejectionReason?: string | null;
   /** @nullable */
   suspensionReason?: string | null;
+  /** @nullable */
+  firstValidatedAt?: string | null;
+  /** @nullable */
+  documentUrl?: string | null;
+  /** @nullable */
+  documentSubmittedAt?: string | null;
+  /** @nullable */
+  documentDeadline?: string | null;
+  /** @nullable */
+  documentReviewNote?: string | null;
   /** @nullable */
   rating?: number | null;
   reviewCount?: number;
@@ -603,6 +624,10 @@ export interface FinancingRequest {
   yearsActive: number;
   repaymentMonths: number;
   documents: string[];
+  /** @nullable */
+  idDocument?: string | null;
+  /** @nullable */
+  guarantorIdDocument?: string | null;
   status: FinancingRequestStatus;
   /** @nullable */
   adminNote?: string | null;
@@ -641,6 +666,8 @@ export interface FinancingInput {
   repaymentMonths: number;
   /** @minItems 1 */
   documents: string[];
+  idDocument: string;
+  guarantorIdDocument: string;
 }
 
 export type FinancingStatusUpdateStatus = typeof FinancingStatusUpdateStatus[keyof typeof FinancingStatusUpdateStatus];

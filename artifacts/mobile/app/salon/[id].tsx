@@ -23,6 +23,7 @@ import {
   FlatList,
   Image,
   ImageSourcePropType,
+  LayoutAnimation,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -31,6 +32,7 @@ import {
   ScrollView,
   Share,
   Text,
+  UIManager,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -61,6 +63,10 @@ const PALETTE = {
   gold: "#D4AF37",
 };
 
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 const salonFallbacks: ImageSourcePropType[] = [
   require("../../assets/images/client-home/salon1.png"),
   require("../../assets/images/client-home/salon2.png"),
@@ -73,7 +79,7 @@ export default function PublicSalonDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isSignedIn } = useAuth();
-  const { locale, user, t } = useApp();
+  const { locale, t } = useApp();
   const fetcher = useAuthedFetch();
   const [scrolled, setScrolled] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
@@ -199,10 +205,6 @@ export default function PublicSalonDetail() {
     }
     if (!selectedService || !selectedSlot) {
       Alert.alert("Sélection incomplète", "Choisissez un service et un créneau.");
-      return;
-    }
-    if (user?.role === "barber") {
-      Alert.alert("Réservation impossible", "Un barbier ne peut pas réserver une prestation.");
       return;
     }
     setBooking(true);
@@ -585,11 +587,17 @@ export default function PublicSalonDetail() {
           </View>
         ) : (
           <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
-            <SectionTitle title="Services" />
+            <SectionTitle title={isFr ? "Réserver" : "Book"} />
+            <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 12, marginTop: -6 }}>
+              {isFr ? "Choisissez un service" : "Choose a service"}
+            </Text>
             {services.map((s) => (
               <Pressable
                 key={s.id}
-                onPress={() => setSelectedService(s.id === selectedService ? null : s.id)}
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setSelectedService(s.id === selectedService ? null : s.id);
+                }}
                 style={{
                   flexDirection: "row",
                   justifyContent: "space-between",
@@ -626,6 +634,51 @@ export default function PublicSalonDetail() {
                 )}
               </Pressable>
             ))}
+
+            {/* Time-slot picker — grouped with services in one booking block */}
+            {selectedService && (
+              <View style={{ marginTop: 14 }}>
+                <Accordion
+                  title={isFr ? "Choisir un créneau" : "Choose a time slot"}
+                  count={slots.length}
+                  defaultOpen
+                >
+                  {slots.length === 0 ? (
+                    <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, paddingVertical: 6 }}>
+                      {isFr ? "Aucun créneau disponible pour le moment." : "No time slots available right now."}
+                    </Text>
+                  ) : (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
+                      {slots.map((sl) => (
+                        <Pressable
+                          key={sl.iso}
+                          onPress={() => setSelectedSlot(sl.iso === selectedSlot ? null : sl.iso)}
+                          style={{
+                            paddingHorizontal: 14,
+                            paddingVertical: 10,
+                            backgroundColor: selectedSlot === sl.iso ? PALETTE.gold : PALETTE.surface,
+                            borderWidth: 1,
+                            borderColor: selectedSlot === sl.iso ? PALETTE.gold : PALETTE.border,
+                            minWidth: 100,
+                            alignItems: "center",
+                          }}
+                        >
+                          <Text style={{
+                            color: selectedSlot === sl.iso ? "#000" : PALETTE.text,
+                            fontFamily: "Inter_600SemiBold",
+                            fontSize: 12,
+                            textAlign: "center",
+                          }}>
+                            {sl.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  )}
+                </Accordion>
+              </View>
+            )}
           </View>
         )}
 
@@ -685,74 +738,41 @@ export default function PublicSalonDetail() {
           </View>
         )}
 
-        {/* Time slots */}
-        {selectedService && (
-          <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
-            <SectionTitle title="Choisir un créneau" />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
-              {slots.map((sl) => (
-                <Pressable
-                  key={sl.iso}
-                  onPress={() => setSelectedSlot(sl.iso === selectedSlot ? null : sl.iso)}
-                  style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    backgroundColor: selectedSlot === sl.iso ? PALETTE.gold : PALETTE.surface,
-                    borderWidth: 1,
-                    borderColor: selectedSlot === sl.iso ? PALETTE.gold : PALETTE.border,
-                    minWidth: 100,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{
-                    color: selectedSlot === sl.iso ? "#000" : PALETTE.text,
-                    fontFamily: "Inter_600SemiBold",
-                    fontSize: 12,
-                    textAlign: "center",
-                  }}>
-                    {sl.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
         {/* Reviews */}
         {reviews.length > 0 && (
           <View style={{ padding: 14 }}>
-            <SectionTitle title="Avis clients" />
-            {reviews.slice(0, 5).map((r) => (
-              <View key={r.id} style={{
-                backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border,
-                padding: 14, marginBottom: 10,
-              }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
-                  <View style={{
-                    width: 32, height: 32, borderRadius: 16, backgroundColor: `${PALETTE.gold}20`,
-                    alignItems: "center", justifyContent: "center",
-                  }}>
-                    <Feather name="user" size={14} color={PALETTE.gold} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
-                      Client #{r.clientId}
-                    </Text>
-                    <View style={{ flexDirection: "row", gap: 2, marginTop: 2 }}>
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <Feather key={n} name="star" size={10} color={n <= (r.rating ?? 0) ? PALETTE.gold : PALETTE.border} />
-                      ))}
+            <Accordion title={isFr ? "Avis clients" : "Client reviews"} count={reviews.length}>
+              {reviews.slice(0, 5).map((r) => (
+                <View key={r.id} style={{
+                  backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border,
+                  padding: 14, marginBottom: 10,
+                }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                    <View style={{
+                      width: 32, height: 32, borderRadius: 16, backgroundColor: `${PALETTE.gold}20`,
+                      alignItems: "center", justifyContent: "center",
+                    }}>
+                      <Feather name="user" size={14} color={PALETTE.gold} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                        Client #{r.clientId}
+                      </Text>
+                      <View style={{ flexDirection: "row", gap: 2, marginTop: 2 }}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Feather key={n} name="star" size={10} color={n <= (r.rating ?? 0) ? PALETTE.gold : PALETTE.border} />
+                        ))}
+                      </View>
                     </View>
                   </View>
+                  {r.comment && (
+                    <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20 }}>
+                      {r.comment}
+                    </Text>
+                  )}
                 </View>
-                {r.comment && (
-                  <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20 }}>
-                    {r.comment}
-                  </Text>
-                )}
-              </View>
-            ))}
+              ))}
+            </Accordion>
           </View>
         )}
       </ScrollView>
@@ -841,5 +861,51 @@ function SectionTitle({ title }: { title: string }) {
     }}>
       {title}
     </Text>
+  );
+}
+
+function Accordion({
+  title,
+  count,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  count?: number;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <View>
+      <Pressable
+        onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setOpen((o) => !o);
+        }}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: open ? 14 : 0,
+        }}
+        hitSlop={8}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text style={{ color: PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 18 }}>
+            {title}
+          </Text>
+          {typeof count === "number" && count > 0 && (
+            <View style={{ backgroundColor: `${PALETTE.gold}20`, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+              <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                {count}
+              </Text>
+            </View>
+          )}
+        </View>
+        <Feather name={open ? "chevron-up" : "chevron-down"} size={20} color={PALETTE.textMuted} />
+      </Pressable>
+      {open && <View>{children}</View>}
+    </View>
   );
 }

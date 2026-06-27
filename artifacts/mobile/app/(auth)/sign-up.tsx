@@ -141,8 +141,10 @@ export default function SignUpScreen() {
                 console.warn("Avatar upload failed:", formatApiError(uploadErr, t.errors));
               }
               try {
+                // Every account is provisioned as a client. Choosing "barber"
+                // at signup is not self-promotion — it just routes the user to
+                // submit an admin-validated barber request.
                 await syncAuth({
-                  role,
                   name: name.trim() || undefined,
                   phone: phone.trim() || undefined,
                   city: city.trim() || undefined,
@@ -154,7 +156,11 @@ export default function SignUpScreen() {
                 // and can complete their profile from the profile screen.
                 setErr(formatApiError(syncErr, t.errors));
               }
-              router.replace("/");
+              if (role === "barber") {
+                router.replace("/(client)/profile?becomeBarber=1");
+              } else {
+                router.replace("/");
+              }
             } catch (outerErr: unknown) {
               setErr(formatApiError(outerErr, t.errors));
             }
@@ -194,6 +200,17 @@ export default function SignUpScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >
+        <Pressable
+          onPress={() => router.replace("/")}
+          hitSlop={10}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 20 }}
+        >
+          <Feather name="arrow-left" size={18} color={c.primary} />
+          <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
+            {(t as any).backToHome ?? "Accueil"}
+          </Text>
+        </Pressable>
+
         {step === "details" ? (
           <>
             <View style={{ marginBottom: 28 }}>

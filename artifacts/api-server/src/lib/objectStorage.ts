@@ -403,6 +403,65 @@ export class ObjectStorageService {
     return { provider: getStorageProvider() as "gcs" | "replit", file: objectFile };
   }
 
+  /**
+   * List every object that lives under the private `uploads/` prefix — i.e.
+   * everything created by a presigned PUT (`getObjectEntityUploadURL`). Returns
+   * the normalized `/objects/...` path plus the object's creation time so a
+   * caller can skip in-flight uploads. Used by the orphan-upload cleanup sweep.
+   */
+  async listUploadedObjects(): Promise<Array<{ objectPath: string; createdAt: Date }>> {
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) {
+      entityDir = `${entityDir}/`;
+    }
+    const prefixPath = `${entityDir}uploads/`;
+    const { bucketName, objectName: prefix } = parseObjectPath(prefixPath);
+    // The portion of the bucket object name that maps to entityId="" — i.e.
+    // `<private-prefix>/`. Stripping it yields the `uploads/<id>` entity id.
+    const entityPrefix = prefix.slice(0, prefix.length - "uploads/".length);
+
+    const bucket = objectStorageClient.bucket(bucketName);
+    const [files] = await bucket.getFiles({ prefix });
+
+    const results: Array<{ objectPath: string; createdAt: Date }> = [];
+    for (const file of files) {
+      const entityId = file.name.startsWith(entityPrefix)
+        ? file.name.slice(entityPrefix.length)
+        : file.name;
+      const timeCreated = file.metadata?.timeCreated;
+      results.push({
+        objectPath: `/objects/${entityId}`,
+        createdAt: timeCreated ? new Date(timeCreated) : new Date(0),
+      });
+    }
+    return results;
+  }
+
+  /**
+   * Delete a single object entity by its `/objects/...` path. No-op if the
+   * object no longer exists (ignoreNotFound). Used to remove orphaned uploads.
+   */
+  async deleteObjectByPath(objectPath: string): Promise<void> {
+    if (!objectPath.startsWith("/objects/")) {
+      throw new ObjectNotFoundError();
+    }
+    const parts = objectPath.slice(1).split("/");
+    if (parts.length < 2) {
+      throw new ObjectNotFoundError();
+    }
+    const entityId = parts.slice(1).join("/");
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) {
+      entityDir = `${entityDir}/`;
+    }
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    await objectStorageClient
+      .bucket(bucketName)
+      .file(objectName)
+      .delete({ ignoreNotFound: true });
+  }
+
   normalizeObjectEntityPath(rawPath: string): string {
     // Local upload URLs point back at this API: .../api/storage/local-upload/<objectName>?...
     const localIdx = rawPath.indexOf(`${LOCAL_UPLOAD_PATH}/`);

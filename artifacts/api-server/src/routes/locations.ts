@@ -78,9 +78,8 @@ router.post("/cities", requireAuth, async (req, res) => {
 });
 
 /**
- * Resolve a (countryName?, cityName?) pair to canonical strings, persisting
- * the city into the catalog (deduped per country) when both are provided.
- * Returns the canonical names to store on user/barber rows, or nulls.
+ * Kept for backward compatibility with callers that still catch it, but the
+ * catalog is no longer consulted, so it is never thrown.
  */
 export class UnknownCountryError extends Error {
   constructor(public countryName: string) {
@@ -89,53 +88,19 @@ export class UnknownCountryError extends Error {
   }
 }
 
+/**
+ * Normalize a (countryName?, cityName?) pair to raw trimmed strings. The
+ * countries/cities catalog is intentionally NOT consulted — whatever the user
+ * typed is persisted as-is. Returns nulls for empty values.
+ */
 export async function resolveAndPersistLocation(opts: {
   countryName?: string | null;
   cityName?: string | null;
 }): Promise<{ country: string | null; city: string | null }> {
-  const countryName = opts.countryName?.trim() || null;
-  const cityName = opts.cityName?.trim() || null;
-  if (!countryName && !cityName) return { country: null, city: null };
-
-  await ensureCountriesSeeded();
-
-  let canonicalCountry: string | null = countryName;
-  let countryId: number | null = null;
-
-  if (countryName) {
-    const [c] = await db.select().from(countriesTable).where(
-      sql`lower(${countriesTable.name}) = ${countryName.toLowerCase()} or lower(${countriesTable.code}) = ${countryName.toLowerCase()}`,
-    ).limit(1);
-    if (!c) throw new UnknownCountryError(countryName);
-    canonicalCountry = c.name;
-    countryId = c.id;
-  }
-
-  let canonicalCity: string | null = cityName;
-  if (cityName && countryId != null) {
-    const [existing] = await db.select().from(citiesTable).where(and(
-      eq(citiesTable.countryId, countryId),
-      sql`lower(${citiesTable.name}) = ${cityName.toLowerCase()}`,
-    )).limit(1);
-    if (existing) {
-      canonicalCity = existing.name;
-    } else {
-      try {
-        const [created] = await db.insert(citiesTable).values({
-          countryId, name: cityName,
-        }).returning();
-        canonicalCity = created.name;
-      } catch {
-        const [row] = await db.select().from(citiesTable).where(and(
-          eq(citiesTable.countryId, countryId),
-          sql`lower(${citiesTable.name}) = ${cityName.toLowerCase()}`,
-        )).limit(1);
-        if (row) canonicalCity = row.name;
-      }
-    }
-  }
-
-  return { country: canonicalCountry, city: canonicalCity };
+  return {
+    country: opts.countryName?.trim() || null,
+    city: opts.cityName?.trim() || null,
+  };
 }
 
 export default router;

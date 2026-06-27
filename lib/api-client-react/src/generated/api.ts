@@ -38,6 +38,7 @@ import type {
   ConferenceInput,
   ConferenceListResponse,
   ConferenceUpdate,
+  DocumentRejectInput,
   Favorite,
   FavoriteInput,
   FinancingInput,
@@ -86,6 +87,7 @@ import type {
   ServiceCategoryInput,
   ServiceInput,
   ServiceUpdate,
+  SubmitDocumentInput,
   Subscription,
   SubscriptionInput,
   SubscriptionListResponse,
@@ -1910,6 +1912,78 @@ export const useUpdateBarber = <TError = ErrorType<unknown>,
       return useMutation(getUpdateBarberMutationOptions(options));
     }
 
+export const getFirstValidateBarberUrl = (id: number,) => {
+
+
+
+
+  return `/api/barbers/${id}/first-validate`
+}
+
+/**
+ * Step 1 of the two-step verification. Moves a pending barber to "awaiting_document", starts the 30-day window to upload an official authorization document, and activates barber capabilities so the owner can reach the upload entry. The account stays gated until the document is reviewed and the barber is finally approved.
+
+ * @summary First validation of a barber account (admin)
+ */
+export const firstValidateBarber = async (id: number, options?: RequestInit): Promise<Barber> => {
+
+  return customFetch<Barber>(getFirstValidateBarberUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getFirstValidateBarberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof firstValidateBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof firstValidateBarber>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['firstValidateBarber'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof firstValidateBarber>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  firstValidateBarber(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FirstValidateBarberMutationResult = NonNullable<Awaited<ReturnType<typeof firstValidateBarber>>>
+
+    export type FirstValidateBarberMutationError = ErrorType<unknown>
+
+    /**
+ * @summary First validation of a barber account (admin)
+ */
+export const useFirstValidateBarber = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof firstValidateBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof firstValidateBarber>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getFirstValidateBarberMutationOptions(options));
+    }
+
 export const getApproveBarberUrl = (id: number,) => {
 
 
@@ -1919,7 +1993,9 @@ export const getApproveBarberUrl = (id: number,) => {
 }
 
 /**
- * @summary Approve barber account (admin)
+ * Step 2 of the two-step verification. Grants full verification after the admin has reviewed the uploaded authorization document.
+
+ * @summary Final validation of a barber account (admin)
  */
 export const approveBarber = async (id: number, options?: RequestInit): Promise<Barber> => {
 
@@ -1967,7 +2043,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ApproveBarberMutationError = ErrorType<unknown>
 
     /**
- * @summary Approve barber account (admin)
+ * @summary Final validation of a barber account (admin)
  */
 export const useApproveBarber = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -1978,6 +2054,153 @@ export const useApproveBarber = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getApproveBarberMutationOptions(options));
+    }
+
+export const getRejectBarberDocumentUrl = (id: number,) => {
+
+
+
+
+  return `/api/barbers/${id}/document/reject`
+}
+
+/**
+ * Keeps the barber in "awaiting_document" and clears the previously submitted document so the barber can upload a new one.
+
+ * @summary Mark a submitted barber document non-conforming (admin)
+ */
+export const rejectBarberDocument = async (id: number,
+    documentRejectInput?: DocumentRejectInput, options?: RequestInit): Promise<Barber> => {
+
+  return customFetch<Barber>(getRejectBarberDocumentUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      documentRejectInput,)
+  }
+);}
+
+
+
+
+export const getRejectBarberDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectBarberDocument>>, TError,{id: number;data?: BodyType<DocumentRejectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectBarberDocument>>, TError,{id: number;data?: BodyType<DocumentRejectInput>}, TContext> => {
+
+const mutationKey = ['rejectBarberDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectBarberDocument>>, {id: number;data?: BodyType<DocumentRejectInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  rejectBarberDocument(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectBarberDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof rejectBarberDocument>>>
+    export type RejectBarberDocumentMutationBody = BodyType<DocumentRejectInput> | undefined
+    export type RejectBarberDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mark a submitted barber document non-conforming (admin)
+ */
+export const useRejectBarberDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectBarberDocument>>, TError,{id: number;data?: BodyType<DocumentRejectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectBarberDocument>>,
+        TError,
+        {id: number;data?: BodyType<DocumentRejectInput>},
+        TContext
+      > => {
+      return useMutation(getRejectBarberDocumentMutationOptions(options));
+    }
+
+export const getSubmitBarberDocumentUrl = () => {
+
+
+
+
+  return `/api/barbers/me/document`
+}
+
+/**
+ * Available while the salon is in "awaiting_document". Records the uploaded document and notifies admins to review it for final validation.
+
+ * @summary Submit the professional authorization document (barber)
+ */
+export const submitBarberDocument = async (submitDocumentInput: SubmitDocumentInput, options?: RequestInit): Promise<Barber> => {
+
+  return customFetch<Barber>(getSubmitBarberDocumentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      submitDocumentInput,)
+  }
+);}
+
+
+
+
+export const getSubmitBarberDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>}, TContext> => {
+
+const mutationKey = ['submitBarberDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitBarberDocument>>, {data: BodyType<SubmitDocumentInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitBarberDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitBarberDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof submitBarberDocument>>>
+    export type SubmitBarberDocumentMutationBody = BodyType<SubmitDocumentInput>
+    export type SubmitBarberDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit the professional authorization document (barber)
+ */
+export const useSubmitBarberDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitBarberDocument>>,
+        TError,
+        {data: BodyType<SubmitDocumentInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitBarberDocumentMutationOptions(options));
     }
 
 export const getRejectBarberUrl = (id: number,) => {

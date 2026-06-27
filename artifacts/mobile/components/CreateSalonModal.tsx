@@ -31,11 +31,10 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const c = useColors();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
-  const { user, syncAuth, t } = useApp();
-  const userCountry = user?.country ?? "";
+  const { t } = useApp();
 
   const [salonName, setSalonName] = useState("");
-  const [country, setCountry] = useState(userCountry);
+  const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [address, setAddress] = useState("");
@@ -50,10 +49,10 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
 
   React.useEffect(() => {
     if (visible) {
-      setSalonName(""); setCountry(userCountry); setCity(""); setNeighborhood(""); setAddress("");
+      setSalonName(""); setCountry(""); setCity(""); setNeighborhood(""); setAddress("");
       setPhone(""); setWhatsapp(""); setBio(""); setLogoUrl(null); setLogoLocalUri(null); setErr(null);
     }
-  }, [visible, userCountry]);
+  }, [visible]);
 
   const handlePickLogo = async () => {
     setUploadingLogo(true);
@@ -74,11 +73,6 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
     if (!city.trim()) return setErr(t.errors.cityRequired);
     setSaving(true);
     try {
-      // If the user account has no country yet, persist the chosen country
-      // to their profile so future salons inherit it (and the picker is locked).
-      if (!userCountry && country.trim()) {
-        try { await syncAuth({ country: country.trim() }); } catch { /* non-blocking */ }
-      }
       const created = await fetcher<{ id: number }>("/api/barbers/me", {
         method: "POST",
         body: JSON.stringify({
@@ -156,17 +150,11 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
             cityLabel="Ville"
             countryName={country}
             cityName={city}
-            lockCountry={!!userCountry}
             onChange={({ country: nc, city: nci }) => {
-              if (!userCountry) setCountry(nc);
+              setCountry(nc);
               setCity(nci);
             }}
           />
-          {userCountry && (
-            <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: -8 }}>
-              Le pays est défini par votre compte et ne peut pas être modifié ici.
-            </Text>
-          )}
 
           <Field label="Quartier">
             <TextInput value={neighborhood} onChangeText={setNeighborhood} placeholder="Gombe" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Check, X, Star, Eye, Calendar, Image, Pause, Play, CreditCard, Banknote } from "lucide-react";
+import { ArrowLeft, Check, X, Star, Eye, Calendar, Image, Pause, Play, CreditCard, Banknote, FileText, ShieldCheck } from "lucide-react";
 import {
   useGetBarber, useGetBarberStats, useGetBarberGallery, useListBarberServices,
   useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber,
+  useFirstValidateBarber, useRejectBarberDocument,
   useListReservations, useListSubscriptions, useListFinancingRequests,
   getListBarbersQueryKey, getGetBarberQueryKey,
 } from "@workspace/api-client-react";
@@ -15,7 +16,7 @@ import { formatApiError } from "@/lib/errors";
 
 interface Props { params: { id: string } }
 
-type ModalState = { type: "reject" | "suspend" } | null;
+type ModalState = { type: "reject" | "suspend" | "documentReject" } | null;
 
 export default function BarberDetail({ params }: Props) {
   const id = parseInt(params.id);
@@ -34,6 +35,8 @@ export default function BarberDetail({ params }: Props) {
   const reject = useRejectBarber();
   const suspend = useSuspendBarber();
   const reactivate = useReactivateBarber();
+  const firstValidate = useFirstValidateBarber();
+  const rejectDocument = useRejectBarberDocument();
 
   const [modal, setModal] = useState<ModalState>(null);
   const [reason, setReason] = useState("");
@@ -44,7 +47,7 @@ export default function BarberDetail({ params }: Props) {
   };
   const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
-  function openModal(type: "reject" | "suspend") { setModal({ type }); setReason(""); }
+  function openModal(type: "reject" | "suspend" | "documentReject") { setModal({ type }); setReason(""); }
   function closeModal() { setModal(null); setReason(""); }
   function submitModal(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +56,9 @@ export default function BarberDetail({ params }: Props) {
     if (modal.type === "reject") {
       if (!r) { toast({ title: t.barbers.reasonRequired, variant: "destructive" as any }); return; }
       reject.mutate({ id, data: { reason: r } }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.rejected }); closeModal(); }, onError: onErr });
+    } else if (modal.type === "documentReject") {
+      if (!r) { toast({ title: t.barbers.reasonRequired, variant: "destructive" as any }); return; }
+      rejectDocument.mutate({ id, data: { reason: r } }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.documentRejected_toast }); closeModal(); }, onError: onErr });
     } else {
       suspend.mutate({ id, data: { reason: r || null } }, { onSuccess: () => { invalidate(); toast({ title: t.barbers.suspended_toast }); closeModal(); }, onError: onErr });
     }
@@ -92,16 +98,36 @@ export default function BarberDetail({ params }: Props) {
           {b.status === "pending" && (
             <>
               <button
-                onClick={() => approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.approved }); }, onError: onErr })}
-                className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors"
+                onClick={() => firstValidate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: d.firstValidated_toast }); }, onError: onErr })}
+                disabled={firstValidate.isPending}
+                className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50"
               >
-                <Check className="h-4 w-4" /> {d.approve}
+                <Check className="h-4 w-4" /> {d.firstValidate}
               </button>
               <button
                 onClick={() => openModal("reject")}
                 className="flex items-center gap-2 rounded-lg border border-destructive text-destructive px-4 py-2 text-sm font-medium hover:bg-destructive/5 transition-colors"
               >
                 <X className="h-4 w-4" /> {d.reject}
+              </button>
+            </>
+          )}
+          {b.status === "awaiting_document" && (
+            <>
+              <button
+                onClick={() => approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.approved }); }, onError: onErr })}
+                disabled={approve.isPending || !b.documentUrl}
+                title={!b.documentUrl ? d.documentMissing : undefined}
+                className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50"
+              >
+                <ShieldCheck className="h-4 w-4" /> {d.finalValidate}
+              </button>
+              <button
+                onClick={() => openModal("documentReject")}
+                disabled={!b.documentUrl}
+                className="flex items-center gap-2 rounded-lg border border-amber-500 text-amber-600 px-4 py-2 text-sm font-medium hover:bg-amber-500/5 transition-colors disabled:opacity-50"
+              >
+                <X className="h-4 w-4" /> {d.documentReject}
               </button>
             </>
           )}
@@ -123,6 +149,33 @@ export default function BarberDetail({ params }: Props) {
           )}
         </div>
       </div>
+
+      {(b.status === "awaiting_document" || b.documentUrl) && (
+        <div className="mb-6 rounded-xl border bg-card p-5">
+          <h2 className="text-sm font-semibold mb-4 flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> {d.documentSection}</h2>
+          {b.documentDeadline && (
+            <p className="text-xs text-muted-foreground mb-2">{d.documentDeadline}: {new Date(b.documentDeadline).toLocaleDateString(locale)}</p>
+          )}
+          {b.documentReviewNote && (
+            <p className="text-xs text-amber-600 mb-2">{d.documentReviewNote}: {b.documentReviewNote}</p>
+          )}
+          {b.documentUrl ? (
+            <div className="space-y-3">
+              {b.documentSubmittedAt && (
+                <p className="text-xs text-muted-foreground">{d.documentSubmittedAt}: {new Date(b.documentSubmittedAt).toLocaleDateString(locale)}</p>
+              )}
+              <a href={`/api/storage${b.documentUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">
+                <FileText className="h-4 w-4" /> {d.documentView}
+              </a>
+              <div className="rounded-lg border bg-muted/40 overflow-hidden max-w-md">
+                <img src={`/api/storage${b.documentUrl}`} alt={d.documentSection} className="w-full max-h-96 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">{d.documentPending}</p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[

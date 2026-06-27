@@ -13,8 +13,9 @@ import {
 } from "react-native";
 
 import { EmptyState } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { useAuthedFetch } from "@/lib/api";
+import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type MyBarber = { id: number; salonName: string };
 type Service = { id: number; name: string };
@@ -42,6 +43,7 @@ export default function BarberQueue() {
   const router = useRouter();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
+  const { selectedSalonId } = useApp();
 
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -52,35 +54,38 @@ export default function BarberQueue() {
     queryKey: ["barbersMe"],
     queryFn: () => fetcher<MyBarber[]>("/api/barbers/me"),
   });
-  // The walk-in queue API operates on the barber's primary salon (`/barbers/me/queue`),
-  // so we always use the primary salon here to stay consistent with the backend.
-  const barber = salons && salons.length > 0 ? salons[0] : null;
+  // Resolve the selected salon (falls back to the first owned salon) so the
+  // walk-in queue is scoped to whichever salon the barber picked in the dashboard.
+  const barber = salons && salons.length > 0
+    ? (salons.find((s) => s.id === selectedSalonId) ?? salons[0])
+    : null;
+  const salonId = barber?.id ?? null;
 
   const { data: services } = useQuery<Service[]>({
-    queryKey: ["barberServices", barber?.id],
-    queryFn: () => fetcher<Service[]>(`/api/barbers/${barber!.id}/services`),
-    enabled: !!barber,
+    queryKey: ["barberServices", salonId],
+    queryFn: () => fetcher<Service[]>(`/api/barbers/${salonId}/services`),
+    enabled: !!salonId,
   });
 
   const { data: items, isLoading } = useQuery<WalkIn[]>({
-    queryKey: ["myQueue", barber?.id],
-    queryFn: () => fetcher<WalkIn[]>("/api/barbers/me/queue"),
-    enabled: !!barber,
+    queryKey: ["myQueue", salonId],
+    queryFn: () => fetcher<WalkIn[]>(withSalon("/api/barbers/me/queue", salonId)),
+    enabled: !!salonId,
     refetchInterval: 20000,
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["myQueue", barber?.id] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["myQueue", salonId] });
 
   const setStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: WalkInStatus }) => {
-      await fetcher(`/api/barbers/me/queue/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+      await fetcher(withSalon(`/api/barbers/me/queue/${id}`, salonId), { method: "PATCH", body: JSON.stringify({ status }) });
     },
     onSuccess: invalidate,
   });
 
   const removeEntry = useMutation({
     mutationFn: async (id: number) => {
-      await fetcher(`/api/barbers/me/queue/${id}`, { method: "DELETE" });
+      await fetcher(withSalon(`/api/barbers/me/queue/${id}`, salonId), { method: "DELETE" });
     },
     onSuccess: invalidate,
   });
@@ -92,7 +97,7 @@ export default function BarberQueue() {
     }
     setSaving(true);
     try {
-      await fetcher("/api/barbers/me/queue", {
+      await fetcher(withSalon("/api/barbers/me/queue", salonId), {
         method: "POST",
         body: JSON.stringify({
           clientName: clientName.trim(),

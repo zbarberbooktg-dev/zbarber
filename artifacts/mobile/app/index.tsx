@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useListBarbers, useListHomeGalleryPhotos, useListPublicArticles } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
 import * as Location from "expo-location";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -51,6 +51,7 @@ const styleImages = [
 
 export default function PublicHome() {
   const router = useRouter();
+  const { browse } = useLocalSearchParams<{ browse?: string }>();
   const insets = useSafeAreaInsets();
   const { isSignedIn, isLoaded } = useAuth();
   const { ready, syncing, user, role, lang, syncAuth, themePref } = useApp();
@@ -114,8 +115,9 @@ export default function PublicHome() {
   // First-time user: show onboarding
   if (!onboardingDone) return <Redirect href="/onboarding" />;
 
-  // Signed-in barber/admin → dashboard
-  if (isSignedIn && user && (role === "barber" || role === "admin")) {
+  // Signed-in barber/admin → dashboard, UNLESS they explicitly chose to browse
+  // the public home from their profile (?browse=1).
+  if (isSignedIn && user && (role === "barber" || role === "admin") && browse !== "1") {
     return <Redirect href="/(barber)" />;
   }
 

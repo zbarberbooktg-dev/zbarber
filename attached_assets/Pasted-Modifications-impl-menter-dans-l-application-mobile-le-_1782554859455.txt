@@ -1,0 +1,120 @@
+Modifications à implémenter dans l’application mobile, le panneau d’administration et la plateforme web
+
+Gestion des comptes
+
+* Supprimer le bouton « Passer en mode Barbier / Client ».
+* Un compte Barbier doit également pouvoir rechercher des salons et prendre rendez-vous dans n’importe quel autre salon comme un client.
+* Un compte Client doit pouvoir devenir Barbier en soumettant une demande. Cette demande devra être validée par l’administrateur avant l’activation du compte Barbier.
+
+Formulaires
+
+* Ne proposer automatiquement aucun pays, ville, quartier, numéro d’identification ou autre information dans les champs des formulaires (inscription, création de salon, changement de compte, etc.).
+* Utiliser uniquement des textes indicatifs (placeholders) pour guider l’utilisateur sur les informations à renseigner.
+
+Navigation
+
+* Ajouter un bouton Retour à l’accueil (Home) sur les pages Connexion et Inscription.
+* Ajouter un bouton Retour sur la page Financement.
+
+Financement
+
+Lors d’une demande de financement, le barbier devra obligatoirement fournir :
+
+* une copie de sa pièce d’identité nationale ou de son passeport ;
+* une copie de la pièce d’identité nationale ou du passeport de son garant.
+
+Gestion des salons
+
+Vérifier que les informations restent indépendantes pour chaque salon appartenant à un même barbier.
+
+Les éléments suivants ne doivent jamais être partagés entre deux salons :
+
+* rendez-vous ;
+* revenus ;
+* clients ;
+* horaires ;
+* créneaux disponibles ;
+* statistiques ;
+* notifications ;
+* toute autre donnée spécifique au salon.
+
+Chaque salon doit fonctionner comme une entité totalement indépendante.
+
+Réservation
+
+Modifier le formulaire de réservation :
+
+* les sections Services et Choisir un créneau doivent être regroupées au même endroit ;
+* les créneaux horaires doivent être affichés sous forme de liste repliable (accordion).
+
+Avis clients
+
+* Afficher les avis clients sous forme de section repliable (accordion).
+
+Notifications
+
+Mettre en place les notifications suivantes :
+
+* Notification push au client et au barbier lors de chaque prise de rendez-vous.
+* Notification push au client lorsque le barbier confirme le rendez-vous.
+* Notification push au barbier lorsqu’un rendez-vous est annulé ou modifié.
+
+Emails automatiques
+
+Après chaque rendez-vous terminé :
+
+* envoyer automatiquement un email au client pour :
+    * le remercier de sa visite ;
+    * l’inviter à laisser un avis et une note ;
+    * lui souhaiter de revenir prochainement.
+
+Validation des comptes Barbier
+
+Le processus de validation devra se faire en deux étapes.
+
+Première validation
+
+Après validation initiale par l’administrateur :
+
+* envoyer un email et une notification push au barbier confirmant la première validation ;
+* informer le barbier qu’il dispose de 30 jours pour envoyer un document officiel prouvant qu’il est autorisé à exercer le métier de barbier dans son pays de résidence.
+
+Les documents acceptés peuvent être :
+
+* licence professionnelle ;
+* certificat officiel ;
+* autorisation administrative ;
+* ou tout autre document officiel reconnu.
+
+L’email devra contenir un bouton ou un lien permettant de téléverser le document.
+
+Le même lien devra également rester disponible dans le profil du barbier afin qu’il puisse envoyer le document à tout moment pendant les 30 jours.
+
+Deuxième validation
+
+Après vérification du document :
+
+* l’administrateur valide définitivement le compte ;
+* le barbier reçoit un nouvel email ainsi qu’une notification push confirmant que son compte est entièrement vérifié.
+
+Si :
+
+* aucun document n’est envoyé dans le délai ;
+* le document est illisible ;
+* le document ne correspond pas aux exigences ;
+
+le compte restera En attente jusqu’à réception et validation d’un document conforme.
+
+Rappel automatique aux clients
+
+Créer un système automatique qui envoie une notification push aux clients n’ayant pas pris de rendez-vous depuis 3 semaines, afin de les inviter à réserver une nouvelle prestation.
+
+Objectif
+
+Implémenter l’ensemble de ces modifications sur :
+
+* l’application mobile ;
+* le panneau d’administration ;
+* la plateforme web ;
+
+afin d’améliorer l’expérience utilisateur, la gestion des salons, la sécurité, la qualité des comptes Barbier et le fonctionnement global de la plateforme.

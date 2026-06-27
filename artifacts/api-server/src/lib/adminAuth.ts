@@ -83,7 +83,7 @@ export interface AdminAuthedRequest extends Request {
  * NOTE: admin auth is strictly cookie-based — Authorization Bearer tokens
  * are NOT accepted for admin routes (clients are first-party only).
  */
-async function resolveAdminFromCookie(req: Request): Promise<AdminAccount | null> {
+export async function resolveAdminFromCookie(req: Request): Promise<AdminAccount | null> {
   const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
   const token = cookies?.[ADMIN_COOKIE_NAME];
   if (!token) return null;

@@ -123,11 +123,16 @@ export const SyncAuthResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -358,11 +363,16 @@ export const ListBarbersResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -406,11 +416,16 @@ export const GetMyBarbersResponseItem = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -464,11 +479,16 @@ export const UpdateMySalonResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -603,11 +623,16 @@ export const GetBarberResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -647,11 +672,16 @@ export const UpdateBarberResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -659,7 +689,47 @@ export const UpdateBarberResponse = zod.object({
 
 
 /**
- * @summary Approve barber account (admin)
+ * Step 1 of the two-step verification. Moves a pending barber to "awaiting_document", starts the 30-day window to upload an official authorization document, and activates barber capabilities so the owner can reach the upload entry. The account stays gated until the document is reviewed and the barber is finally approved.
+
+ * @summary First validation of a barber account (admin)
+ */
+export const FirstValidateBarberParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const FirstValidateBarberResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Step 2 of the two-step verification. Grants full verification after the admin has reviewed the uploaded authorization document.
+
+ * @summary Final validation of a barber account (admin)
  */
 export const ApproveBarberParams = zod.object({
   "id": zod.coerce.number()
@@ -678,11 +748,96 @@ export const ApproveBarberResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Keeps the barber in "awaiting_document" and clears the previously submitted document so the barber can upload a new one.
+
+ * @summary Mark a submitted barber document non-conforming (admin)
+ */
+export const RejectBarberDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RejectBarberDocumentBody = zod.object({
+  "reason": zod.string().nullish()
+})
+
+export const RejectBarberDocumentResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "reviewCount": zod.number().optional(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Available while the salon is in "awaiting_document". Records the uploaded document and notifies admins to review it for final validation.
+
+ * @summary Submit the professional authorization document (barber)
+ */
+export const SubmitBarberDocumentBody = zod.object({
+  "documentUrl": zod.string().describe('Object-storage path (starts with \/objects\/) of the uploaded document.')
+})
+
+export const SubmitBarberDocumentResponse = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "salonName": zod.string(),
+  "bio": zod.string().nullish(),
+  "logoUrl": zod.string().nullish(),
+  "city": zod.string(),
+  "neighborhood": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
+  "profileViews": zod.number().optional(),
+  "subscriptionPlanId": zod.number().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -713,11 +868,16 @@ export const RejectBarberResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -748,11 +908,16 @@ export const SuspendBarberResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -779,11 +944,16 @@ export const ReactivateBarberResponse = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -1079,11 +1249,16 @@ export const ListFavoritesResponseItem = zod.object({
   "whatsapp": zod.string().nullish(),
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish(),
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']),
   "profileViews": zod.number().optional(),
   "subscriptionPlanId": zod.number().nullish(),
   "rejectionReason": zod.string().nullish(),
   "suspensionReason": zod.string().nullish(),
+  "firstValidatedAt": zod.coerce.date().nullish(),
+  "documentUrl": zod.string().nullish(),
+  "documentSubmittedAt": zod.coerce.date().nullish(),
+  "documentDeadline": zod.coerce.date().nullish(),
+  "documentReviewNote": zod.string().nullish(),
   "rating": zod.number().nullish(),
   "reviewCount": zod.number().optional(),
   "createdAt": zod.coerce.date()
@@ -1804,6 +1979,8 @@ export const ListFinancingRequestsResponse = zod.object({
   "yearsActive": zod.number(),
   "repaymentMonths": zod.number(),
   "documents": zod.array(zod.string()),
+  "idDocument": zod.string().nullish(),
+  "guarantorIdDocument": zod.string().nullish(),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
   "reviewedAt": zod.coerce.date().nullish(),
@@ -1840,7 +2017,9 @@ export const CreateFinancingRequestBody = zod.object({
   "monthlyRevenue": zod.number().min(createFinancingRequestBodyMonthlyRevenueMin),
   "yearsActive": zod.number().min(createFinancingRequestBodyYearsActiveMin),
   "repaymentMonths": zod.number().min(createFinancingRequestBodyRepaymentMonthsMin).max(createFinancingRequestBodyRepaymentMonthsMax),
-  "documents": zod.array(zod.string()).min(1)
+  "documents": zod.array(zod.string()).min(1),
+  "idDocument": zod.string(),
+  "guarantorIdDocument": zod.string()
 })
 
 
@@ -1862,6 +2041,8 @@ export const GetFinancingRequestResponse = zod.object({
   "yearsActive": zod.number(),
   "repaymentMonths": zod.number(),
   "documents": zod.array(zod.string()),
+  "idDocument": zod.string().nullish(),
+  "guarantorIdDocument": zod.string().nullish(),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
   "reviewedAt": zod.coerce.date().nullish(),
@@ -1892,6 +2073,8 @@ export const UpdateFinancingStatusResponse = zod.object({
   "yearsActive": zod.number(),
   "repaymentMonths": zod.number(),
   "documents": zod.array(zod.string()),
+  "idDocument": zod.string().nullish(),
+  "guarantorIdDocument": zod.string().nullish(),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
   "reviewedAt": zod.coerce.date().nullish(),

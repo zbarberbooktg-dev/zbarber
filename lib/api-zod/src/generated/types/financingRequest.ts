@@ -20,6 +20,10 @@ export interface FinancingRequest {
   yearsActive: number;
   repaymentMonths: number;
   documents: string[];
+  /** @nullable */
+  idDocument?: string | null;
+  /** @nullable */
+  guarantorIdDocument?: string | null;
   status: FinancingRequestStatus;
   /** @nullable */
   adminNote?: string | null;

@@ -16,6 +16,8 @@ export const financingRequestsTable = pgTable("financing_requests", {
   yearsActive: integer("years_active").notNull().default(0),
   repaymentMonths: integer("repayment_months").notNull().default(6),
   documents: text("documents").array().notNull().default([]),
+  idDocument: text("id_document"),
+  guarantorIdDocument: text("guarantor_id_document"),
   status: financingStatusEnum("status").notNull().default("pending"),
   adminNote: text("admin_note"),
   reviewedAt: timestamp("reviewed_at"),

@@ -15,7 +15,7 @@ import {
 import { Avatar, Card, EmptyState } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { useAuthedFetch } from "@/lib/api";
+import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type Client = {
   clientId: number;
@@ -32,13 +32,13 @@ type Client = {
 
 export default function BarberClients() {
   const c = useColors();
-  const { locale } = useApp();
+  const { locale, selectedSalonId } = useApp();
   const fetcher = useAuthedFetch();
 
   const queryClient = useQueryClient();
   const { data, isLoading, refetch, isRefetching } = useQuery<{ data: Client[]; total: number }>({
-    queryKey: ["myClients"],
-    queryFn: () => fetcher<{ data: Client[]; total: number }>("/api/barbers/me/clients"),
+    queryKey: ["myClients", selectedSalonId],
+    queryFn: () => fetcher<{ data: Client[]; total: number }>(withSalon("/api/barbers/me/clients", selectedSalonId)),
   });
 
   const clients = data?.data ?? [];
@@ -53,11 +53,11 @@ export default function BarberClients() {
           text: "Confirmer",
           onPress: async () => {
             try {
-              await fetcher("/api/barbers/me/loyalty/redeem", {
+              await fetcher(withSalon("/api/barbers/me/loyalty/redeem", selectedSalonId), {
                 method: "POST",
                 body: JSON.stringify({ clientId: client.clientId }),
               });
-              await queryClient.invalidateQueries({ queryKey: ["myClients"] });
+              await queryClient.invalidateQueries({ queryKey: ["myClients", selectedSalonId] });
             } catch {
               Alert.alert("Erreur", "Impossible d'enregistrer la coupe offerte.");
             }

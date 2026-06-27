@@ -1,13 +1,40 @@
 import { Router } from "express";
-import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable, panoramasTable } from "@workspace/db";
+import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable, panoramasTable, objectUploadsTable } from "@workspace/db";
 import { eq, avg, count, and, lt, lte, gte, inArray, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAdminAuth } from "../lib/adminAuth";
 import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
-import { notifyAdmin } from "../lib/email";
+import { notifyAdmin, renderEmail, sendEmail } from "../lib/email";
+import { sendPush } from "../lib/push";
 
 const router = Router();
+
+// Two-step validation: after the admin's first validation the barber has this
+// many days to upload an official authorization document before final review.
+const DOCUMENT_WINDOW_DAYS = 30;
+
+// Public base URL of the mobile app, used to build the document-upload link in
+// the first-validation email. Falls back to the first published Replit domain.
+function appPublicUrl(): string {
+  const explicit = process.env.APP_PUBLIC_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const domains = process.env.REPLIT_DOMAINS?.split(",").map((d) => d.trim()).filter(Boolean);
+  if (domains && domains[0]) return `https://${domains[0]}/mobile`;
+  return "";
+}
+
+// Send a branded lifecycle email to a barber. Fire-and-forget: never throws so
+// it can't break the originating admin/barber request.
+function notifyBarberEmail(
+  to: string | null | undefined,
+  subject: string,
+  content: { heading: string; intro?: string; paragraphs?: string[]; button?: { label: string; url: string }; note?: string },
+): void {
+  if (!to) return;
+  const { html, text } = renderEmail({ title: `[Zbarber] ${subject}`, ...content });
+  void sendEmail({ to, subject: `[Zbarber] ${subject}`, html, text }).catch(() => { /* logged in sendEmail */ });
+}
 
 // Loyalty program: every LOYALTY_THRESHOLD completed cuts earns 1 free cut.
 // A client is flagged "regular" once they reach REGULAR_THRESHOLD completed cuts.
@@ -54,11 +81,49 @@ async function archiveExpiredForBarber(barberId: number): Promise<void> {
     ));
 }
 
-async function getMyBarberOr404(req: AuthedRequest, res: import("express").Response) {
+// Resolve the barber's working salon for a self-service (`/barbers/me/*`) request.
+// Salons are fully independent entities: an owner with multiple salons must be
+// able to target a specific one via the `salonId` query param. We always verify
+// the requested salon is owned by the caller (ownership authorization) before
+// returning it. When no `salonId` is given we default to the first salon (by id)
+// for backward compatibility with single-salon callers.
+// Resolves the caller's own salon (primary, or ?salonId when provided).
+// IMPORTANT: full barber features are gated behind FINAL validation. Because
+// first-validation already promotes the account role to "barber" (so the owner
+// can reach the document-upload surface), a role check alone is NOT sufficient —
+// we must also require status === "approved" here. The only stage where a
+// non-approved barber legitimately hits a /me route is the document upload, which
+// opts in via { allowAwaitingDocument: true } and performs its own status check.
+async function getMyBarberOr404(
+  req: AuthedRequest,
+  res: import("express").Response,
+  opts: { allowAwaitingDocument?: boolean } = {},
+) {
   if (req.localUser!.role !== "barber") { res.status(403).json({ error: "Barber account required" }); return null; }
-  const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, req.localUser!.id)).limit(1);
-  if (!b) { res.status(404).json({ error: "Salon profile not found" }); return null; }
-  return b;
+  const salons = await db.select().from(barbersTable)
+    .where(eq(barbersTable.userId, req.localUser!.id))
+    .orderBy(barbersTable.id);
+  if (salons.length === 0) { res.status(404).json({ error: "Salon profile not found" }); return null; }
+  const raw = req.query.salonId;
+  let salon = salons[0]!;
+  if (raw !== undefined && raw !== "") {
+    const sid = parseInt(String(raw));
+    if (!Number.isFinite(sid)) { res.status(400).json({ error: "Invalid salonId" }); return null; }
+    const match = salons.find((s) => s.id === sid);
+    if (!match) { res.status(403).json({ error: "Salon not owned" }); return null; }
+    salon = match;
+  }
+  const allowed = salon.status === "approved"
+    || (opts.allowAwaitingDocument === true && salon.status === "awaiting_document");
+  if (!allowed) { res.status(403).json({ error: "Barber not approved", status: salon.status }); return null; }
+  return salon;
+}
+
+// Return the ids of every salon owned by the caller (for cross-salon ownership
+// checks where a self-service helper isn't used).
+async function ownedSalonIds(userId: number): Promise<number[]> {
+  const rows = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, userId));
+  return rows.map((r) => r.id);
 }
 
 async function barberWithDetails(id: number) {
@@ -360,14 +425,18 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
     userId: user.id,
     status: "pending",
   }).returning();
-  // Auto-promote client → barber on first salon creation so they can manage it.
-  if (user.role === "client") {
-    await db.update(usersTable).set({ role: "barber" }).where(eq(usersTable.id, user.id));
-  }
-  notifyAdmin(
-    "Nouvelle inscription barbier à valider",
-    `Un nouveau salon est en attente de validation.\n\nSalon : ${barber.salonName}\nVille : ${barber.city ?? "—"}\nPays : ${barber.country ?? "—"}\nDemandeur : ${user.name ?? user.email ?? `#${user.id}`}`,
-  );
+  // The account stays a "client" until an admin validates the salon. Barber
+  // capabilities are NOT self-granted on creation — role is flipped to "barber"
+  // only by the admin approval endpoint.
+  notifyAdmin("Nouvelle inscription barbier à valider", {
+    intro: "Un nouveau salon est en attente de validation.",
+    rows: [
+      { label: "Salon", value: barber.salonName },
+      { label: "Ville", value: barber.city ?? "—" },
+      { label: "Pays", value: barber.country ?? "—" },
+      { label: "Demandeur", value: user.name ?? user.email ?? `#${user.id}` },
+    ],
+  });
   res.status(201).json(barber);
 });
 
@@ -400,6 +469,55 @@ router.patch("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
   res.json(updated);
 });
 
+// ── Barber: submit the professional authorization document (two-step validation) ───
+// Available while the salon is awaiting its document. Records the upload and
+// notifies the admin team to review it; the account stays gated until the admin
+// grants final validation.
+router.post("/barbers/me/document", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res, { allowAwaitingDocument: true });
+  if (!b) return;
+  if (b.status !== "awaiting_document") {
+    res.status(409).json({ error: "Document not expected in current state" });
+    return;
+  }
+  // The account stays in "awaiting_document" until a conforming document is
+  // validated, so a barber may still submit (or resubmit) after the 30-day
+  // window has elapsed — the deadline only drives reminders and UI emphasis,
+  // never a hard lock that would permanently trap the account.
+  const body = z.object({
+    documentUrl: z.string().min(1).refine((v) => v.startsWith("/objects/"), "Invalid document path"),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  // Anti path-claiming: the submitted object path must have been uploaded by
+  // this user. Otherwise a barber could claim another user's private financing
+  // ID-document path as their own documentUrl and read that PII via the
+  // reference-based storage ACL.
+  const [upload] = await db
+    .select({ userId: objectUploadsTable.userId })
+    .from(objectUploadsTable)
+    .where(eq(objectUploadsTable.objectPath, body.data.documentUrl))
+    .limit(1);
+  if (!upload || upload.userId !== req.localUser!.id) {
+    res.status(400).json({ error: "Invalid document path" });
+    return;
+  }
+  const [updated] = await db.update(barbersTable).set({
+    documentUrl: body.data.documentUrl,
+    documentSubmittedAt: new Date(),
+    documentReviewNote: null,
+  }).where(eq(barbersTable.id, b.id)).returning();
+  notifyAdmin("Document barbier à examiner", {
+    intro: `Le salon « ${updated!.salonName} » a transmis son document d'autorisation professionnelle.`,
+    rows: [
+      { label: "Salon", value: updated!.salonName },
+      { label: "Ville", value: updated!.city ?? "—" },
+      { label: "Salon #", value: String(updated!.id) },
+    ],
+    note: "Examinez le document depuis la console admin puis accordez la validation finale.",
+  });
+  res.json(updated);
+});
+
 // ── Barber: submit financing request (only approved) ───
 router.post("/barbers/me/financing", requireAuth, requireApprovedBarber, async (req: AuthedRequest & { barberId?: number }, res) => {
   const body = z.object({
@@ -409,10 +527,14 @@ router.post("/barbers/me/financing", requireAuth, requireApprovedBarber, async (
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [created] = await db.insert(financingRequestsTable).values({ ...body.data, barberId: req.barberId! }).returning();
-  notifyAdmin(
-    "Nouvelle demande de financement",
-    `Une demande de financement a été soumise (salon #${req.barberId}).\n\nMontant : ${body.data.amount} FC\nObjet : ${body.data.purpose}\nDescription : ${body.data.description}`,
-  );
+  notifyAdmin("Nouvelle demande de financement", {
+    intro: `Une demande de financement a été soumise (salon #${req.barberId}).`,
+    rows: [
+      { label: "Montant", value: `${body.data.amount} FC` },
+      { label: "Objet", value: body.data.purpose },
+      { label: "Description", value: body.data.description },
+    ],
+  });
   res.status(201).json(created);
 });
 
@@ -509,15 +631,30 @@ router.get("/barbers/:id/availability", async (req, res) => {
   // Using UTC boundaries to match the UTC-based slot iso generation below.
   const fromDate = new Date(query.data.from + "T00:00:00Z");
   const toDate = new Date(query.data.to + "T00:00:00Z"); toDate.setUTCDate(toDate.getUTCDate() + 1);
-  const reservations = await db.select({ scheduledAt: reservationsTable.scheduledAt, status: reservationsTable.status })
+  // Pull each active reservation together with its service duration so we can
+  // treat it as a time *range*, not just a start instant. A 60-min 09:00 booking
+  // must block the 09:30 slot of a 30-min service, even though the starts differ.
+  // We widen the lower bound by the longest possible service so a booking that
+  // *starts* before `fromDate` but bleeds into it still counts.
+  const longestDuration = await db.select({ max: sql<number>`coalesce(max(${servicesTable.durationMinutes}), 0)` })
+    .from(servicesTable).where(eq(servicesTable.barberId, id));
+  const maxDur = longestDuration[0]?.max ?? 0;
+  const loadFrom = new Date(fromDate.getTime() - Math.max(maxDur, 0) * 60_000);
+  const reservations = await db.select({ scheduledAt: reservationsTable.scheduledAt, durationMinutes: servicesTable.durationMinutes })
     .from(reservationsTable)
+    .innerJoin(servicesTable, eq(servicesTable.id, reservationsTable.serviceId))
     .where(and(
       eq(reservationsTable.barberId, id),
-      gte(reservationsTable.scheduledAt, fromDate),
+      gte(reservationsTable.scheduledAt, loadFrom),
       lt(reservationsTable.scheduledAt, toDate),
       inArray(reservationsTable.status, ["pending", "confirmed"]),
     ));
-  const bookedIso = new Set(reservations.map((r) => new Date(r.scheduledAt).toISOString()));
+  // Precompute each booking's absolute [startMs, endMs) range once.
+  const bookedRanges = reservations.map((r) => {
+    const startMs = new Date(r.scheduledAt).getTime();
+    const dur = r.durationMinutes && r.durationMinutes > 0 ? r.durationMinutes : 30;
+    return { startMs, endMs: startMs + dur * 60_000 };
+  });
 
   // Load days off in the inclusive range.
   const offs = await db.select().from(daysOffTable)
@@ -558,9 +695,15 @@ router.get("/barbers/:id/availability", async (req, res) => {
       // Generate the iso in UTC so it is identical regardless of server timezone.
       const slotDt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, t, 0, 0));
       const iso = slotDt.toISOString();
+      // This slot's own range [start, start + stepMinutes) for overlap testing.
+      const slotStartMs = slotDt.getTime();
+      const slotEndMs = slotStartMs + stepMinutes * 60_000;
       let available = true; let reason: string | undefined;
       if (slotDt <= now) { available = false; reason = "past"; }
-      else if (bookedIso.has(iso)) { available = false; reason = "booked"; }
+      // Unavailable if this slot's range intersects any active booking's range,
+      // not only when the start instants match. A longer existing booking thus
+      // blocks every slot it spans.
+      else if (bookedRanges.some((b) => b.startMs < slotEndMs && b.endMs > slotStartMs)) { available = false; reason = "booked"; }
       slots.push({ time: fmtHM(t), iso, available, reason });
     }
     result.push({ date: ymd, isWorking: true, isBlocked: false, slots });
@@ -586,10 +729,146 @@ router.patch("/barbers/:id", requireAdminAuth, async (req, res) => {
   res.json(updated);
 });
 
+// ── Step 1: first validation (admin) ───
+// Moves a pending barber to "awaiting_document": activates barber capabilities
+// (so they can access the document-upload entry) but keeps the account gated
+// until a conforming document is reviewed. Starts the 30-day upload window.
+router.patch("/barbers/:id/first-validate", requireAdminAuth, async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid barber id" }); return; }
+  const [current] = await db.select({ status: barbersTable.status }).from(barbersTable).where(eq(barbersTable.id, id)).limit(1);
+  if (!current) { res.status(404).json({ error: "Barber not found" }); return; }
+  if (current.status !== "pending") {
+    res.status(409).json({ error: "Barber must be pending to first-validate" });
+    return;
+  }
+  const now = new Date();
+  const deadline = new Date(now.getTime() + DOCUMENT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const [updated] = await db.update(barbersTable).set({
+    status: "awaiting_document",
+    firstValidatedAt: now,
+    documentDeadline: deadline,
+    documentReviewNote: null,
+    rejectionReason: null,
+  }).where(eq(barbersTable.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
+  // Promote the account to "barber" so the owner can reach the upload entry.
+  // Final access to full barber features still requires status === "approved".
+  if (updated.userId) {
+    await db.update(usersTable).set({ role: "barber" })
+      .where(and(eq(usersTable.id, updated.userId), eq(usersTable.role, "client")));
+    const [owner] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
+    const url = appPublicUrl();
+    notifyBarberEmail(owner?.email, "Première validation de votre salon", {
+      heading: "Votre salon a passé la première étape",
+      intro: `Félicitations ! Le salon « ${updated.salonName} » a été validé une première fois par notre équipe.`,
+      paragraphs: [
+        `Pour finaliser la vérification, vous disposez de ${DOCUMENT_WINDOW_DAYS} jours pour transmettre un document officiel prouvant que vous êtes autorisé(e) à exercer le métier de barbier dans votre pays (licence professionnelle, certificat officiel, autorisation administrative ou tout document reconnu).`,
+        "Une fois votre document examiné et accepté, votre compte sera entièrement vérifié et vous aurez accès à toutes les fonctionnalités barbier.",
+      ],
+      button: url ? { label: "Téléverser mon document", url } : undefined,
+      note: `Date limite d'envoi : ${deadline.toLocaleDateString("fr-FR")}. Sans document conforme, votre compte reste en attente.`,
+    });
+    void sendPush(
+      updated.userId,
+      "Première validation ✅",
+      `Bravo ! Vous avez ${DOCUMENT_WINDOW_DAYS} jours pour téléverser votre document professionnel et finaliser la vérification.`,
+      { type: "barber_first_validated", barberId: updated.id },
+    );
+  }
+  res.json(updated);
+});
+
+// ── Step 2: final validation (admin) ───
+// Grants full verification after the admin has reviewed the uploaded document.
 router.patch("/barbers/:id/approve", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
-  const [updated] = await db.update(barbersTable).set({ status: "approved" }).where(eq(barbersTable.id, id)).returning();
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid barber id" }); return; }
+  const [current] = await db.select({ status: barbersTable.status, documentUrl: barbersTable.documentUrl })
+    .from(barbersTable).where(eq(barbersTable.id, id)).limit(1);
+  if (!current) { res.status(404).json({ error: "Barber not found" }); return; }
+  if (current.status !== "awaiting_document") {
+    res.status(409).json({ error: "Barber must be awaiting_document to approve" });
+    return;
+  }
+  if (!current.documentUrl) {
+    res.status(409).json({ error: "A submitted document is required before approval" });
+    return;
+  }
+  const [updated] = await db.update(barbersTable).set({
+    status: "approved",
+    documentReviewNote: null,
+    rejectionReason: null,
+  }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
+  // Activate barber capabilities now that an admin has validated the salon.
+  // This is the ONLY place a client account is promoted to "barber".
+  if (updated.userId) {
+    await db.update(usersTable).set({ role: "barber" })
+      .where(and(eq(usersTable.id, updated.userId), eq(usersTable.role, "client")));
+    const [owner] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
+    notifyBarberEmail(owner?.email, "Compte barbier entièrement vérifié", {
+      heading: "Votre compte est vérifié 🎉",
+      intro: `Le salon « ${updated.salonName} » est désormais entièrement vérifié.`,
+      paragraphs: [
+        "Votre document a été examiné et accepté. Vous avez maintenant accès à toutes les fonctionnalités barbier : gestion des services, horaires, réservations et plus encore.",
+      ],
+    });
+    void sendPush(
+      updated.userId,
+      "Compte vérifié 🎉",
+      "Votre document a été accepté. Votre compte barbier est désormais entièrement vérifié !",
+      { type: "barber_approved", barberId: updated.id },
+    );
+  }
+  res.json(updated);
+});
+
+// ── Step 2 (alt): mark the submitted document non-conforming (admin) ───
+// Keeps the account in "awaiting_document" and asks the barber to resubmit.
+router.patch("/barbers/:id/document/reject", requireAdminAuth, async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid barber id" }); return; }
+  const [current] = await db.select({ status: barbersTable.status, documentUrl: barbersTable.documentUrl })
+    .from(barbersTable).where(eq(barbersTable.id, id)).limit(1);
+  if (!current) { res.status(404).json({ error: "Barber not found" }); return; }
+  if (current.status !== "awaiting_document") {
+    res.status(409).json({ error: "Barber must be awaiting_document to reject a document" });
+    return;
+  }
+  if (!current.documentUrl) {
+    res.status(409).json({ error: "No submitted document to reject" });
+    return;
+  }
+  const body = z.object({ reason: z.string().optional() }).safeParse(req.body ?? {});
+  const reason = body.success ? body.data.reason?.trim() || null : null;
+  const [updated] = await db.update(barbersTable).set({
+    status: "awaiting_document",
+    documentReviewNote: reason,
+    documentUrl: null,
+    documentSubmittedAt: null,
+  }).where(eq(barbersTable.id, id)).returning();
+  if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
+  if (updated.userId) {
+    const [owner] = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
+    const url = appPublicUrl();
+    notifyBarberEmail(owner?.email, "Document non conforme", {
+      heading: "Votre document doit être renvoyé",
+      intro: `Le document transmis pour le salon « ${updated.salonName} » n'a pas pu être validé.`,
+      paragraphs: [
+        reason ? `Motif : ${reason}` : "Le document est illisible ou non conforme.",
+        "Merci de téléverser à nouveau un document officiel valide afin de finaliser la vérification de votre compte.",
+      ],
+      button: url ? { label: "Renvoyer mon document", url } : undefined,
+      note: "Votre compte reste en attente tant qu'un document conforme n'a pas été reçu et validé.",
+    });
+    void sendPush(
+      updated.userId,
+      "Document non conforme",
+      "Votre document n'a pas pu être validé. Merci d'en téléverser un nouveau.",
+      { type: "barber_document_rejected", barberId: updated.id },
+    );
+  }
   res.json(updated);
 });
 
