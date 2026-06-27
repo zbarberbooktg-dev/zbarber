@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, reservationsTable, usersTable, barbersTable, servicesTable } from "@workspace/db";
-import { eq, desc, or, and, inArray } from "drizzle-orm";
+import { eq, desc, or, and, inArray, sql, lt } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
@@ -8,6 +8,14 @@ import { sendPush } from "../lib/push";
 import { sendThankYouEmail } from "../lib/reminderScheduler";
 
 const router = Router();
+
+// Arbitrary namespace key for the per-barber booking advisory lock so it never
+// collides with advisory locks taken elsewhere; paired with barberId.
+const RESERVATION_LOCK_NS = 4938;
+
+// Thrown inside the booking transaction when a range overlap is detected, so we
+// can roll back and map it to a 409 outside the transaction.
+class BookingClashError extends Error {}
 
 // Resolve the salon name + owning account for a reservation, used to address
 // lifecycle push notifications. Returns nulls when the salon is missing.
@@ -86,27 +94,53 @@ router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {
   const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, body.data.barberId)).limit(1);
   if (!b || b.status !== "approved") { res.status(400).json({ error: "Barber not available" }); return; }
   const scheduledAt = new Date(body.data.scheduledAt);
-  // Prevent double-booking: an active (pending or confirmed) reservation already
-  // occupying this exact slot for this barber blocks the booking. The
-  // availability endpoint marks such slots unavailable, but a client racing two
-  // requests (or a stale slot list) could still POST a taken slot, so the
-  // server is the authority. Cancelled/completed reservations free the slot.
-  const [clash] = await db.select({ id: reservationsTable.id }).from(reservationsTable)
-    .where(and(
-      eq(reservationsTable.barberId, body.data.barberId),
-      eq(reservationsTable.scheduledAt, scheduledAt),
-      inArray(reservationsTable.status, ["pending", "confirmed"]),
-    )).limit(1);
-  if (clash) { res.status(409).json({ error: "Slot already booked" }); return; }
+  // Resolve the requested service's duration so we can reason about the booking
+  // as a time *range* [scheduledAt, scheduledAt + durationMinutes), not just a
+  // start instant. Services without a positive duration default to a single
+  // 30-min slot so they still participate in overlap detection.
+  const [svc] = await db.select({ durationMinutes: servicesTable.durationMinutes })
+    .from(servicesTable).where(eq(servicesTable.id, body.data.serviceId)).limit(1);
+  if (!svc) { res.status(400).json({ error: "Service not found" }); return; }
+  const newDuration = svc.durationMinutes && svc.durationMinutes > 0 ? svc.durationMinutes : 30;
+  const newStart = scheduledAt;
+  const newEnd = new Date(scheduledAt.getTime() + newDuration * 60_000);
+
   let res2: typeof reservationsTable.$inferSelect;
   try {
-    // The app-level clash check above is best-effort: under truly concurrent
-    // requests two POSTs can both pass it before either insert lands. The
-    // partial unique index `reservations_active_slot_uniq` is the airtight
-    // guarantee — the second insert raises a unique violation (Postgres code
-    // 23505), which we map to the same 409 instead of a 500.
-    [res2] = await db.insert(reservationsTable).values({ ...body.data, clientId: user.id, scheduledAt }).returning();
+    // Prevent double-booking by time *range*: two reservations of different
+    // lengths can collide even when their start instants differ (a 60-min 09:00
+    // booking overlaps a 30-min 09:30 booking). A plain start-instant comparison
+    // misses this, so we compare ranges instead.
+    //
+    // Concurrency: two overlapping POSTs with *different* starts would both pass
+    // a naive check before either insert lands, and a partial unique index on
+    // (barberId, scheduledAt) only catches identical starts. To make the range
+    // check airtight we serialize all bookings for a given barber with a
+    // transaction-scoped advisory lock, then re-check inside the same
+    // transaction before inserting.
+    res2 = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(${RESERVATION_LOCK_NS}, ${body.data.barberId})`);
+      // An ACTIVE (pending/confirmed) reservation overlaps when its range
+      // [start, start + service.duration) intersects [newStart, newEnd):
+      //   existing.start < newEnd  AND  existing.end > newStart.
+      // Cancelled/completed reservations free the slot.
+      const [clash] = await tx.select({ id: reservationsTable.id })
+        .from(reservationsTable)
+        .innerJoin(servicesTable, eq(servicesTable.id, reservationsTable.serviceId))
+        .where(and(
+          eq(reservationsTable.barberId, body.data.barberId),
+          inArray(reservationsTable.status, ["pending", "confirmed"]),
+          lt(reservationsTable.scheduledAt, newEnd),
+          sql`${reservationsTable.scheduledAt} + (greatest(${servicesTable.durationMinutes}, 1) * interval '1 minute') > ${newStart}`,
+        )).limit(1);
+      if (clash) throw new BookingClashError();
+      const [inserted] = await tx.insert(reservationsTable).values({ ...body.data, clientId: user.id, scheduledAt }).returning();
+      return inserted!;
+    });
   } catch (err) {
+    if (err instanceof BookingClashError) { res.status(409).json({ error: "Slot already booked" }); return; }
+    // The partial unique index `reservations_active_slot_uniq` is a final
+    // backstop for identical-start races; map its violation to the same 409.
     if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "23505") {
       res.status(409).json({ error: "Slot already booked" });
       return;
