@@ -152,6 +152,9 @@ export const translations = {
     docAwaitingDesc:
       "Votre salon a passé la première validation. Téléversez un document officiel prouvant votre autorisation d'exercer le métier de barbier pour finaliser la vérification de votre compte.",
     docDeadline: (date: string) => `Date limite d'envoi : ${date}`,
+    docDaysLeft: (n: number) => `${n} jour${n > 1 ? "s" : ""} restant${n > 1 ? "s" : ""}`,
+    docDueToday: "Dernier jour pour envoyer",
+    docOverdue: "Délai dépassé — envoi encore possible",
     docReviewNote: "Document précédent refusé",
     docUploadBtn: "Téléverser mon document",
     docReplaceBtn: "Remplacer le document",
@@ -347,6 +350,9 @@ export const translations = {
     docAwaitingDesc:
       "Your shop passed the first validation. Upload an official document proving you are authorized to work as a barber to complete your account verification.",
     docDeadline: (date: string) => `Submission deadline: ${date}`,
+    docDaysLeft: (n: number) => `${n} day${n > 1 ? "s" : ""} left`,
+    docDueToday: "Last day to submit",
+    docOverdue: "Deadline passed — you can still submit",
     docReviewNote: "Previous document rejected",
     docUploadBtn: "Upload my document",
     docReplaceBtn: "Replace document",

@@ -16,10 +16,34 @@ export function DocumentUploadCard() {
   if (barberProfile?.status !== "awaiting_document") return null;
 
   const hasSubmitted = !!barberProfile.documentUrl;
-  const deadline = barberProfile.documentDeadline
-    ? new Date(barberProfile.documentDeadline).toLocaleDateString(locale)
+  const parsedDeadline = barberProfile.documentDeadline
+    ? new Date(barberProfile.documentDeadline)
     : null;
+  const deadlineDate =
+    parsedDeadline && !Number.isNaN(parsedDeadline.getTime()) ? parsedDeadline : null;
+  const deadline = deadlineDate ? deadlineDate.toLocaleDateString(locale) : null;
   const previewUri = resolveObjectUrl(barberProfile.documentUrl);
+
+  let countdown: { label: string; color: string } | null = null;
+  if (deadlineDate && !hasSubmitted) {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfDeadline = new Date(deadlineDate);
+    startOfDeadline.setHours(0, 0, 0, 0);
+    const daysLeft = Math.round(
+      (startOfDeadline.getTime() - startOfToday.getTime()) / 86400000,
+    );
+    if (daysLeft < 0) {
+      countdown = { label: t.docOverdue, color: c.destructive };
+    } else if (daysLeft === 0) {
+      countdown = { label: t.docDueToday, color: c.destructive };
+    } else {
+      countdown = {
+        label: t.docDaysLeft(daysLeft),
+        color: daysLeft <= 7 ? c.warning : c.primary,
+      };
+    }
+  }
 
   async function handleUpload() {
     if (uploading) return;
@@ -62,10 +86,30 @@ export function DocumentUploadCard() {
       </Text>
 
       {deadline && (
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: countdown ? 8 : 12 }}>
           <Feather name="calendar" size={16} color={c.primary} style={{ marginRight: 8 }} />
           <Text style={{ fontFamily: "Inter_600SemiBold", color: c.foreground }}>
             {t.docDeadline(deadline)}
+          </Text>
+        </View>
+      )}
+
+      {countdown && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            alignSelf: "flex-start",
+            backgroundColor: countdown.color + "1A",
+            borderRadius: c.radius,
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            marginBottom: 12,
+          }}
+        >
+          <Feather name="clock" size={16} color={countdown.color} style={{ marginRight: 8 }} />
+          <Text style={{ fontFamily: "Inter_700Bold", color: countdown.color }}>
+            {countdown.label}
           </Text>
         </View>
       )}
