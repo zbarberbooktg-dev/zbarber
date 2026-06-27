@@ -3,7 +3,14 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 
-export const barberStatusEnum = pgEnum("barber_status", ["pending", "approved", "rejected", "suspended"]);
+// Status lifecycle (two-step validation):
+//  pending           → freshly registered, awaiting the admin's FIRST validation
+//  awaiting_document  → first-validated; barber has 30 days to upload an official
+//                       authorization document, then the admin reviews it
+//  approved           → document reviewed & accepted; account fully verified
+//  rejected           → admin refused the registration
+//  suspended          → admin suspended an active account
+export const barberStatusEnum = pgEnum("barber_status", ["pending", "awaiting_document", "approved", "rejected", "suspended"]);
 
 export const barbersTable = pgTable("barbers", {
   id: serial("id").primaryKey(),
@@ -24,6 +31,17 @@ export const barbersTable = pgTable("barbers", {
   subscriptionPlanId: integer("subscription_plan_id"),
   rejectionReason: text("rejection_reason"),
   suspensionReason: text("suspension_reason"),
+  // ── Two-step validation: professional authorization document ──
+  // Timestamp of the admin's first validation (starts the 30-day window).
+  firstValidatedAt: timestamp("first_validated_at"),
+  // Object-storage path of the uploaded official document (null until submitted).
+  documentUrl: text("document_url"),
+  // When the barber submitted (last submitted) their document.
+  documentSubmittedAt: timestamp("document_submitted_at"),
+  // Deadline (firstValidatedAt + 30 days) by which a document must be submitted.
+  documentDeadline: timestamp("document_deadline"),
+  // Admin note explaining why a submitted document was marked non-conforming.
+  documentReviewNote: text("document_review_note"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

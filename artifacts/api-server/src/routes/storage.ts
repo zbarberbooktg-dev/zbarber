@@ -19,9 +19,14 @@ import {
 import { getAuth } from "@clerk/express";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { requireAuth, provisionUserFromClerk, type AuthedRequest } from "../lib/clerkAuth";
+import { resolveAdminFromCookie, type AdminAuthedRequest } from "../lib/adminAuth";
 
-async function attachOptionalUser(req: AuthedRequest, _res: Response, next: NextFunction): Promise<void> {
+async function attachOptionalUser(req: AuthedRequest & AdminAuthedRequest, _res: Response, next: NextFunction): Promise<void> {
   try {
+    // Self-managed admins authenticate via cookie JWT (not Clerk). Recognize
+    // them so they can view private documents (financing, barber authorization).
+    const admin = await resolveAdminFromCookie(req);
+    if (admin) { req.admin = admin; next(); return; }
     const auth = getAuth(req);
     const clerkUserId = auth?.userId;
     if (clerkUserId) {
@@ -107,29 +112,40 @@ router.get(
       const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
       const objectPath = `/objects/${wildcardPath}`;
 
-      // Classify the object: is it a financing document?
+      // Classify the object: is it a financing document or a barber
+      // authorization document? Both are private — only the owning barber or an
+      // admin may view them.
       const finRows = await db
         .select({ barberId: financingRequestsTable.barberId, docs: financingRequestsTable.documents })
         .from(financingRequestsTable);
-      const financingOwners = finRows
+      const privateOwners = finRows
         .filter((m) => m.docs.includes(objectPath))
         .map((m) => m.barberId);
+      const docRows = await db
+        .select({ id: barbersTable.id })
+        .from(barbersTable)
+        .where(eq(barbersTable.documentUrl, objectPath));
+      for (const r of docRows) privateOwners.push(r.id);
 
-      if (financingOwners.length > 0) {
+      if (privateOwners.length > 0) {
+        const admin = (req as AuthedRequest & AdminAuthedRequest).admin;
         const user = req.localUser;
-        if (!user) {
-          res.status(401).json({ error: "Auth required" });
-          return;
-        }
-        if (user.role !== "admin") {
-          const [b] = await db
-            .select({ id: barbersTable.id })
-            .from(barbersTable)
-            .where(eq(barbersTable.userId, user.id))
-            .limit(1);
-          if (!b || !financingOwners.includes(b.id)) {
-            res.status(403).json({ error: "Forbidden" });
+        // Self-managed admins (cookie JWT) may view any private document.
+        if (!admin) {
+          if (!user) {
+            res.status(401).json({ error: "Auth required" });
             return;
+          }
+          if (user.role !== "admin") {
+            const [b] = await db
+              .select({ id: barbersTable.id })
+              .from(barbersTable)
+              .where(eq(barbersTable.userId, user.id))
+              .limit(1);
+            if (!b || !privateOwners.includes(b.id)) {
+              res.status(403).json({ error: "Forbidden" });
+              return;
+            }
           }
         }
       } else {

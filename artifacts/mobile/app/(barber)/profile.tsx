@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
+import { DocumentUploadCard } from "@/components/DocumentUploadCard";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { EditSalonLocationModal } from "@/components/EditSalonLocationModal";
 import { Avatar, Button, Card } from "@/components/UI";
@@ -78,6 +79,8 @@ export default function BarberProfile() {
       style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}
     >
+      <DocumentUploadCard />
+
       <Card>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
           <Avatar name={user?.name ?? barber?.salonName ?? t.mySalon} size={56} />

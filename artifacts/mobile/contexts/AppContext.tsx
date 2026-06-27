@@ -30,8 +30,12 @@ export type SyncedUser = {
 export type SyncedBarber = {
   id: number;
   salonName: string;
-  status: "pending" | "approved" | "rejected" | "suspended";
+  status: "pending" | "awaiting_document" | "approved" | "rejected" | "suspended";
   city: string | null;
+  documentUrl?: string | null;
+  documentSubmittedAt?: string | null;
+  documentDeadline?: string | null;
+  documentReviewNote?: string | null;
 };
 
 type AppState = {

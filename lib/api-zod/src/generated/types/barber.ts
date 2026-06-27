@@ -37,6 +37,16 @@ export interface Barber {
   /** @nullable */
   suspensionReason?: string | null;
   /** @nullable */
+  firstValidatedAt?: Date | null;
+  /** @nullable */
+  documentUrl?: string | null;
+  /** @nullable */
+  documentSubmittedAt?: Date | null;
+  /** @nullable */
+  documentDeadline?: Date | null;
+  /** @nullable */
+  documentReviewNote?: string | null;
+  /** @nullable */
   rating?: number | null;
   reviewCount?: number;
   createdAt: Date;

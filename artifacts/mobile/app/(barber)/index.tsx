@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
@@ -31,7 +31,7 @@ const PERIOD_LABEL: Record<Period, string> = {
 export default function BarberDashboard() {
   const c = useColors();
   const router = useRouter();
-  const { t, locale } = useApp();
+  const { t, locale, barberProfile } = useApp();
   const { selectedSalonId, setSelectedSalonId } = useApp();
   const fetcher = useAuthedFetch();
   const [period, setPeriod] = useState<Period>("today");
@@ -67,6 +67,12 @@ export default function BarberDashboard() {
     enabled: salonId != null,
     queryFn: () => fetcher<{ data: Reservation[]; total: number }>(withSalon("/api/reservations?limit=50", salonId)),
   });
+
+  // Barbers still awaiting document validation land on their Profile, where the
+  // document upload card lives; the dashboard stays gated until final approval.
+  if (barberProfile?.status === "awaiting_document") {
+    return <Redirect href="/(barber)/profile" />;
+  }
 
   if (barberLoading) {
     return (

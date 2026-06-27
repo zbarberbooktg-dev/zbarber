@@ -22,8 +22,17 @@ export default function BarberTabs() {
   }
   if (role === "client") return <Redirect href="/(client)" />;
   if (role !== "barber" && role !== "admin") return <Redirect href="/(auth)/sign-in" />;
-  // Redirect to pending screen if no approved salon yet (check barber profile status, not user account status)
-  if (role === "barber" && barberProfile && barberProfile.status !== "approved") return <Redirect href="/(barber)/pending" />;
+  // Stage gating (use barber profile status, not user account status):
+  // - awaiting_document barbers keep access to the Profile tab (where they
+  //   upload/track their authorization document) but all other barber feature
+  //   tabs are hidden until final approval.
+  // - any other non-approved status (pending/rejected/suspended) is sent to the
+  //   pending screen.
+  const awaitingDocument = role === "barber" && barberProfile?.status === "awaiting_document";
+  if (role === "barber" && barberProfile && barberProfile.status !== "approved" && !awaitingDocument) {
+    return <Redirect href="/(barber)/pending" />;
+  }
+  const featureTabHref = awaitingDocument ? null : undefined;
 
   return (
     <Tabs
@@ -46,6 +55,7 @@ export default function BarberTabs() {
       <Tabs.Screen
         name="index"
         options={{
+          href: featureTabHref,
           title: t.tabSalon,
           tabBarIcon: ({ color, size }) => <Feather name="grid" size={size - 2} color={color} />,
         }}
@@ -53,6 +63,7 @@ export default function BarberTabs() {
       <Tabs.Screen
         name="schedule"
         options={{
+          href: featureTabHref,
           title: t.tabSchedule,
           tabBarIcon: ({ color, size }) => <Feather name="calendar" size={size - 2} color={color} />,
         }}
@@ -60,6 +71,7 @@ export default function BarberTabs() {
       <Tabs.Screen
         name="services"
         options={{
+          href: featureTabHref,
           title: "Services",
           tabBarIcon: ({ color, size }) => <Feather name="scissors" size={size - 2} color={color} />,
         }}
@@ -67,6 +79,7 @@ export default function BarberTabs() {
       <Tabs.Screen
         name="clients"
         options={{
+          href: featureTabHref,
           title: "Clients",
           tabBarIcon: ({ color, size }) => <Feather name="users" size={size - 2} color={color} />,
         }}

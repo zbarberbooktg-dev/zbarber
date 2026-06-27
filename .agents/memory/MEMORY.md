@@ -4,6 +4,7 @@
 - [Multi-salon barber model](multi-salon.md) — /barbers/me returns array; no unique constraint on barbersTable.userId; consumers must extract [0] for primary salon.
 - [Orval naming collision](orval-naming.md) — component schema names must not match auto-generated response type names (operationId + "Response"); rename schema to avoid TS2308.
 - [Barber approval gate](barber-approval-gate.md) — layout uses barberProfile.status (from AppContext, populated by /auth/sync barber field), NOT user.status.
+- [Two-step barber verification](two-step-barber-verification.md) — first-validate→awaiting_document (30d deadline + doc upload)→final approve; auth/sync returns full barber row so doc fields flow automatically.
 - [Security fixes](security-fixes.md) — gallery delete IDOR fix: scope by both barberId AND photoId; client reservation status limited to "cancelled" only.
 - [Object storage ACL](object-storage-acl.md) — GET /storage/objects/* must refuse unreferenced paths; never serve "any authenticated user" fallback for orphan uploads.
 - [Object storage provider](object-storage-provider.md) — dual backend (Replit sidecar default vs real GCS off-Replit); credentials AND URL signing both branch on getStorageProvider().
