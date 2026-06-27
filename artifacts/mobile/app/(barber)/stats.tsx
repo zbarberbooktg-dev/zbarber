@@ -5,8 +5,9 @@ import React from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
 import { EmptyState } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { useAuthedFetch } from "@/lib/api";
+import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type AdvancedStats = {
   topServices: { serviceId: number | null; name: string; count: number; revenue: number }[];
@@ -24,10 +25,11 @@ export default function BarberStats() {
   const c = useColors();
   const router = useRouter();
   const fetcher = useAuthedFetch();
+  const { selectedSalonId } = useApp();
 
   const { data, isLoading } = useQuery<AdvancedStats>({
-    queryKey: ["myAdvancedStats"],
-    queryFn: () => fetcher<AdvancedStats>("/api/barbers/me/stats/advanced"),
+    queryKey: ["myAdvancedStats", selectedSalonId],
+    queryFn: () => fetcher<AdvancedStats>(withSalon("/api/barbers/me/stats/advanced", selectedSalonId)),
   });
 
   const maxHour = data ? Math.max(1, ...data.peakHours.map((h) => h.count)) : 1;

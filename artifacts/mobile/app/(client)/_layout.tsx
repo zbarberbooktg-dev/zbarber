@@ -20,8 +20,10 @@ export default function ClientTabs() {
     if (intent === "signup") return <Redirect href="/(auth)/sign-up" />;
     return <Redirect href="/(auth)/sign-in" />;
   }
-  if (role === "barber" || role === "admin") return <Redirect href="/(barber)" />;
-  if (role !== "client") return <Redirect href="/(auth)/sign-in" />;
+  // A barber account can browse and book exactly like a client, so it is
+  // allowed into the client tab group. Admins are redirected to their console.
+  if (role === "admin") return <Redirect href="/(barber)" />;
+  if (role !== "client" && role !== "barber") return <Redirect href="/(auth)/sign-in" />;
 
   return (
     <Tabs

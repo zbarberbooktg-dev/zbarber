@@ -19,3 +19,4 @@ export * from "./loyalty";
 export * from "./serviceRealisations";
 export * from "./walkInQueue";
 export * from "./panoramas";
+export * from "./deviceTokens";

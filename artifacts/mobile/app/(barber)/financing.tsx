@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -18,7 +19,7 @@ import {
 import { Button, Card, EmptyState, Pill, SectionTitle } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { apiUrl, useAuthedFetch } from "@/lib/api";
+import { apiUrl, useAuthedFetch, withSalon } from "@/lib/api";
 
 type Purpose = "renovation" | "tools" | "products" | "other";
 type Status = "pending" | "reviewing" | "approved" | "rejected";
@@ -32,6 +33,8 @@ type FinancingRequest = {
   yearsActive: number;
   repaymentMonths: number;
   documents: string[];
+  idDocument: string | null;
+  guarantorIdDocument: string | null;
   status: Status;
   adminNote: string | null;
   reviewedAt: string | null;
@@ -62,13 +65,13 @@ const STATUS_LABEL: Record<Status, string> = {
 export default function BarberFinancing() {
   const c = useColors();
   const fetcher = useAuthedFetch();
-  const { locale } = useApp();
+  const { locale, selectedSalonId } = useApp();
   const qc = useQueryClient();
   const [openForm, setOpenForm] = useState(false);
 
   const { data, isLoading, refetch } = useQuery<{ data: FinancingRequest[]; total: number }>({
-    queryKey: ["myFinancing"],
-    queryFn: () => fetcher<{ data: FinancingRequest[]; total: number }>("/api/financing-requests?limit=50"),
+    queryKey: ["myFinancing", selectedSalonId],
+    queryFn: () => fetcher<{ data: FinancingRequest[]; total: number }>(withSalon("/api/financing-requests?limit=50", selectedSalonId)),
   });
 
   const requests = data?.data ?? [];
@@ -77,6 +80,15 @@ export default function BarberFinancing() {
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/(barber)"))}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }}
+          hitSlop={8}
+        >
+          <Feather name="arrow-left" size={18} color={c.primary} />
+          <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>Retour</Text>
+        </Pressable>
+
         <Card>
           <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 16, marginBottom: 6 }}>
             Demande de financement
@@ -150,10 +162,11 @@ export default function BarberFinancing() {
 
       <FinancingFormModal
         visible={openForm}
+        salonId={selectedSalonId}
         onClose={() => setOpenForm(false)}
         onCreated={() => {
           setOpenForm(false);
-          qc.invalidateQueries({ queryKey: ["myFinancing"] });
+          qc.invalidateQueries({ queryKey: ["myFinancing", selectedSalonId] });
           refetch();
         }}
       />
@@ -161,7 +174,7 @@ export default function BarberFinancing() {
   );
 }
 
-function FinancingFormModal({ visible, onClose, onCreated }: { visible: boolean; onClose: () => void; onCreated: () => void }) {
+function FinancingFormModal({ visible, salonId, onClose, onCreated }: { visible: boolean; salonId: number | null; onClose: () => void; onCreated: () => void }) {
   const c = useColors();
   const fetcher = useAuthedFetch();
   const [amount, setAmount] = useState("");
@@ -171,11 +184,15 @@ function FinancingFormModal({ visible, onClose, onCreated }: { visible: boolean;
   const [yearsActive, setYearsActive] = useState("");
   const [repaymentMonths, setRepaymentMonths] = useState("12");
   const [docs, setDocs] = useState<{ name: string; objectPath: string }[]>([]);
+  const [idDoc, setIdDoc] = useState<{ name: string; objectPath: string } | null>(null);
+  const [guarantorIdDoc, setGuarantorIdDoc] = useState<{ name: string; objectPath: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingId, setUploadingId] = useState<"id" | "guarantor" | null>(null);
 
   const reset = () => {
     setAmount(""); setPurpose("renovation"); setDescription("");
     setMonthlyRevenue(""); setYearsActive(""); setRepaymentMonths("12"); setDocs([]);
+    setIdDoc(null); setGuarantorIdDoc(null);
   };
 
   const submitMutation = useMutation({
@@ -190,7 +207,9 @@ function FinancingFormModal({ visible, onClose, onCreated }: { visible: boolean;
       if (!Number.isFinite(months) || months < 3 || months > 24) throw new Error("Remboursement entre 3 et 24 mois");
       if (description.trim().length < 30) throw new Error("Description : 30 caractères minimum");
       if (docs.length < 1) throw new Error("Joignez au moins un justificatif");
-      return await fetcher<FinancingRequest>("/api/financing-requests", {
+      if (!idDoc) throw new Error("Joignez votre pièce d'identité (CNI ou passeport)");
+      if (!guarantorIdDoc) throw new Error("Joignez la pièce d'identité de votre garant");
+      return await fetcher<FinancingRequest>(withSalon("/api/financing-requests", salonId), {
         method: "POST",
         body: JSON.stringify({
           amount: amt,
@@ -200,6 +219,8 @@ function FinancingFormModal({ visible, onClose, onCreated }: { visible: boolean;
           yearsActive: yrs,
           repaymentMonths: months,
           documents: docs.map(d => d.objectPath),
+          idDocument: idDoc.objectPath,
+          guarantorIdDocument: guarantorIdDoc.objectPath,
         }),
       });
     },
@@ -207,26 +228,43 @@ function FinancingFormModal({ visible, onClose, onCreated }: { visible: boolean;
     onError: (e: Error) => Alert.alert("Erreur", e.message || "Échec de l'envoi"),
   });
 
+  async function uploadDocument(): Promise<{ name: string; objectPath: string } | null> {
+    const res = await DocumentPicker.getDocumentAsync({ type: ["image/*", "application/pdf"], copyToCacheDirectory: true });
+    if (res.canceled || !res.assets?.[0]) return null;
+    const asset = res.assets[0];
+    const ct = asset.mimeType || "application/octet-stream";
+    const presigned = await fetcher<{ uploadURL: string; objectPath: string }>("/api/storage/uploads/request-url", {
+      method: "POST",
+      body: JSON.stringify({ name: asset.name, size: asset.size ?? 0, contentType: ct }),
+    });
+    const fileResp = await fetch(asset.uri);
+    const blob = await fileResp.blob();
+    const put = await fetch(presigned.uploadURL, { method: "PUT", headers: { "content-type": ct }, body: blob });
+    if (!put.ok) throw new Error(`Upload échoué (${put.status})`);
+    return { name: asset.name, objectPath: presigned.objectPath };
+  }
+
   async function pickDocument() {
     try {
       setUploading(true);
-      const res = await DocumentPicker.getDocumentAsync({ type: ["image/*", "application/pdf"], copyToCacheDirectory: true });
-      if (res.canceled || !res.assets?.[0]) return;
-      const asset = res.assets[0];
-      const ct = asset.mimeType || "application/octet-stream";
-      const presigned = await fetcher<{ uploadURL: string; objectPath: string }>("/api/storage/uploads/request-url", {
-        method: "POST",
-        body: JSON.stringify({ name: asset.name, size: asset.size ?? 0, contentType: ct }),
-      });
-      const fileResp = await fetch(asset.uri);
-      const blob = await fileResp.blob();
-      const put = await fetch(presigned.uploadURL, { method: "PUT", headers: { "content-type": ct }, body: blob });
-      if (!put.ok) throw new Error(`Upload échoué (${put.status})`);
-      setDocs(prev => [...prev, { name: asset.name, objectPath: presigned.objectPath }]);
+      const uploaded = await uploadDocument();
+      if (uploaded) setDocs(prev => [...prev, uploaded]);
     } catch (e) {
       Alert.alert("Erreur", e instanceof Error ? e.message : "Upload échoué");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function pickIdDocument(which: "id" | "guarantor") {
+    try {
+      setUploadingId(which);
+      const uploaded = await uploadDocument();
+      if (uploaded) (which === "id" ? setIdDoc : setGuarantorIdDoc)(uploaded);
+    } catch (e) {
+      Alert.alert("Erreur", e instanceof Error ? e.message : "Upload échoué");
+    } finally {
+      setUploadingId(null);
     }
   }
 
@@ -288,6 +326,40 @@ function FinancingFormModal({ visible, onClose, onCreated }: { visible: boolean;
                 </View>
               ))}
               <Button label={uploading ? "Téléversement..." : "Ajouter un document"} icon="upload" onPress={pickDocument} disabled={uploading} fullWidth />
+            </View>
+          </Field>
+
+          <Field c={c} label="Votre pièce d'identité * (CNI ou passeport)">
+            <View style={{ gap: 8 }}>
+              {idDoc && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 8, backgroundColor: c.muted }}>
+                  <Feather name="credit-card" size={14} color={c.primary} />
+                  <Text numberOfLines={1} style={{ flex: 1, color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 12 }}>{idDoc.name}</Text>
+                  <Pressable onPress={() => setIdDoc(null)}>
+                    <Feather name="x" size={14} color={c.destructive} />
+                  </Pressable>
+                </View>
+              )}
+              {!idDoc && (
+                <Button label={uploadingId === "id" ? "Téléversement..." : "Joindre ma pièce d'identité"} icon="upload" onPress={() => pickIdDocument("id")} disabled={uploadingId !== null} fullWidth />
+              )}
+            </View>
+          </Field>
+
+          <Field c={c} label="Pièce d'identité du garant * (CNI ou passeport)">
+            <View style={{ gap: 8 }}>
+              {guarantorIdDoc && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 8, backgroundColor: c.muted }}>
+                  <Feather name="credit-card" size={14} color={c.primary} />
+                  <Text numberOfLines={1} style={{ flex: 1, color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 12 }}>{guarantorIdDoc.name}</Text>
+                  <Pressable onPress={() => setGuarantorIdDoc(null)}>
+                    <Feather name="x" size={14} color={c.destructive} />
+                  </Pressable>
+                </View>
+              )}
+              {!guarantorIdDoc && (
+                <Button label={uploadingId === "guarantor" ? "Téléversement..." : "Joindre la pièce du garant"} icon="upload" onPress={() => pickIdDocument("guarantor")} disabled={uploadingId !== null} fullWidth />
+              )}
             </View>
           </Field>
 

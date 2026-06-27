@@ -63,7 +63,9 @@
     "@clerk/localizations": "^4.6.8",
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@workspace/legal-content": "workspace:*",
+    "expo-device": "~8.0.10",
     "expo-document-picker": "^56.0.4",
+    "expo-notifications": "~0.32.17",
     "react-native-render-html": "^6.3.4",
     "react-native-webview": "^13.16.1"
   }

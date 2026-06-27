@@ -14,8 +14,9 @@ import {
 } from "react-native";
 
 import { Button, Card } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { useAuthedFetch } from "@/lib/api";
+import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
@@ -51,14 +52,15 @@ export default function BarberHours() {
   const c = useColors();
   const router = useRouter();
   const fetcher = useAuthedFetch();
+  const { selectedSalonId } = useApp();
   const [rows, setRows] = useState<ScheduleRow[]>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<ScheduleRow[]>({
-    queryKey: ["mySchedule"],
-    queryFn: () => fetcher<ScheduleRow[]>("/api/barbers/me/schedule"),
+    queryKey: ["mySchedule", selectedSalonId],
+    queryFn: () => fetcher<ScheduleRow[]>(withSalon("/api/barbers/me/schedule", selectedSalonId)),
   });
 
   useEffect(() => {
@@ -75,7 +77,7 @@ export default function BarberHours() {
   const handleSave = async () => {
     setErr(null); setOk(null); setSaving(true);
     try {
-      await fetcher("/api/barbers/me/schedule", {
+      await fetcher(withSalon("/api/barbers/me/schedule", selectedSalonId), {
         method: "PUT",
         body: JSON.stringify(rows.map((r) => ({
           day: r.day,

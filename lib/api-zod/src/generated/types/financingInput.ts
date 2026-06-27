@@ -27,4 +27,6 @@ export interface FinancingInput {
   repaymentMonths: number;
   /** @minItems 1 */
   documents: string[];
+  idDocument: string;
+  guarantorIdDocument: string;
 }

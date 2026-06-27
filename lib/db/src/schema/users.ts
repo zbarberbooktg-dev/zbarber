@@ -20,6 +20,10 @@ export const usersTable = pgTable("users", {
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
   locationUpdatedAt: timestamp("location_updated_at"),
+  // Claim marker for the "come back and book" re-engagement push. Set when a
+  // re-engagement push is sent and reset to NULL whenever the client books, so
+  // a returning client becomes eligible again after their next quiet stretch.
+  lastReengagementAt: timestamp("last_reengagement_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

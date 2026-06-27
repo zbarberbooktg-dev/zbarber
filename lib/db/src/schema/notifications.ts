@@ -13,6 +13,9 @@ export const notificationTypeEnum = pgEnum("notification_type", [
 export const notificationsTable = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id"),
+  // Optional salon (barber) this notification belongs to. NULL = account-wide
+  // (e.g. admin announcements) and is shown regardless of the selected salon.
+  barberId: integer("barber_id"),
   type: notificationTypeEnum("type").notNull(),
   title: text("title").notNull(),
   message: text("message"),

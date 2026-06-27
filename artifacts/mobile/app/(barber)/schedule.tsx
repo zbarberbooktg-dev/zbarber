@@ -14,7 +14,7 @@ import {
 import { Button, Card, EmptyState, Pill } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { useAuthedFetch } from "@/lib/api";
+import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type Status = "pending" | "confirmed" | "completed" | "cancelled";
 
@@ -41,15 +41,16 @@ const TONE: Record<Status, "warning" | "success" | "primary" | "danger"> = {
 
 export default function BarberSchedule() {
   const c = useColors();
-  const { t, locale } = useApp();
+  const { t, locale, selectedSalonId } = useApp();
   const fetcher = useAuthedFetch();
   const [filter, setFilter] = useState<Status | "all" | "today">("today");
 
   const { data, isLoading, refetch, isRefetching } = useQuery<{ data: Reservation[]; total: number }>({
-    queryKey: ["myReservations", filter === "all" || filter === "today" ? "all" : filter],
+    queryKey: ["myReservations", filter === "all" || filter === "today" ? "all" : filter, selectedSalonId],
     queryFn: () => {
       const status = filter !== "all" && filter !== "today" ? `&status=${filter}` : "";
-      return fetcher(`/api/reservations?limit=200${status}`);
+      const salon = selectedSalonId != null ? `&salonId=${selectedSalonId}` : "";
+      return fetcher(`/api/reservations?limit=200${status}${salon}`);
     },
   });
 

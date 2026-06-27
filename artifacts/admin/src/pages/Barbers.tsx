@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useSearch } from "wouter";
-import { Search, Check, X, ChevronRight, Pause, Play } from "lucide-react";
-import { useListBarbers, useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber, getListBarbersQueryKey } from "@workspace/api-client-react";
+import { Search, Check, X, ChevronRight, Pause, Play, ShieldCheck } from "lucide-react";
+import { useListBarbers, useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber, useFirstValidateBarber, getListBarbersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -37,10 +37,14 @@ export default function Barbers() {
   const reject = useRejectBarber();
   const suspend = useSuspendBarber();
   const reactivate = useReactivateBarber();
+  const firstValidate = useFirstValidateBarber();
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListBarbersQueryKey() });
   const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
+  function handleFirstValidate(id: number) {
+    firstValidate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.barberDetail.firstValidated_toast }); }, onError: onErr });
+  }
   function handleApprove(id: number) {
     approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.approved_toast }); }, onError: onErr });
   }
@@ -96,6 +100,7 @@ export default function Barbers() {
         >
           <option value="">{t.common.allStatuses}</option>
           <option value="pending">{b.pending}</option>
+          <option value="awaiting_document">{b.awaiting_document}</option>
           <option value="approved">{b.approved}</option>
           <option value="rejected">{b.rejected}</option>
           <option value="suspended">{b.suspended}</option>
@@ -145,13 +150,18 @@ export default function Barbers() {
                   <div className="flex items-center gap-2 justify-end">
                     {row.status === "pending" && (
                       <>
-                        <button onClick={() => handleApprove(row.id)} className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors" title={b.approveTitle}>
+                        <button onClick={() => handleFirstValidate(row.id)} className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors" title={t.barberDetail.firstValidate}>
                           <Check className="h-3.5 w-3.5" />
                         </button>
                         <button onClick={() => openReject(row.id, row.salonName)} className="p-1.5 rounded-md bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors" title={b.rejectTitle}>
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </>
+                    )}
+                    {row.status === "awaiting_document" && (
+                      <button onClick={() => handleApprove(row.id)} disabled={!row.documentUrl} title={row.documentUrl ? t.barberDetail.finalValidate : t.barberDetail.documentMissing} className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:opacity-40">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                      </button>
                     )}
                     {row.status === "approved" && (
                       <button onClick={() => openSuspend(row.id, row.salonName)} className="p-1.5 rounded-md bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors" title={b.suspendTitle}>

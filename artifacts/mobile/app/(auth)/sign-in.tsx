@@ -1,4 +1,5 @@
 import { useSignIn, useAuth } from "@clerk/expo";
+import { Feather } from "@expo/vector-icons";
 import { Link, Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -183,8 +184,22 @@ export default function SignInScreen() {
       style={{ flex: 1, backgroundColor: c.background }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <Pressable
+        onPress={() => router.replace("/")}
+        hitSlop={10}
+        style={{
+          position: "absolute", top: 52, left: 24, zIndex: 10,
+          flexDirection: "row", alignItems: "center", gap: 6,
+        }}
+      >
+        <Feather name="arrow-left" size={18} color={c.primary} />
+        <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
+          {(t as any).backToHome ?? "Accueil"}
+        </Text>
+      </Pressable>
+
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24, paddingBottom: 96 }}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24, paddingTop: 96, paddingBottom: 96 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >

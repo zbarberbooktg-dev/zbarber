@@ -11,6 +11,7 @@ export type BarberStatus = typeof BarberStatus[keyof typeof BarberStatus];
 
 export const BarberStatus = {
   pending: 'pending',
+  awaiting_document: 'awaiting_document',
   approved: 'approved',
   rejected: 'rejected',
   suspended: 'suspended',

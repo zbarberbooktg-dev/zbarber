@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 
 import { CreateSalonModal } from "@/components/CreateSalonModal";
@@ -16,37 +16,25 @@ import { useAuthedFetch } from "@/lib/api";
 export default function ClientProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, signOut, syncAuth, t, user } = useApp();
+  const { themePref, setThemePref, lang, setLang, signOut, syncAuth, t, user, barberProfile } = useApp();
+  const params = useLocalSearchParams<{ becomeBarber?: string }>();
   const fetcher = useAuthedFetch();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [createSalonOpen, setCreateSalonOpen] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [switching, setSwitching] = useState(false);
 
-  const activateBarberRole = async () => {
-    await fetcher("/api/auth/active-role", { method: "POST", body: JSON.stringify({ role: "barber" }) });
-    await syncAuth();
-    router.replace("/(barber)");
-  };
+  // Becoming a barber is an admin-validated request: the user submits a salon,
+  // and only an admin approval activates barber mode. There is no self-promotion.
+  const hasPendingBarberRequest = barberProfile?.status === "pending";
 
-  const handleSwitchToBarber = async () => {
-    if (switching) return;
-    setSwitching(true);
-    try {
-      await activateBarberRole();
-    } catch (e: any) {
-      const msg: string = e?.message ?? "";
-      // API returns "Create a barber profile first" (400) when the user has no salon yet.
-      if (msg.toLowerCase().includes("barber profile")) {
-        setCreateSalonOpen(true);
-      } else {
-        Alert.alert("Erreur", msg || "Impossible de basculer en mode barbier.");
-      }
-    } finally {
-      setSwitching(false);
+  // Auto-open the salon request form when navigated here with ?becomeBarber=1
+  // (e.g. right after choosing "barber" at sign-up).
+  useEffect(() => {
+    if (params.becomeBarber === "1" && !hasPendingBarberRequest) {
+      setCreateSalonOpen(true);
     }
-  };
+  }, [params.becomeBarber, hasPendingBarberRequest]);
 
   const handleRefreshLocation = async () => {
     setLocating(true);
@@ -242,12 +230,22 @@ export default function ClientProfile() {
             icon="home"
             onPress={() => router.push("/?browse=1")}
           />
-          <Button
-            label={switching ? "..." : t.switchToBarber}
-            variant="secondary"
-            icon="refresh-cw"
-            onPress={handleSwitchToBarber}
-          />
+          {hasPendingBarberRequest ? (
+            <Button
+              label={(t as any).barberRequestPending ?? "Demande barbier en attente de validation"}
+              variant="secondary"
+              icon="clock"
+              disabled
+              onPress={() => {}}
+            />
+          ) : (
+            <Button
+              label={t.becomeBarber}
+              variant="secondary"
+              icon="scissors"
+              onPress={() => setCreateSalonOpen(true)}
+            />
+          )}
           <Button
             label={(t as any).legalTerms ?? "Conditions d'utilisation"}
             variant="ghost"
@@ -283,8 +281,12 @@ export default function ClientProfile() {
         onClose={() => setCreateSalonOpen(false)}
         onCreated={async () => {
           setCreateSalonOpen(false);
-          try { await activateBarberRole(); }
-          catch (e: any) { Alert.alert("Erreur", e?.message ?? "Salon créé mais bascule impossible."); }
+          // No role activation here — the request now awaits admin validation.
+          try { await syncAuth(); } catch { /* surfaced on next refresh */ }
+          Alert.alert(
+            (t as any).barberRequestSent ?? "Demande envoyée",
+            (t as any).barberRequestSentBody ?? "Votre salon a été soumis. Un administrateur validera votre demande avant l'activation du mode barbier.",
+          );
         }}
       />
     </ScrollView>

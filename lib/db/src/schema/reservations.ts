@@ -16,6 +16,10 @@ export const reservationsTable = pgTable("reservations", {
   status: reservationStatusEnum("status").notNull().default("pending"),
   notes: text("notes"),
   reminderSentAt: timestamp("reminder_sent_at"),
+  // Claim marker for the post-appointment thank-you / review-invite email,
+  // set once when the reservation transitions to "completed" so the email is
+  // never sent twice even if the status is re-applied.
+  thankYouSentAt: timestamp("thank_you_sent_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

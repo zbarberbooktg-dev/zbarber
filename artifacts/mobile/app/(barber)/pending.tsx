@@ -3,15 +3,30 @@ import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DocumentUploadCard } from "@/components/DocumentUploadCard";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function BarberPending() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useApp();
+  const { user, barberProfile, signOut } = useApp();
 
   const isSuspended = user?.status === "suspended";
+  const isAwaitingDocument = barberProfile?.status === "awaiting_document";
+
+  const headerColor = isSuspended ? c.destructive : c.primary;
+  const headerIcon = isSuspended ? "alert-circle" : isAwaitingDocument ? "file-text" : "clock";
+  const headerTitle = isSuspended
+    ? "Compte suspendu"
+    : isAwaitingDocument
+      ? "Vérification en cours"
+      : "En attente de validation";
+  const headerDesc = isSuspended
+    ? "Votre compte barbier a été suspendu. Contactez l'administration pour plus d'informations."
+    : isAwaitingDocument
+      ? "Votre salon a passé la première validation. Téléversez votre document officiel ci-dessous pour finaliser la vérification de votre compte."
+      : "Votre demande d'inscription en tant que barbier est en cours d'examen par l'équipe Zbarber. Vous recevrez une notification dès la validation de votre compte.";
 
   return (
     <ScrollView
@@ -29,20 +44,16 @@ export default function BarberPending() {
             width: 72,
             height: 72,
             borderRadius: 36,
-            backgroundColor: isSuspended ? c.destructive + "20" : c.primary + "20",
+            backgroundColor: headerColor + "20",
             alignItems: "center",
             justifyContent: "center",
             marginBottom: 16,
           }}
         >
-          <Feather
-            name={isSuspended ? "alert-circle" : "clock"}
-            size={32}
-            color={isSuspended ? c.destructive : c.primary}
-          />
+          <Feather name={headerIcon} size={32} color={headerColor} />
         </View>
         <Text style={{ fontFamily: "Inter_700Bold", fontSize: 22, color: c.foreground, marginBottom: 8, textAlign: "center" }}>
-          {isSuspended ? "Compte suspendu" : "En attente de validation"}
+          {headerTitle}
         </Text>
         <Text
           style={{
@@ -52,11 +63,11 @@ export default function BarberPending() {
             lineHeight: 22,
           }}
         >
-          {isSuspended
-            ? "Votre compte barbier a été suspendu. Contactez l'administration pour plus d'informations."
-            : "Votre demande d'inscription en tant que barbier est en cours d'examen par l'équipe Zbarber. Vous recevrez une notification dès la validation de votre compte."}
+          {headerDesc}
         </Text>
       </View>
+
+      <DocumentUploadCard />
 
       <View
         style={{

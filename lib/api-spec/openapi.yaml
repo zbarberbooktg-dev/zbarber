@@ -497,11 +497,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/Barber"
 
-  /barbers/{id}/approve:
+  /barbers/{id}/first-validate:
     patch:
-      operationId: approveBarber
+      operationId: firstValidateBarber
       tags: [barbers]
-      summary: Approve barber account (admin)
+      summary: First validation of a barber account (admin)
+      description: >
+        Step 1 of the two-step verification. Moves a pending barber to
+        "awaiting_document", starts the 30-day window to upload an official
+        authorization document, and activates barber capabilities so the owner
+        can reach the upload entry. The account stays gated until the document
+        is reviewed and the barber is finally approved.
       parameters:
         - in: path
           name: id
@@ -510,7 +516,79 @@ paths:
             type: integer
       responses:
         "200":
-          description: Barber approved
+          description: Barber first-validated (awaiting document)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+
+  /barbers/{id}/approve:
+    patch:
+      operationId: approveBarber
+      tags: [barbers]
+      summary: Final validation of a barber account (admin)
+      description: >
+        Step 2 of the two-step verification. Grants full verification after the
+        admin has reviewed the uploaded authorization document.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Barber approved (fully verified)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+
+  /barbers/{id}/document/reject:
+    patch:
+      operationId: rejectBarberDocument
+      tags: [barbers]
+      summary: Mark a submitted barber document non-conforming (admin)
+      description: >
+        Keeps the barber in "awaiting_document" and clears the previously
+        submitted document so the barber can upload a new one.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentRejectInput"
+      responses:
+        "200":
+          description: Document rejected; barber still awaiting document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Barber"
+
+  /barbers/me/document:
+    post:
+      operationId: submitBarberDocument
+      tags: [barbers]
+      summary: Submit the professional authorization document (barber)
+      description: >
+        Available while the salon is in "awaiting_document". Records the
+        uploaded document and notifies admins to review it for final validation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitDocumentInput"
+      responses:
+        "200":
+          description: Document submitted
           content:
             application/json:
               schema:
@@ -2141,6 +2219,20 @@ components:
         reason:
           type: ["string", "null"]
 
+    DocumentRejectInput:
+      type: object
+      properties:
+        reason:
+          type: ["string", "null"]
+
+    SubmitDocumentInput:
+      type: object
+      required: [documentUrl]
+      properties:
+        documentUrl:
+          type: string
+          description: Object-storage path (starts with /objects/) of the uploaded document.
+
     # ── BARBER ────────────────────────────────────────────────────────
     Barber:
       type: object
@@ -2172,7 +2264,7 @@ components:
           type: ["number", "null"]
         status:
           type: string
-          enum: [pending, approved, rejected, suspended]
+          enum: [pending, awaiting_document, approved, rejected, suspended]
         profileViews:
           type: integer
         subscriptionPlanId:
@@ -2180,6 +2272,19 @@ components:
         rejectionReason:
           type: ["string", "null"]
         suspensionReason:
+          type: ["string", "null"]
+        firstValidatedAt:
+          type: ["string", "null"]
+          format: date-time
+        documentUrl:
+          type: ["string", "null"]
+        documentSubmittedAt:
+          type: ["string", "null"]
+          format: date-time
+        documentDeadline:
+          type: ["string", "null"]
+          format: date-time
+        documentReviewNote:
           type: ["string", "null"]
         rating:
           type: ["number", "null"]
@@ -2753,6 +2858,10 @@ components:
           type: array
           items:
             type: string
+        idDocument:
+          type: ["string", "null"]
+        guarantorIdDocument:
+          type: ["string", "null"]
         status:
           type: string
           enum: [pending, reviewing, approved, rejected]
@@ -2767,7 +2876,7 @@ components:
 
     FinancingInput:
       type: object
-      required: [amount, purpose, description, monthlyRevenue, yearsActive, repaymentMonths, documents]
+      required: [amount, purpose, description, monthlyRevenue, yearsActive, repaymentMonths, documents, idDocument, guarantorIdDocument]
       properties:
         amount:
           type: number
@@ -2794,6 +2903,10 @@ components:
           minItems: 1
           items:
             type: string
+        idDocument:
+          type: string
+        guarantorIdDocument:
+          type: string
 
     FinancingStatusUpdate:
       type: object

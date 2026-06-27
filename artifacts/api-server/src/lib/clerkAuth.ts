@@ -35,15 +35,15 @@ export async function provisionUserFromClerk(clerkUserId: string) {
     }
   }
 
-  const metaRole = meta.role ?? (cu.publicMetadata as Record<string, unknown> | undefined)?.role;
-  const initialRole: "client" | "barber" = metaRole === "barber" ? "barber" : "client";
-
+  // Every new account is provisioned as a client. Barber capabilities are
+  // never self-assigned (not via signup metadata, sync, or salon creation) —
+  // they are granted only when an admin approves the salon profile.
   const [created] = await db.insert(usersTable).values({
     clerkUserId,
     name,
     email,
     phone: metaPhone || null,
-    role: initialRole,
+    role: "client",
     status: "active",
     avatarUrl: cu.imageUrl ?? null,
   }).returning();
