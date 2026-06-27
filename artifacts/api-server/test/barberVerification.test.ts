@@ -40,7 +40,7 @@ vi.mock("../src/lib/email", () => ({
 vi.mock("../src/lib/push", () => ({ sendPush: vi.fn(async () => {}) }));
 
 // ── Imports that depend on the mocks above ───────────────────────────────
-const { db, barbersTable, usersTable, adminAccountsTable, pool } = await import("@workspace/db");
+const { db, barbersTable, usersTable, adminAccountsTable, objectUploadsTable, pool } = await import("@workspace/db");
 const { eq } = await import("drizzle-orm");
 const barbersRouter = (await import("../src/routes/barbers")).default;
 const storageRouter = (await import("../src/routes/storage")).default;
@@ -108,9 +108,19 @@ beforeAll(async () => {
     userId: userBId, salonName: "Salon B", city: "Lubumbashi", status: "pending",
   }).returning();
   barberBId = bb!.id;
+
+  // Bind each document path to its uploader. POST /barbers/me/document enforces
+  // upload-ownership (anti path-claiming), so the legitimate flow requires the
+  // path to be recorded in object_uploads for the submitting user.
+  await db.insert(objectUploadsTable).values([
+    { objectPath: DOC_A, userId: userAId },
+    { objectPath: DOC_B, userId: userBId },
+  ]);
 });
 
 afterAll(async () => {
+  await db.delete(objectUploadsTable).where(eq(objectUploadsTable.objectPath, DOC_A));
+  await db.delete(objectUploadsTable).where(eq(objectUploadsTable.objectPath, DOC_B));
   await db.delete(barbersTable).where(eq(barbersTable.id, barberAId));
   await db.delete(barbersTable).where(eq(barbersTable.id, barberBId));
   await db.delete(usersTable).where(eq(usersTable.id, userAId));
