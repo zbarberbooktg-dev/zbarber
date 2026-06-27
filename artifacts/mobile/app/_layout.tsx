@@ -145,10 +145,10 @@ export default function RootLayout() {
       proxyUrl={proxyUrl}
       localization={clerkLocalization}
     >
-      <ClerkLoading>
+      {/* <ClerkLoading>
         <View style={{ flex: 1, backgroundColor: "red", alignItems: "center", justifyContent: "center" }} />
-      </ClerkLoading>
-      <SafeAreaProvider>
+      </ClerkLoading> */}
+      <ClerkLoaded>
         <SafeAreaProvider>
           <ErrorBoundary>
             <GestureHandlerRootView style={{ flex: 1 }}>
@@ -162,7 +162,7 @@ export default function RootLayout() {
             </GestureHandlerRootView>
           </ErrorBoundary>
         </SafeAreaProvider>
-      </SafeAreaProvider>
+      </ClerkLoaded>
     </ClerkProvider>
   );
 }
