@@ -245,6 +245,12 @@ export default function BarberProfile() {
         <SectionLabel label={t.account} />
         <View style={{ gap: 10 }}>
           <Button
+            label={lang === "fr" ? "Accueil" : "Home"}
+            variant="secondary"
+            icon="home"
+            onPress={() => router.push("/?browse=1")}
+          />
+          <Button
             label={switching ? "..." : t.switchToClient}
             variant="secondary"
             icon="refresh-cw"

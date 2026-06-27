@@ -237,6 +237,12 @@ export default function ClientProfile() {
         <SectionLabel label={t.account} />
         <View style={{ gap: 10 }}>
           <Button
+            label={lang === "fr" ? "Accueil" : "Home"}
+            variant="secondary"
+            icon="home"
+            onPress={() => router.push("/?browse=1")}
+          />
+          <Button
             label={switching ? "..." : t.switchToBarber}
             variant="secondary"
             icon="refresh-cw"

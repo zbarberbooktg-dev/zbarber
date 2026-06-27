@@ -73,10 +73,14 @@ router.post("/financing-requests", requireAuth, async (req: AuthedRequest, res) 
       const [row] = await tx.insert(financingRequestsTable).values({ ...body.data, barberId: b.id }).returning();
       return row;
     });
-    notifyAdmin(
-      "Nouvelle demande de financement",
-      `Le salon "${b.salonName}" (#${b.id}) a soumis une demande de financement.\n\nMontant : ${body.data.amount} FC\nObjet : ${body.data.purpose}\nDurée de remboursement : ${body.data.repaymentMonths} mois`,
-    );
+    notifyAdmin("Nouvelle demande de financement", {
+      intro: `Le salon "${b.salonName}" (#${b.id}) a soumis une demande de financement.`,
+      rows: [
+        { label: "Montant", value: `${body.data.amount} FC` },
+        { label: "Objet", value: body.data.purpose },
+        { label: "Durée de remboursement", value: `${body.data.repaymentMonths} mois` },
+      ],
+    });
     res.status(201).json(created);
   } catch (e) {
     if (e instanceof Error && e.message === "ACTIVE_REQUEST_EXISTS") {

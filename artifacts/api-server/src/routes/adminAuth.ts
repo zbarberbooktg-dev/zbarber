@@ -13,7 +13,7 @@ import {
   sanitizeAdmin,
   type AdminAuthedRequest,
 } from "../lib/adminAuth";
-import { sendEmail, isSmtpConfigured } from "../lib/email";
+import { sendEmail, renderEmail, isSmtpConfigured } from "../lib/email";
 
 const router = Router();
 
@@ -104,19 +104,20 @@ router.post("/admin-auth/invite", requireAdminAuth, async (req: AdminAuthedReque
   }).returning();
 
   const subject = "Invitation à la console admin Zbarber";
-  const text = `Bonjour ${body.data.name},
+  const loginUrl = process.env.ADMIN_LOGIN_URL || "";
+  const { html, text } = renderEmail({
+    title: subject,
+    heading: "Invitation à la console admin",
+    intro: `Bonjour ${body.data.name}, vous avez été invité(e) à la console d'administration Zbarber par ${req.admin!.name}.`,
+    rows: [
+      { label: "Email", value: email },
+      { label: "Mot de passe temporaire", value: tempPassword },
+    ],
+    button: loginUrl ? { label: "Accéder à la console", url: loginUrl } : undefined,
+    note: "Pour des raisons de sécurité, vous devrez changer ce mot de passe à votre première connexion.",
+  });
 
-Vous avez été invité(e) à la console d'administration Zbarber par ${req.admin!.name}.
-
-Vos identifiants temporaires :
-  Email      : ${email}
-  Mot de passe : ${tempPassword}
-
-Connectez-vous : ${process.env.ADMIN_LOGIN_URL || ""}
-
-Pour des raisons de sécurité, vous devrez changer ce mot de passe à votre première connexion.`;
-
-  const { delivered } = await sendEmail({ to: email, subject, text });
+  const { delivered } = await sendEmail({ to: email, subject, html, text });
 
   res.json({
     admin: sanitizeAdmin(created),
