@@ -360,10 +360,9 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
     userId: user.id,
     status: "pending",
   }).returning();
-  // Auto-promote client → barber on first salon creation so they can manage it.
-  if (user.role === "client") {
-    await db.update(usersTable).set({ role: "barber" }).where(eq(usersTable.id, user.id));
-  }
+  // The account stays a "client" until an admin validates the salon. Barber
+  // capabilities are NOT self-granted on creation — role is flipped to "barber"
+  // only by the admin approval endpoint.
   notifyAdmin("Nouvelle inscription barbier à valider", {
     intro: "Un nouveau salon est en attente de validation.",
     rows: [
@@ -599,6 +598,12 @@ router.patch("/barbers/:id/approve", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
   const [updated] = await db.update(barbersTable).set({ status: "approved" }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
+  // Activate barber capabilities now that an admin has validated the salon.
+  // This is the ONLY place a client account is promoted to "barber".
+  if (updated.userId) {
+    await db.update(usersTable).set({ role: "barber" })
+      .where(and(eq(usersTable.id, updated.userId), eq(usersTable.role, "client")));
+  }
   res.json(updated);
 });
 

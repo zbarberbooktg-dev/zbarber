@@ -141,8 +141,10 @@ export default function SignUpScreen() {
                 console.warn("Avatar upload failed:", formatApiError(uploadErr, t.errors));
               }
               try {
+                // Every account is provisioned as a client. Choosing "barber"
+                // at signup is not self-promotion — it just routes the user to
+                // submit an admin-validated barber request.
                 await syncAuth({
-                  role,
                   name: name.trim() || undefined,
                   phone: phone.trim() || undefined,
                   city: city.trim() || undefined,
@@ -154,7 +156,11 @@ export default function SignUpScreen() {
                 // and can complete their profile from the profile screen.
                 setErr(formatApiError(syncErr, t.errors));
               }
-              router.replace("/");
+              if (role === "barber") {
+                router.replace("/(client)/profile?becomeBarber=1");
+              } else {
+                router.replace("/");
+              }
             } catch (outerErr: unknown) {
               setErr(formatApiError(outerErr, t.errors));
             }

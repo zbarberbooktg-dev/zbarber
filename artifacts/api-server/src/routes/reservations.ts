@@ -56,7 +56,9 @@ router.get("/reservations", requireAuthOrAdmin, async (req: AdminAuthedRequest &
 
 router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {
   const user = req.localUser!;
-  if (user.role !== "client") { res.status(403).json({ error: "Only clients can book" }); return; }
+  // Any non-admin account can book like a client (a barber browses and books in
+  // other salons exactly like a client). Admins manage, they do not book.
+  if (user.role === "admin") { res.status(403).json({ error: "Admins cannot book" }); return; }
   const body = z.object({ barberId: z.number(), serviceId: z.number(), scheduledAt: z.string(), notes: z.string().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   // Verify barber is approved

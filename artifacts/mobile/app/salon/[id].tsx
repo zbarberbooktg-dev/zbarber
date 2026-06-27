@@ -73,7 +73,7 @@ export default function PublicSalonDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isSignedIn } = useAuth();
-  const { locale, user, t } = useApp();
+  const { locale, t } = useApp();
   const fetcher = useAuthedFetch();
   const [scrolled, setScrolled] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
@@ -199,10 +199,6 @@ export default function PublicSalonDetail() {
     }
     if (!selectedService || !selectedSlot) {
       Alert.alert("Sélection incomplète", "Choisissez un service et un créneau.");
-      return;
-    }
-    if (user?.role === "barber") {
-      Alert.alert("Réservation impossible", "Un barbier ne peut pas réserver une prestation.");
       return;
     }
     setBooking(true);

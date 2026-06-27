@@ -3,7 +3,7 @@ import { useAuth } from "@clerk/expo";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { EditProfileModal } from "@/components/EditProfileModal";
@@ -12,7 +12,6 @@ import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
-import { useAuthedFetch } from "@/lib/api";
 
 type MyBarber = {
   id: number;
@@ -28,23 +27,7 @@ export default function BarberProfile() {
   const c = useColors();
   const router = useRouter();
   const { getToken } = useAuth();
-  const { themePref, setThemePref, lang, setLang, signOut, syncAuth, t, user } = useApp();
-  const fetcher = useAuthedFetch();
-  const [switching, setSwitching] = useState(false);
-
-  const handleSwitchToClient = async () => {
-    if (switching) return;
-    setSwitching(true);
-    try {
-      await fetcher("/api/auth/active-role", { method: "POST", body: JSON.stringify({ role: "client" }) });
-      await syncAuth();
-      router.replace("/(client)");
-    } catch (e: any) {
-      Alert.alert("Erreur", e?.message ?? "Impossible de basculer en mode client.");
-    } finally {
-      setSwitching(false);
-    }
-  };
+  const { themePref, setThemePref, lang, setLang, signOut, t, user } = useApp();
   const { data: myBarbers, refetch } = useQuery<MyBarber[]>({
     queryKey: ["barbersMe"],
     queryFn: async () => {
@@ -249,12 +232,6 @@ export default function BarberProfile() {
             variant="secondary"
             icon="home"
             onPress={() => router.push("/?browse=1")}
-          />
-          <Button
-            label={switching ? "..." : t.switchToClient}
-            variant="secondary"
-            icon="refresh-cw"
-            onPress={handleSwitchToClient}
           />
           <Button
             label={(t as any).legalTerms ?? "Conditions d'utilisation"}

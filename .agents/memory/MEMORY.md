@@ -11,7 +11,7 @@
 - [Availability model](availability-model.md) — server-side slot generation from weekly hours + service duration + reservations + daysOffTable; clients never recompute slots.
 - [Countries & cities catalog](countries-cities-catalog.md) — all city/country writes go through resolveAndPersistLocation (rejects unknown countries, dedups cities per country); country UI always renders before city.
 - [Account deletion](account-deletion.md) — DELETE /api/auth/me anonymizes (not hard-deletes) because reservations/reviews FK clientId lacks cascade; public vitrine form stored in accountDeletionRequestsTable.
-- [Dual-role accounts](dual-role.md) — one Clerk user, both client & barber capabilities; users.role is the active role; switching to barber requires an existing barber profile (or fresh-signup exception in /auth/sync).
+- [Account role model](dual-role.md) — every account is a client; barber is admin-validated (only PATCH /barbers/:id/approve flips role); no self-promotion (active-role deleted, sync/salon-create/metaRole no longer promote).
 - [Admin auth split from Clerk](admin-auth-split.md) — admins are self-managed (cookie JWT, bcrypt, separate adminAccountsTable); mobile clients/barbers stay on Clerk; hybrid routes use requireAuthOrAdmin and branch on req.admin.
 - [Shared legal content lib](legal-content-lib.md) — CGU + privacy live in lib/legal-content; consumed by mobile + vitrine; single source of truth, structured sections (no si/sip/sil keys).
 - [pnpm build allowlist](pnpm-build-allowlist.md) — off-Replit (VPS/CI) installs fail with ERR_PNPM_IGNORED_BUILDS unless every build-script dep is in onlyBuiltDependencies; Replit auto-approves so it's invisible there.
