@@ -631,15 +631,30 @@ router.get("/barbers/:id/availability", async (req, res) => {
   // Using UTC boundaries to match the UTC-based slot iso generation below.
   const fromDate = new Date(query.data.from + "T00:00:00Z");
   const toDate = new Date(query.data.to + "T00:00:00Z"); toDate.setUTCDate(toDate.getUTCDate() + 1);
-  const reservations = await db.select({ scheduledAt: reservationsTable.scheduledAt, status: reservationsTable.status })
+  // Pull each active reservation together with its service duration so we can
+  // treat it as a time *range*, not just a start instant. A 60-min 09:00 booking
+  // must block the 09:30 slot of a 30-min service, even though the starts differ.
+  // We widen the lower bound by the longest possible service so a booking that
+  // *starts* before `fromDate` but bleeds into it still counts.
+  const longestDuration = await db.select({ max: sql<number>`coalesce(max(${servicesTable.durationMinutes}), 0)` })
+    .from(servicesTable).where(eq(servicesTable.barberId, id));
+  const maxDur = longestDuration[0]?.max ?? 0;
+  const loadFrom = new Date(fromDate.getTime() - Math.max(maxDur, 0) * 60_000);
+  const reservations = await db.select({ scheduledAt: reservationsTable.scheduledAt, durationMinutes: servicesTable.durationMinutes })
     .from(reservationsTable)
+    .innerJoin(servicesTable, eq(servicesTable.id, reservationsTable.serviceId))
     .where(and(
       eq(reservationsTable.barberId, id),
-      gte(reservationsTable.scheduledAt, fromDate),
+      gte(reservationsTable.scheduledAt, loadFrom),
       lt(reservationsTable.scheduledAt, toDate),
       inArray(reservationsTable.status, ["pending", "confirmed"]),
     ));
-  const bookedIso = new Set(reservations.map((r) => new Date(r.scheduledAt).toISOString()));
+  // Precompute each booking's absolute [startMs, endMs) range once.
+  const bookedRanges = reservations.map((r) => {
+    const startMs = new Date(r.scheduledAt).getTime();
+    const dur = r.durationMinutes && r.durationMinutes > 0 ? r.durationMinutes : 30;
+    return { startMs, endMs: startMs + dur * 60_000 };
+  });
 
   // Load days off in the inclusive range.
   const offs = await db.select().from(daysOffTable)
@@ -680,9 +695,15 @@ router.get("/barbers/:id/availability", async (req, res) => {
       // Generate the iso in UTC so it is identical regardless of server timezone.
       const slotDt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, t, 0, 0));
       const iso = slotDt.toISOString();
+      // This slot's own range [start, start + stepMinutes) for overlap testing.
+      const slotStartMs = slotDt.getTime();
+      const slotEndMs = slotStartMs + stepMinutes * 60_000;
       let available = true; let reason: string | undefined;
       if (slotDt <= now) { available = false; reason = "past"; }
-      else if (bookedIso.has(iso)) { available = false; reason = "booked"; }
+      // Unavailable if this slot's range intersects any active booking's range,
+      // not only when the start instants match. A longer existing booking thus
+      // blocks every slot it spans.
+      else if (bookedRanges.some((b) => b.startMs < slotEndMs && b.endMs > slotStartMs)) { available = false; reason = "booked"; }
       slots.push({ time: fmtHM(t), iso, available, reason });
     }
     result.push({ date: ymd, isWorking: true, isBlocked: false, slots });

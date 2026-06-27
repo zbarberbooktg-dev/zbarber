@@ -88,6 +88,7 @@ const DATE_OFF = futureYmd(32); // whole day blocked
 const DATE_DOUBLE = futureYmd(33); // double-booking POST flow
 const DATE_STATUS = futureYmd(34); // status-transition rules
 const DATE_RACE = futureYmd(35); // concurrent (parallel) booking race
+const DATE_OVERLAP = futureYmd(36); // range overlap (different-length bookings)
 
 beforeAll(async () => {
   const [admin] = await db.insert(adminAccountsTable).values({
@@ -132,6 +133,12 @@ beforeAll(async () => {
 
   // DATE_OFF: a day-off blocks the whole day.
   await db.insert(daysOffTable).values({ barberId, date: DATE_OFF });
+
+  // DATE_OVERLAP: a confirmed 60-min booking at 09:00 occupies 09:00–10:00, so
+  // it must collide with a new booking starting partway through (e.g. 09:30).
+  await db.insert(reservationsTable).values({
+    clientId, barberId, serviceId, scheduledAt: slotInstant(DATE_OVERLAP, 540), status: "confirmed",
+  });
 });
 
 afterAll(async () => {
@@ -231,6 +238,38 @@ describe("Booking — double-booking prevention", () => {
 
     const res = await asClerk(
       request(app).post("/api/reservations").send({ barberId, serviceId, scheduledAt: slot() }),
+      clerkClient,
+    );
+    expect(res.status).toBe(201);
+  });
+});
+
+describe("Booking — range overlap (different-length bookings)", () => {
+  it("rejects a booking whose range overlaps a longer existing booking (409)", async () => {
+    // An existing 60-min 09:00 booking occupies 09:00–10:00. A new booking at
+    // 09:30 starts at a *different* instant but still overlaps, so it must 409.
+    const res = await asClerk(
+      request(app).post("/api/reservations").send({ barberId, serviceId, scheduledAt: slotInstant(DATE_OVERLAP, 570).toISOString() }),
+      clerkClient,
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("hides every slot a longer existing booking spans in availability", async () => {
+    const [day] = await availability(DATE_OVERLAP, DATE_OVERLAP);
+    // 60-min step slots are 09:00 / 10:00 / 11:00. The 09:00 booking blocks the
+    // 09:00 slot; 10:00 and 11:00 stay open.
+    const nine = day!.slots.find((s) => s.time === "09:00");
+    expect(nine?.available).toBe(false);
+    expect(nine?.reason).toBe("booked");
+    expect(day!.slots.find((s) => s.time === "10:00")?.available).toBe(true);
+    expect(day!.slots.find((s) => s.time === "11:00")?.available).toBe(true);
+  });
+
+  it("accepts a non-overlapping booking immediately after the existing one (201)", async () => {
+    // 10:00 starts exactly when the 09:00–10:00 booking ends → no overlap.
+    const res = await asClerk(
+      request(app).post("/api/reservations").send({ barberId, serviceId, scheduledAt: slotInstant(DATE_OVERLAP, 600).toISOString() }),
       clerkClient,
     );
     expect(res.status).toBe(201);
