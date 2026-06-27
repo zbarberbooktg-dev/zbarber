@@ -10,6 +10,7 @@ import {
   articlesTable,
   serviceRealisationsTable,
   panoramasTable,
+  objectUploadsTable,
 } from "@workspace/db";
 import { eq, or } from "drizzle-orm";
 import {
@@ -45,7 +46,7 @@ async function attachOptionalUser(req: AuthedRequest & AdminAuthedRequest, _res:
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
-router.post("/storage/uploads/request-url", requireAuth, async (req: Request, res: Response) => {
+router.post("/storage/uploads/request-url", requireAuth, async (req: AuthedRequest, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Missing or invalid required fields" });
@@ -56,6 +57,17 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: Request, re
     const { name, size, contentType } = parsed.data;
     const uploadURL = await objectStorageService.getObjectEntityUploadURL();
     const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+    // Bind the freshly-issued object path to the requesting user so that later
+    // references (e.g. financing ID documents) can be verified as owned by the
+    // uploader, preventing path-claiming of another user's private files.
+    const userId = req.localUser?.id;
+    if (userId) {
+      await db
+        .insert(objectUploadsTable)
+        .values({ objectPath, userId })
+        .onConflictDoNothing();
+    }
 
     res.json(
       RequestUploadUrlResponse.parse({
@@ -116,10 +128,20 @@ router.get(
       // authorization document? Both are private — only the owning barber or an
       // admin may view them.
       const finRows = await db
-        .select({ barberId: financingRequestsTable.barberId, docs: financingRequestsTable.documents })
+        .select({
+          barberId: financingRequestsTable.barberId,
+          docs: financingRequestsTable.documents,
+          idDocument: financingRequestsTable.idDocument,
+          guarantorIdDocument: financingRequestsTable.guarantorIdDocument,
+        })
         .from(financingRequestsTable);
       const privateOwners = finRows
-        .filter((m) => m.docs.includes(objectPath))
+        .filter(
+          (m) =>
+            m.docs.includes(objectPath) ||
+            m.idDocument === objectPath ||
+            m.guarantorIdDocument === objectPath,
+        )
         .map((m) => m.barberId);
       const docRows = await db
         .select({ id: barbersTable.id })
@@ -137,12 +159,13 @@ router.get(
             return;
           }
           if (user.role !== "admin") {
-            const [b] = await db
+            // A barber may own multiple salons; authorize the request if ANY of
+            // the user's barber profiles owns this private document.
+            const owned = await db
               .select({ id: barbersTable.id })
               .from(barbersTable)
-              .where(eq(barbersTable.userId, user.id))
-              .limit(1);
-            if (!b || !privateOwners.includes(b.id)) {
+              .where(eq(barbersTable.userId, user.id));
+            if (!owned.some((b) => privateOwners.includes(b.id))) {
               res.status(403).json({ error: "Forbidden" });
               return;
             }

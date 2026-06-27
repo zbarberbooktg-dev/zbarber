@@ -20,3 +20,4 @@ export * from "./serviceRealisations";
 export * from "./walkInQueue";
 export * from "./panoramas";
 export * from "./deviceTokens";
+export * from "./objectUploads";

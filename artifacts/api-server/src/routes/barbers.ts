@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable, panoramasTable } from "@workspace/db";
+import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable, panoramasTable, objectUploadsTable } from "@workspace/db";
 import { eq, avg, count, and, lt, lte, gte, inArray, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
@@ -488,6 +488,19 @@ router.post("/barbers/me/document", requireAuth, async (req: AuthedRequest, res)
     documentUrl: z.string().min(1).refine((v) => v.startsWith("/objects/"), "Invalid document path"),
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  // Anti path-claiming: the submitted object path must have been uploaded by
+  // this user. Otherwise a barber could claim another user's private financing
+  // ID-document path as their own documentUrl and read that PII via the
+  // reference-based storage ACL.
+  const [upload] = await db
+    .select({ userId: objectUploadsTable.userId })
+    .from(objectUploadsTable)
+    .where(eq(objectUploadsTable.objectPath, body.data.documentUrl))
+    .limit(1);
+  if (!upload || upload.userId !== req.localUser!.id) {
+    res.status(400).json({ error: "Invalid document path" });
+    return;
+  }
   const [updated] = await db.update(barbersTable).set({
     documentUrl: body.data.documentUrl,
     documentSubmittedAt: new Date(),
