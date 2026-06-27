@@ -122,6 +122,7 @@ export const translations = {
     acceptTermsAnd: " et la ",
     acceptPrivacyLink: "Politique de confidentialité",
     mustAcceptTerms: "Vous devez accepter les conditions pour continuer",
+    backToHome: "Accueil",
 
     errors: {
       generic: "Une erreur est survenue. Veuillez réessayer.",
@@ -303,6 +304,7 @@ export const translations = {
     acceptTermsAnd: " and the ",
     acceptPrivacyLink: "Privacy Policy",
     mustAcceptTerms: "You must accept the terms to continue",
+    backToHome: "Home",
 
     errors: {
       generic: "Something went wrong. Please try again.",

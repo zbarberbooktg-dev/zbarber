@@ -200,6 +200,17 @@ export default function SignUpScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >
+        <Pressable
+          onPress={() => router.replace("/")}
+          hitSlop={10}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 20 }}
+        >
+          <Feather name="arrow-left" size={18} color={c.primary} />
+          <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
+            {(t as any).backToHome ?? "Accueil"}
+          </Text>
+        </Pressable>
+
         {step === "details" ? (
           <>
             <View style={{ marginBottom: 28 }}>
