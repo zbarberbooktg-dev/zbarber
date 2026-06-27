@@ -1,0 +1,47 @@
+
+root@vps121492:~# # 2) Installer les unités systemd
+cp /srv/zbarber/prod/deploy/systemd/zbarber-api-prod.service /etc/systemd/system/
+cp /srv/zbarber/prod/deploy/systemd/zbarber-api-test.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now zbarber-api-prod zbarber-api-test
+
+# 3) Statut
+systemctl --no-pager --lines=20 status zbarber-api-prod zbarber-api-test
+
+# 4) Health check local (avant nginx/DNS)
+curl -fsS localhost:5001/api/healthz; echo
+curl -fsS localhost:5002/api/healthz; echo
+Created symlink /etc/systemd/system/multi-user.target.wants/zbarber-api-prod.service → /etc/systemd/system/zbarber-api-prod.service.
+Created symlink /etc/systemd/system/multi-user.target.wants/zbarber-api-test.service → /etc/systemd/system/zbarber-api-test.service.
+● zbarber-api-prod.service - Zbarber API (production)
+     Loaded: loaded (/etc/systemd/system/zbarber-api-prod.service; enabled; preset: enabled)
+    Drop-In: /run/systemd/system/service.d
+             └─zzz-lxc-service.conf
+     Active: active (running) since Sun 2026-06-14 02:54:13 CEST; 24ms ago
+   Main PID: 30313 ((node))
+      Tasks: 1 (limit: 1312)
+     Memory: 1.4M ()
+        CPU: 11ms
+     CGroup: /system.slice/zbarber-api-prod.service
+             └─30313 "(node)"
+
+juin 14 02:54:13 vps121492 systemd[1]: Started zbarber-api-prod.service - Z…on).
+
+● zbarber-api-test.service - Zbarber API (test)
+     Loaded: loaded (/etc/systemd/system/zbarber-api-test.service; enabled; preset: enabled)
+    Drop-In: /run/systemd/system/service.d
+             └─zzz-lxc-service.conf
+     Active: active (running) since Sun 2026-06-14 02:54:13 CEST; 36ms ago
+   Main PID: 30314 ((node))
+      Tasks: 1 (limit: 1312)
+     Memory: 1.2M ()
+        CPU: 4ms
+     CGroup: /system.slice/zbarber-api-test.service
+             └─30314 "(node)"
+
+juin 14 02:54:13 vps121492 systemd[1]: Started zbarber-api-test.service - Z…st).
+Hint: Some lines were ellipsized, use -l to show in full.
+curl: (7) Failed to connect to localhost port 5001 after 0 ms: Couldn't connect to server
+
+curl: (7) Failed to connect to localhost port 5002 after 0 ms: Couldn't connect to server
+

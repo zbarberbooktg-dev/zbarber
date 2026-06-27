@@ -8,7 +8,7 @@
 - [api-server integration tests](api-server-integration-tests.md) — vitest+supertest vs real dev DB; fake Clerk via header+mock, admins via signed gbc_admin cookie; mount routers not app.ts.
 - [Security fixes](security-fixes.md) — gallery delete IDOR fix: scope by both barberId AND photoId; client reservation status limited to "cancelled" only.
 - [Object storage ACL](object-storage-acl.md) — GET /storage/objects/* must refuse unreferenced paths; never serve "any authenticated user" fallback for orphan uploads.
-- [Object storage provider](object-storage-provider.md) — dual backend (Replit sidecar default vs real GCS off-Replit); credentials AND URL signing both branch on getStorageProvider().
+- [Object storage provider](object-storage-provider.md) — 3 backends (local VPS disk / Replit sidecar / real GCS) via getStorageProvider; StoredObject union + HMAC-signed self-URL upload for local; objectPath shape identical so clients unchanged.
 - [Express router.use order](express-router-use-order.md) — adminRouter's top-level `router.use(requireAuth)` blocks any public router mounted AFTER it in routes/index.ts; mount public routers first.
 - [Availability model](availability-model.md) — server-side slot generation from weekly hours + service duration + reservations + daysOffTable; clients never recompute slots.
 - [Countries & cities catalog](countries-cities-catalog.md) — all city/country writes go through resolveAndPersistLocation (rejects unknown countries, dedups cities per country); country UI always renders before city.
@@ -22,6 +22,9 @@
 - [360° panorama viewer](panorama-360-viewer.md) — Pannellum in WebView/iframe; same-origin baseUrl for WebGL CORS, escape `<` to stop stored XSS, switch scenes via injectJS (native) / postMessage (web).
 - [Articles (L'édito)](articles-edito.md) — server-side sanitize-html on contentHtml is the only XSS defense (mobile RenderHTML trusts API); sortOrder = max+1 server-side; visibility window = published + startsAt≤now + (endsAt null or future).
 - [Reminder scheduler](reminder-scheduler.md) — 24h email reminders must claim-then-send (atomic UPDATE...RETURNING on reminderSentAt) to avoid double-emails; window is upper-bound (now..now+24h) to survive downtime.
+- [Pushing workflow files from Replit](vps-deploy-ops.md) — Replit's GitHub OAuth lacks `workflow` scope (token via GIT_ASKPASS); push .github/workflows/* edits with a PAT via `env -u GIT_ASKPASS GIT_TERMINAL_PROMPT=1 ... -c core.askpass=`.
 - [Barber /me routes are primary-salon only](multi-salon.md) — all `/barbers/me/*` self-service routes resolve via getMyBarberOr404 = salons[0]; mobile must NOT show a salon selector on /me-backed screens (queue, realisations) or it falsely implies per-salon scoping.
 - [Expo splash on iOS](expo-splash-ios.md) — white bands = backgroundColor not applied via legacy expo.splash; use expo-splash-screen plugin + transparent logo + imageWidth; native-rebuild only.
 - [Push notifications](push-notifications.md) — Expo push via deviceTokensTable + fire-and-forget sendPush; re-engagement marker must reset on booking; thank-you email claim-then-send on completed.
+- [Mobile EAS profiles](mobile-eas-profiles.md) — native builds retarget backend via one host (EXPO_PUBLIC_DOMAIN) per eas.json profile; Clerk keys there are placeholders & proxy is prod-only (auth breaks silently if unset).
+- [Clerk prod proxy setup](clerk-prod-proxy-setup.md) — prod instance defaults to CNAME (no proxy_url); FAPI 400 host_invalid is EXPECTED until you PATCH /v1/domains proxy_url (dashboard form is unreliable).

@@ -22,3 +22,12 @@ build scripts: A, B, C`, add each named package to `onlyBuiltDependencies` in
 `pnpm install --frozen-lockfile` (exit 0, scripts run). The change does NOT touch the
 lockfile. Known ones needed for this repo: `esbuild`, `@swc/core`, `msw`,
 `unrs-resolver`, `@clerk/shared`, `browser-tabs-lock`, `core-js`.
+
+**Stale-state gotcha:** if `node_modules` was created by an earlier install that ran
+*before* the allowlist was fixed, a later `pnpm install` says "Already up to date",
+**skips** the build phase, and keeps re-printing the same `ERR_PNPM_IGNORED_BUILDS`
+(even for packages that ARE allowlisted, like esbuild). The warning is cached in the
+existing `node_modules`. Fix: delete node_modules and reinstall — `find . -name
+node_modules -type d -prune -exec rm -rf {} +` then `pnpm install --frozen-lockfile`
+(or `pnpm rebuild`). Symptom tell: esbuild listed as ignored despite being allowlisted
+== build phase was skipped, not an allowlist problem.
