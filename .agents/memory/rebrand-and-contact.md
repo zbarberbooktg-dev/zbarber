@@ -16,5 +16,11 @@ The product is branded **Zbarber** (was "Global Barber Corp"). User-facing brand
 # Contact + admin notifications
 
 - Public contact email is **zbarberbook@gmail.com** (vitrine contact block as `mailto:`, legal-content privacy FR/EN).
-- Admin notification email: `notifyAdmin(subject, text)` in `artifacts/api-server/src/lib/email.ts` sends to `ADMIN_NOTIFICATION_EMAIL` (env override, defaults to zbarberbook@gmail.com). It is **fire-and-forget** (no await, catches internally) so a mail failure never breaks the originating request; if SMTP is unconfigured `sendEmail` just logs.
+- Admin notification email: `notifyAdmin(subject, body)` in `artifacts/api-server/src/lib/email.ts` sends to `ADMIN_NOTIFICATION_EMAIL` (env override, defaults to zbarberbook@gmail.com). It is **fire-and-forget** (no await, catches internally) so a mail failure never breaks the originating request; if SMTP is unconfigured `sendEmail` just logs.
 - Wired at: new barber registration (`POST /barbers/me`), financing requests (`POST /barbers/me/financing` and `POST /financing-requests`), and public account-deletion request (`POST /account-deletion-requests`). Add a `notifyAdmin(...)` call at any new admin-relevant event.
+
+# Branded email template (single source)
+
+**Rule:** Every platform email goes through `renderEmail(content): {html, text}` in `lib/email.ts` — one branded layout (dark header + ZBARBER wordmark, gold `#D4A017` / dark `#1A1B1E`, white content card, footer). Never hand-build ad-hoc plain-text or inline HTML at a call site again; build an `EmailContent` ({title, heading, intro?, rows?, paragraphs?, button?, note?}) and pass `{html, text}` to `sendEmail`.
+**Why:** consistency + all dynamic/user values are HTML-escaped inside `renderEmail` (via internal `escapeHtml`); bypassing it risks injection and unbranded mail.
+**How to apply:** `notifyAdmin(subject, {intro, rows?, note?})` takes a **structured object, NOT a string** (signature changed) and wraps `renderEmail` internally — calling it with a plain string is a type error. For user-facing mail, call `renderEmail` directly then `sendEmail({to, subject, html, text})` (see reminderScheduler.ts, adminAuth.ts).

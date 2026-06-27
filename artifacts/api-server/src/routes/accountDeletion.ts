@@ -70,10 +70,15 @@ router.post("/account-deletion-requests", async (req, res) => {
     userId: linked?.id ?? null,
   }).returning({ id: accountDeletionRequestsTable.id });
 
-  notifyAdmin(
-    "Nouvelle demande de suppression de compte",
-    `Une demande de suppression de compte a été reçue.\n\nEmail : ${body.data.email.toLowerCase()}\nNom : ${body.data.fullName ?? "—"}\nMotif : ${body.data.reason ?? "—"}\nCompte lié : ${linked?.id ? `#${linked.id}` : "aucun"}`,
-  );
+  notifyAdmin("Nouvelle demande de suppression de compte", {
+    intro: "Une demande de suppression de compte a été reçue.",
+    rows: [
+      { label: "Email", value: body.data.email.toLowerCase() },
+      { label: "Nom", value: body.data.fullName ?? "—" },
+      { label: "Motif", value: body.data.reason ?? "—" },
+      { label: "Compte lié", value: linked?.id ? `#${linked.id}` : "aucun" },
+    ],
+  });
 
   res.status(201).json({ id: created.id, ok: true });
 });

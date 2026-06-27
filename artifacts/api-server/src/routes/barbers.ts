@@ -364,10 +364,15 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
   if (user.role === "client") {
     await db.update(usersTable).set({ role: "barber" }).where(eq(usersTable.id, user.id));
   }
-  notifyAdmin(
-    "Nouvelle inscription barbier à valider",
-    `Un nouveau salon est en attente de validation.\n\nSalon : ${barber.salonName}\nVille : ${barber.city ?? "—"}\nPays : ${barber.country ?? "—"}\nDemandeur : ${user.name ?? user.email ?? `#${user.id}`}`,
-  );
+  notifyAdmin("Nouvelle inscription barbier à valider", {
+    intro: "Un nouveau salon est en attente de validation.",
+    rows: [
+      { label: "Salon", value: barber.salonName },
+      { label: "Ville", value: barber.city ?? "—" },
+      { label: "Pays", value: barber.country ?? "—" },
+      { label: "Demandeur", value: user.name ?? user.email ?? `#${user.id}` },
+    ],
+  });
   res.status(201).json(barber);
 });
 
@@ -409,10 +414,14 @@ router.post("/barbers/me/financing", requireAuth, requireApprovedBarber, async (
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [created] = await db.insert(financingRequestsTable).values({ ...body.data, barberId: req.barberId! }).returning();
-  notifyAdmin(
-    "Nouvelle demande de financement",
-    `Une demande de financement a été soumise (salon #${req.barberId}).\n\nMontant : ${body.data.amount} FC\nObjet : ${body.data.purpose}\nDescription : ${body.data.description}`,
-  );
+  notifyAdmin("Nouvelle demande de financement", {
+    intro: `Une demande de financement a été soumise (salon #${req.barberId}).`,
+    rows: [
+      { label: "Montant", value: `${body.data.amount} FC` },
+      { label: "Objet", value: body.data.purpose },
+      { label: "Description", value: body.data.description },
+    ],
+  });
   res.status(201).json(created);
 });
 

@@ -1,6 +1,6 @@
 import { db, reservationsTable, usersTable, barbersTable, servicesTable } from "@workspace/db";
 import { and, eq, gt, lte, isNull, inArray } from "drizzle-orm";
-import { sendEmail } from "./email";
+import { sendEmail, renderEmail } from "./email";
 import { logger } from "./logger";
 
 // How often the sweep runs.
@@ -69,10 +69,22 @@ export async function runReminderSweep(): Promise<number> {
     const salon = r.salonName ?? "votre salon";
     const service = r.serviceName ?? "votre prestation";
     try {
+      const { html, text } = renderEmail({
+        title: `Rappel de rendez-vous — ${salon}`,
+        heading: "Rappel de votre rendez-vous",
+        intro: `Bonjour ${r.clientName ?? ""}, ceci est un rappel pour votre rendez-vous de demain.`,
+        rows: [
+          { label: "Prestation", value: service },
+          { label: "Salon", value: salon },
+          { label: "Date et heure", value: when },
+        ],
+        note: "À bientôt chez Zbarber !",
+      });
       await sendEmail({
         to: r.clientEmail,
         subject: `Rappel : votre rendez-vous chez ${salon} demain`,
-        text: `Bonjour ${r.clientName ?? ""},\n\nCeci est un rappel pour votre rendez-vous "${service}" chez ${salon}, prévu ${when}.\n\nÀ bientôt !\nZbarber`,
+        html,
+        text,
       });
       sent += 1;
     } catch (err) {
