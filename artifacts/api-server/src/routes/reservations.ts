@@ -98,7 +98,21 @@ router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {
       inArray(reservationsTable.status, ["pending", "confirmed"]),
     )).limit(1);
   if (clash) { res.status(409).json({ error: "Slot already booked" }); return; }
-  const [res2] = await db.insert(reservationsTable).values({ ...body.data, clientId: user.id, scheduledAt }).returning();
+  let res2: typeof reservationsTable.$inferSelect;
+  try {
+    // The app-level clash check above is best-effort: under truly concurrent
+    // requests two POSTs can both pass it before either insert lands. The
+    // partial unique index `reservations_active_slot_uniq` is the airtight
+    // guarantee — the second insert raises a unique violation (Postgres code
+    // 23505), which we map to the same 409 instead of a 500.
+    [res2] = await db.insert(reservationsTable).values({ ...body.data, clientId: user.id, scheduledAt }).returning();
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "23505") {
+      res.status(409).json({ error: "Slot already booked" });
+      return;
+    }
+    throw err;
+  }
   // Booking again resets the re-engagement clock so the client only gets a
   // "come back" push after their NEXT quiet stretch.
   await db.update(usersTable).set({ lastReengagementAt: null }).where(eq(usersTable.id, user.id));

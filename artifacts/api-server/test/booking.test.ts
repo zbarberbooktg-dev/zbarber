@@ -87,6 +87,7 @@ const DATE_BOOKED = futureYmd(31); // one slot taken
 const DATE_OFF = futureYmd(32); // whole day blocked
 const DATE_DOUBLE = futureYmd(33); // double-booking POST flow
 const DATE_STATUS = futureYmd(34); // status-transition rules
+const DATE_RACE = futureYmd(35); // concurrent (parallel) booking race
 
 beforeAll(async () => {
   const [admin] = await db.insert(adminAccountsTable).values({
@@ -195,6 +196,29 @@ describe("Booking — double-booking prevention", () => {
       clerkClient,
     );
     expect(res.status).toBe(409);
+  });
+
+  it("lets exactly one of two parallel bookings win the same slot (409 for the loser)", async () => {
+    // Fire both POSTs without awaiting either, so they race the same free slot.
+    // The app-level clash check can let both pass, but the partial unique index
+    // guarantees only one ACTIVE reservation survives — the loser gets a 409,
+    // never a 500.
+    const raceSlot = slotInstant(DATE_RACE, 540).toISOString(); // 09:00
+    const fire = () =>
+      asClerk(
+        request(app).post("/api/reservations").send({ barberId, serviceId, scheduledAt: raceSlot }),
+        clerkClient,
+      );
+    const results = await Promise.all([fire(), fire()]);
+    const statuses = results.map((r) => r.status).sort();
+    expect(statuses).toEqual([201, 409]);
+
+    // And the DB holds exactly one active reservation for that slot.
+    const active = await db
+      .select({ id: reservationsTable.id })
+      .from(reservationsTable)
+      .where(eq(reservationsTable.scheduledAt, slotInstant(DATE_RACE, 540)));
+    expect(active.length).toBe(1);
   });
 
   it("frees the slot once the first booking is cancelled", async () => {
