@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, reservationsTable, usersTable, barbersTable, servicesTable } from "@workspace/db";
-import { eq, desc, or } from "drizzle-orm";
+import { eq, desc, or, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
@@ -85,7 +85,20 @@ router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {
   // Verify barber is approved
   const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, body.data.barberId)).limit(1);
   if (!b || b.status !== "approved") { res.status(400).json({ error: "Barber not available" }); return; }
-  const [res2] = await db.insert(reservationsTable).values({ ...body.data, clientId: user.id, scheduledAt: new Date(body.data.scheduledAt) }).returning();
+  const scheduledAt = new Date(body.data.scheduledAt);
+  // Prevent double-booking: an active (pending or confirmed) reservation already
+  // occupying this exact slot for this barber blocks the booking. The
+  // availability endpoint marks such slots unavailable, but a client racing two
+  // requests (or a stale slot list) could still POST a taken slot, so the
+  // server is the authority. Cancelled/completed reservations free the slot.
+  const [clash] = await db.select({ id: reservationsTable.id }).from(reservationsTable)
+    .where(and(
+      eq(reservationsTable.barberId, body.data.barberId),
+      eq(reservationsTable.scheduledAt, scheduledAt),
+      inArray(reservationsTable.status, ["pending", "confirmed"]),
+    )).limit(1);
+  if (clash) { res.status(409).json({ error: "Slot already booked" }); return; }
+  const [res2] = await db.insert(reservationsTable).values({ ...body.data, clientId: user.id, scheduledAt }).returning();
   // Booking again resets the re-engagement clock so the client only gets a
   // "come back" push after their NEXT quiet stretch.
   await db.update(usersTable).set({ lastReengagementAt: null }).where(eq(usersTable.id, user.id));
