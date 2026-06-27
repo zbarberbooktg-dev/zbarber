@@ -5,7 +5,7 @@ description: How the app brand name, public contact email, and admin notificatio
 
 # Brand name
 
-The product is branded **Zbarber** (was "Global Barber Corp"). User-facing brand strings live in: mobile `app.json` name + auth/home/onboarding/pending screens + `constants/i18n.ts`; admin `index.html` + `src/lib/i18n.tsx` brand; vitrine `index.html` + Navbar/Footer (logo badge "ZB" + "ZBARBER") + `src/lib/i18n.tsx`; `lib/legal-content`; OpenAPI `info.description` (NOT `info.title`, which is "Api" and controls codegen filenames).
+The product is branded **Zbarber** (was "Global Barber Corp"). User-facing brand strings live in: mobile `app.json` name + auth/home/onboarding/pending screens + `constants/i18n.ts`; admin `index.html` + `src/lib/i18n.tsx` brand; vitrine `index.html` + Navbar/Footer (logo badge "ZB" + "ZBARBER") + `src/lib/i18n.tsx`; `lib/legal-content`; OpenAPI `info.description` (NOT `info.title`, which is "Api" and controls codegen filenames); each artifact's `.replit-artifact/artifact.toml` `title` (preview-dropdown label — easy to miss; edit via `verifyAndReplaceArtifactToml`, never in place). NOT a brand surface: `artifacts/api-server/src/scripts/seedAuthAccounts.ts` seed admin email/name (`admin@globalbarber.com`) is a login credential — leave it on a rebrand.
 
 # Rebrand rule: do NOT rename internal keys
 

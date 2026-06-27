@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Global Barber Corp — Vitrine"
+title = "Zbarber — Vitrine"
 version = "1.0.0"
 id = "artifacts/vitrine"
 router = "path"
