@@ -5,6 +5,7 @@
 - [Orval naming collision](orval-naming.md) — component schema names must not match auto-generated response type names (operationId + "Response"); rename schema to avoid TS2308.
 - [Barber approval gate](barber-approval-gate.md) — layout uses barberProfile.status (from AppContext, populated by /auth/sync barber field), NOT user.status.
 - [Two-step barber verification](two-step-barber-verification.md) — first-validate→awaiting_document (30d deadline + doc upload)→final approve; auth/sync returns full barber row so doc fields flow automatically.
+- [api-server integration tests](api-server-integration-tests.md) — vitest+supertest vs real dev DB; fake Clerk via header+mock, admins via signed gbc_admin cookie; mount routers not app.ts.
 - [Security fixes](security-fixes.md) — gallery delete IDOR fix: scope by both barberId AND photoId; client reservation status limited to "cancelled" only.
 - [Object storage ACL](object-storage-acl.md) — GET /storage/objects/* must refuse unreferenced paths; never serve "any authenticated user" fallback for orphan uploads.
 - [Object storage provider](object-storage-provider.md) — dual backend (Replit sidecar default vs real GCS off-Replit); credentials AND URL signing both branch on getStorageProvider().
