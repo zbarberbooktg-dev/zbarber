@@ -22,3 +22,4 @@
 - [Reminder scheduler](reminder-scheduler.md) — 24h email reminders must claim-then-send (atomic UPDATE...RETURNING on reminderSentAt) to avoid double-emails; window is upper-bound (now..now+24h) to survive downtime.
 - [Barber /me routes are primary-salon only](multi-salon.md) — all `/barbers/me/*` self-service routes resolve via getMyBarberOr404 = salons[0]; mobile must NOT show a salon selector on /me-backed screens (queue, realisations) or it falsely implies per-salon scoping.
 - [Expo splash on iOS](expo-splash-ios.md) — white bands = backgroundColor not applied via legacy expo.splash; use expo-splash-screen plugin + transparent logo + imageWidth; native-rebuild only.
+- [Push notifications](push-notifications.md) — Expo push via deviceTokensTable + fire-and-forget sendPush; re-engagement marker must reset on booking; thank-you email claim-then-send on completed.

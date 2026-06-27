@@ -1,11 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DeviceEventEmitter } from "react-native";
 import { LANG_CHANGE_EVENT } from "@/hooks/useClerkLocalization";
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/expo";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
 
 import { localeMap, translations, type Lang } from "@/constants/i18n";
+import { apiUrl } from "@/lib/api";
+import { registerPushToken, unregisterPushToken } from "@/lib/push";
 
 export type AppRole = "client" | "barber" | "admin" | null;
 export type AppStatus = "active" | "suspended" | "pending" | null;
@@ -117,6 +119,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const [initialSyncDone, setInitialSyncDone] = useState(false);
   const [selectedSalonId, setSelectedSalonIdState] = useState<number | null>(null);
+  // The Expo push token registered for this session, kept so we can unregister
+  // it on sign-out.
+  const pushTokenRef = useRef<string | null>(null);
+
+  // Authed fetch closure for push (de)registration. Re-reads the latest token
+  // on each call via getToken; never throws to the caller.
+  const pushAuthedFetch = async (path: string, init: RequestInit = {}) => {
+    const token = await getToken();
+    const headers = new Headers(init.headers);
+    if (token && !headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
+    if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
+    const res = await fetch(apiUrl(path), { ...init, headers });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.status === 204 ? null : res.json().catch(() => null);
+  };
+
+  const ensurePushRegistered = () => {
+    registerPushToken(pushAuthedFetch)
+      .then((tok) => { if (tok) pushTokenRef.current = tok; })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     setAuthTokenGetter(() => getToken());
@@ -158,6 +181,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!cancel) {
           setUser(result?.user ?? null);
           setBarberProfile(result?.barber ?? null);
+          if (result?.user) ensurePushRegistered();
         }
       } finally {
         if (!cancel) { setSyncing(false); setInitialSyncDone(true); }
@@ -203,6 +227,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Best-effort: drop this device's push token before the session ends so the
+    // signed-out account stops receiving pushes on this device.
+    const tok = pushTokenRef.current;
+    if (tok) { await unregisterPushToken(pushAuthedFetch, tok); pushTokenRef.current = null; }
     setUser(null);
     setBarberProfile(null);
     await clerkSignOut();

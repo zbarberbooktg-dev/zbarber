@@ -4,8 +4,18 @@ import { eq, desc, or } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
+import { sendPush } from "../lib/push";
+import { sendThankYouEmail } from "../lib/reminderScheduler";
 
 const router = Router();
+
+// Resolve the salon name + owning account for a reservation, used to address
+// lifecycle push notifications. Returns nulls when the salon is missing.
+async function resolveSalon(barberId: number): Promise<{ salonName: string; ownerUserId: number } | null> {
+  const [b] = await db.select({ salonName: barbersTable.salonName, userId: barbersTable.userId }).from(barbersTable).where(eq(barbersTable.id, barberId)).limit(1);
+  if (!b) return null;
+  return { salonName: b.salonName, ownerUserId: b.userId };
+}
 
 async function enrichReservation(r: typeof reservationsTable.$inferSelect) {
   const [client] = await db.select({ name: usersTable.name, phone: usersTable.phone }).from(usersTable).where(eq(usersTable.id, r.clientId)).limit(1);
@@ -76,7 +86,16 @@ router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {
   const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, body.data.barberId)).limit(1);
   if (!b || b.status !== "approved") { res.status(400).json({ error: "Barber not available" }); return; }
   const [res2] = await db.insert(reservationsTable).values({ ...body.data, clientId: user.id, scheduledAt: new Date(body.data.scheduledAt) }).returning();
-  res.status(201).json(await enrichReservation(res2));
+  // Booking again resets the re-engagement clock so the client only gets a
+  // "come back" push after their NEXT quiet stretch.
+  await db.update(usersTable).set({ lastReengagementAt: null }).where(eq(usersTable.id, user.id));
+  const enriched = await enrichReservation(res2);
+  // Notify both parties of the new booking (fire-and-forget).
+  const salonName = enriched.barberName ?? "votre salon";
+  const serviceName = enriched.serviceName ?? "une prestation";
+  void sendPush(user.id, "Réservation envoyée", `Votre demande chez ${salonName} a bien été enregistrée.`, { type: "reservation_created", reservationId: res2.id });
+  if (b.userId) void sendPush(b.userId, "Nouvelle réservation", `${enriched.clientName ?? "Un client"} a réservé « ${serviceName} ».`, { type: "reservation_created", reservationId: res2.id });
+  res.status(201).json(enriched);
 });
 
 router.get("/reservations/:id", requireAuthOrAdmin, async (req: AdminAuthedRequest & AuthedRequest, res) => {
@@ -103,6 +122,7 @@ router.patch("/reservations/:id", requireAuthOrAdmin, async (req: AdminAuthedReq
     const body = z.object({ status: z.enum(["pending", "confirmed", "cancelled", "completed"]) }).safeParse(req.body);
     if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
     const [updated] = await db.update(reservationsTable).set({ status: body.data.status }).where(eq(reservationsTable.id, id)).returning();
+    await notifyStatusChange(existing, updated, "admin");
     res.json(await enrichReservation(updated));
     return;
   }
@@ -129,8 +149,42 @@ router.patch("/reservations/:id", requireAuthOrAdmin, async (req: AdminAuthedReq
     }
   }
   const [updated] = await db.update(reservationsTable).set({ status: body.data.status }).where(eq(reservationsTable.id, id)).returning();
+  await notifyStatusChange(existing, updated, user.role === "barber" ? "barber" : "client");
   res.json(await enrichReservation(updated));
 });
+
+// Send the appropriate push (and thank-you email) when a reservation's status
+// changes. No-op when the status is unchanged. Pushes/emails are fire-and-forget
+// so they never block or break the request.
+async function notifyStatusChange(
+  before: typeof reservationsTable.$inferSelect,
+  after: typeof reservationsTable.$inferSelect,
+  actor: "client" | "barber" | "admin",
+): Promise<void> {
+  if (before.status === after.status) return;
+  const salon = await resolveSalon(after.barberId);
+  const salonName = salon?.salonName ?? "le salon";
+
+  if (after.status === "confirmed") {
+    // Barber/admin confirmed → tell the client.
+    void sendPush(after.clientId, "Réservation confirmée", `${salonName} a confirmé votre rendez-vous.`, { type: "reservation_confirmed", reservationId: after.id });
+  } else if (after.status === "cancelled") {
+    // A client cancellation notifies the barber; a barber/admin cancellation
+    // notifies the client.
+    if (actor === "client") {
+      if (salon?.ownerUserId) void sendPush(salon.ownerUserId, "Réservation annulée", "Un client a annulé son rendez-vous.", { type: "reservation_cancelled", reservationId: after.id });
+    } else {
+      void sendPush(after.clientId, "Réservation annulée", `${salonName} a annulé votre rendez-vous.`, { type: "reservation_cancelled", reservationId: after.id });
+    }
+  } else if (after.status === "completed") {
+    // Thank-you / review-invite email (claim-then-send guards against dupes).
+    void sendThankYouEmail(after.id);
+  } else {
+    // Any other status change (e.g. back to pending = a modification) tells the
+    // barber so they can re-review.
+    if (salon?.ownerUserId && actor !== "barber") void sendPush(salon.ownerUserId, "Réservation modifiée", "Un rendez-vous a été modifié.", { type: "reservation_modified", reservationId: after.id });
+  }
+}
 
 // silence unused import
 void or;

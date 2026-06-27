@@ -1,10 +1,13 @@
 import { db, reservationsTable, usersTable, barbersTable, servicesTable } from "@workspace/db";
-import { and, eq, gt, lte, isNull, inArray } from "drizzle-orm";
+import { and, eq, gt, lte, isNull, inArray, sql } from "drizzle-orm";
 import { sendEmail, renderEmail } from "./email";
+import { sendPush } from "./push";
 import { logger } from "./logger";
 
 // How often the sweep runs.
 const SWEEP_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+// Clients idle for this long since their last booking get a re-engagement push.
+const REENGAGE_AFTER_DAYS = 21;
 // Reminders go out for any upcoming reservation within the next 24h.
 // Using a single upper bound (rather than a narrow [23h,24h] band) means a
 // reservation is still reminded if the scheduler was down during the ideal
@@ -95,16 +98,129 @@ export async function runReminderSweep(): Promise<number> {
   return sent;
 }
 
+/**
+ * Send the post-appointment thank-you / review-invite email for a single
+ * reservation. Uses claim-then-send: it atomically stamps `thankYouSentAt` only
+ * if it was NULL, so the email is sent at most once even if "completed" is
+ * applied repeatedly or two requests race. Never throws.
+ */
+export async function sendThankYouEmail(reservationId: number): Promise<boolean> {
+  try {
+    const now = new Date();
+    // CLAIM: only succeeds while the row is completed and not yet thanked.
+    const claimed = await db
+      .update(reservationsTable)
+      .set({ thankYouSentAt: now })
+      .where(
+        and(
+          eq(reservationsTable.id, reservationId),
+          eq(reservationsTable.status, "completed"),
+          isNull(reservationsTable.thankYouSentAt),
+        ),
+      )
+      .returning({ id: reservationsTable.id });
+    if (claimed.length === 0) return false;
+
+    const [row] = await db
+      .select({
+        clientName: usersTable.name,
+        clientEmail: usersTable.email,
+        salonName: barbersTable.salonName,
+        serviceName: servicesTable.name,
+      })
+      .from(reservationsTable)
+      .leftJoin(usersTable, eq(reservationsTable.clientId, usersTable.id))
+      .leftJoin(barbersTable, eq(reservationsTable.barberId, barbersTable.id))
+      .leftJoin(servicesTable, eq(reservationsTable.serviceId, servicesTable.id))
+      .where(eq(reservationsTable.id, reservationId))
+      .limit(1);
+
+    if (!row?.clientEmail) return false;
+    const salon = row.salonName ?? "votre salon";
+    const service = row.serviceName ?? "votre prestation";
+    const { html, text } = renderEmail({
+      title: `Merci de votre visite — ${salon}`,
+      heading: "Merci de votre visite !",
+      intro: `Bonjour ${row.clientName ?? ""}, merci d'avoir choisi ${salon} pour votre ${service}. Nous espérons que vous êtes ravi(e) du résultat.`,
+      paragraphs: [
+        "Votre avis compte énormément. Prenez un instant pour noter votre expérience et laisser un commentaire — cela aide les autres clients et récompense votre barbier.",
+        "Au plaisir de vous revoir très bientôt pour votre prochain rendez-vous.",
+      ],
+      note: "Réservez à nouveau directement depuis l'application Zbarber.",
+    });
+    await sendEmail({
+      to: row.clientEmail,
+      subject: `Merci de votre visite chez ${salon} — laissez votre avis`,
+      html,
+      text,
+    });
+    logger.info({ reservationId }, "Thank-you email sent");
+    return true;
+  } catch (err) {
+    logger.error({ err, reservationId }, "Failed to send thank-you email");
+    return false;
+  }
+}
+
+/**
+ * Re-engagement sweep: push clients who have booked before but have gone quiet
+ * for REENGAGE_AFTER_DAYS, inviting them back. Claim-then-send via the user's
+ * `lastReengagementAt` marker (reset to NULL on every new booking) guarantees
+ * each quiet stretch triggers at most one push.
+ */
+export async function runReengagementSweep(): Promise<number> {
+  const claimed = await db
+    .update(usersTable)
+    .set({ lastReengagementAt: new Date() })
+    .where(
+      and(
+        isNull(usersTable.lastReengagementAt),
+        sql`${usersTable.id} IN (
+          SELECT ${reservationsTable.clientId}
+          FROM ${reservationsTable}
+          GROUP BY ${reservationsTable.clientId}
+          HAVING MAX(${reservationsTable.createdAt}) < NOW() - (${REENGAGE_AFTER_DAYS} || ' days')::interval
+        )`,
+      ),
+    )
+    .returning({ id: usersTable.id });
+
+  if (claimed.length === 0) return 0;
+  let sent = 0;
+  for (const u of claimed) {
+    try {
+      await sendPush(
+        u.id,
+        "Vous nous manquez !",
+        "Cela fait un moment… Réservez votre prochain rendez-vous chez votre barbier préféré.",
+        { type: "reengagement" },
+      );
+      sent += 1;
+    } catch (err) {
+      logger.error({ err, userId: u.id }, "Failed to send re-engagement push");
+    }
+  }
+  if (sent > 0) logger.info({ sent }, "Re-engagement pushes sent");
+  return sent;
+}
+
 let timer: NodeJS.Timeout | null = null;
+let reengageTimer: NodeJS.Timeout | null = null;
 
 export function startReminderScheduler(): void {
   if (timer) return;
   // Kick off shortly after boot, then on a fixed interval.
   setTimeout(() => {
     runReminderSweep().catch((err) => logger.error({ err }, "Reminder sweep failed"));
+    runReengagementSweep().catch((err) => logger.error({ err }, "Re-engagement sweep failed"));
   }, 30 * 1000);
   timer = setInterval(() => {
     runReminderSweep().catch((err) => logger.error({ err }, "Reminder sweep failed"));
   }, SWEEP_INTERVAL_MS);
+  // Re-engagement is far less time-sensitive — run it hourly.
+  reengageTimer = setInterval(() => {
+    runReengagementSweep().catch((err) => logger.error({ err }, "Re-engagement sweep failed"));
+  }, 60 * 60 * 1000);
+  void reengageTimer;
   logger.info({ intervalMs: SWEEP_INTERVAL_MS }, "Reservation reminder scheduler started");
 }
