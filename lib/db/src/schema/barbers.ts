@@ -42,6 +42,10 @@ export const barbersTable = pgTable("barbers", {
   documentDeadline: timestamp("document_deadline"),
   // Admin note explaining why a submitted document was marked non-conforming.
   documentReviewNote: text("document_review_note"),
+  // Highest document-deadline reminder stage already sent (claim-then-send marker):
+  //  0 = none, 1 = "7 days left" reminder, 2 = "1 day left" reminder.
+  // Prevents duplicate reminder emails/pushes across overlapping scheduler sweeps.
+  documentReminderStage: integer("document_reminder_stage").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

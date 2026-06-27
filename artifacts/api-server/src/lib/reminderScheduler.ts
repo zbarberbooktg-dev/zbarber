@@ -1,5 +1,5 @@
 import { db, reservationsTable, usersTable, barbersTable, servicesTable } from "@workspace/db";
-import { and, eq, gt, lte, isNull, inArray, sql } from "drizzle-orm";
+import { and, eq, gt, lt, lte, isNull, inArray, sql } from "drizzle-orm";
 import { sendEmail, renderEmail } from "./email";
 import { sendPush } from "./push";
 import { logger } from "./logger";
@@ -204,6 +204,125 @@ export async function runReengagementSweep(): Promise<number> {
   return sent;
 }
 
+// ── Barber document-deadline reminders ──
+// After first validation a barber has DOCUMENT_WINDOW_DAYS to upload an official
+// authorization document. Without nudges, many forget. We send up to two
+// reminders as the deadline approaches: stage 1 when between 1 and 7 days
+// remain, stage 2 when ≤1 day remains. `barbersTable.documentReminderStage` is
+// the dedup marker (claim-then-send), mirroring the reservation reminder
+// pattern.
+//
+// The windows are NON-overlapping (stage 1: >1d and ≤7d; stage 2: >now and
+// ≤1d). If they overlapped, a barber first seen with ≤1 day left would be
+// claimed by stage 1 and then immediately by stage 2 in the same sweep,
+// firing both reminders back-to-back. With a lower bound on stage 1, each
+// barber matches exactly one stage per sweep.
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const DOC_REMINDER_STAGES = [
+  { stage: 1, fromMs: ONE_DAY_MS, withinMs: 7 * ONE_DAY_MS, label: "7 jours" },
+  { stage: 2, fromMs: 0, withinMs: ONE_DAY_MS, label: "1 jour" },
+] as const;
+
+// Public base URL of the mobile app, used to build the document-upload link.
+function appPublicUrl(): string {
+  const explicit = process.env.APP_PUBLIC_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const domains = process.env.REPLIT_DOMAINS?.split(",").map((d) => d.trim()).filter(Boolean);
+  if (domains && domains[0]) return `https://${domains[0]}/mobile`;
+  return "";
+}
+
+export async function runDocumentReminderSweep(): Promise<number> {
+  let sent = 0;
+  // Capture a SINGLE `now` for the whole sweep so every stage's window is
+  // derived from the same instant. If each stage recomputed `now`, the time
+  // spent claiming/sending stage 1 would shift stage 2's window forward and
+  // reopen an overlap band where a barber could be claimed by both stages.
+  const now = new Date();
+
+  // CLAIM PHASE — claim all stages up front, before any sending. Windows are
+  // non-overlapping (stage 1: (now+1d, now+7d]; stage 2: (now, now+1d]), and
+  // because every claim runs against the same `now` AND happens before the
+  // send loop, a barber can be claimed by at most one stage per sweep. If a
+  // barber's 7-day window was entirely missed (scheduler downtime spanning
+  // days 23–29) they simply receive the 1-day reminder once — never both, never
+  // zero.
+  type ClaimedBarber = { id: number; userId: number; salonName: string; deadline: Date | null; stage: number; label: string };
+  const allClaimed: ClaimedBarber[] = [];
+  for (const { stage, fromMs, withinMs, label } of DOC_REMINDER_STAGES) {
+    const windowStart = new Date(now.getTime() + fromMs);
+    const windowEnd = new Date(now.getTime() + withinMs);
+    const claimed = await db
+      .update(barbersTable)
+      .set({ documentReminderStage: stage })
+      .where(
+        and(
+          eq(barbersTable.status, "awaiting_document"),
+          isNull(barbersTable.documentUrl),
+          lt(barbersTable.documentReminderStage, stage),
+          gt(barbersTable.documentDeadline, windowStart),
+          lte(barbersTable.documentDeadline, windowEnd),
+        ),
+      )
+      .returning({
+        id: barbersTable.id,
+        userId: barbersTable.userId,
+        salonName: barbersTable.salonName,
+        deadline: barbersTable.documentDeadline,
+      });
+    for (const b of claimed) allClaimed.push({ ...b, stage, label });
+  }
+
+  if (allClaimed.length === 0) return 0;
+
+  // SEND PHASE — fan out email + push for every claimed barber.
+  const userIds = allClaimed.map((b) => b.userId);
+  const owners = await db
+    .select({ id: usersTable.id, email: usersTable.email })
+    .from(usersTable)
+    .where(inArray(usersTable.id, userIds));
+  const emailByUser = new Map(owners.map((o) => [o.id, o.email]));
+  const url = appPublicUrl();
+
+  for (const b of allClaimed) {
+    const { stage, label } = b;
+    const deadlineStr = b.deadline ? new Date(b.deadline).toLocaleDateString("fr-FR") : "";
+    // Push (fire-and-forget; never throws).
+    void sendPush(
+      b.userId,
+      "Document professionnel à transmettre ⏳",
+      `Il vous reste ${label} pour téléverser votre document et finaliser la vérification de « ${b.salonName} ».`,
+      { type: "barber_document_reminder", barberId: b.id, stage },
+    );
+    const email = emailByUser.get(b.userId);
+    if (!email) continue;
+    try {
+      const { html, text } = renderEmail({
+        title: `[Zbarber] Document professionnel à transmettre`,
+        heading: "Votre vérification est presque terminée",
+        intro: `Il vous reste ${label} pour transmettre le document officiel autorisant l'activité du salon « ${b.salonName} ».`,
+        paragraphs: [
+          "Sans document conforme avant la date limite, votre compte reste en attente et n'aura pas accès à toutes les fonctionnalités barbier.",
+          "Téléversez votre licence professionnelle, certificat officiel ou autorisation administrative depuis votre profil dans l'application.",
+        ],
+        button: url ? { label: "Téléverser mon document", url } : undefined,
+        note: deadlineStr ? `Date limite d'envoi : ${deadlineStr}.` : undefined,
+      });
+      await sendEmail({
+        to: email,
+        subject: `[Zbarber] Plus que ${label} pour transmettre votre document`,
+        html,
+        text,
+      });
+      sent += 1;
+    } catch (err) {
+      logger.error({ err, barberId: b.id }, "Failed to send barber document reminder");
+    }
+  }
+  if (sent > 0) logger.info({ sent }, "Barber document reminders sent");
+  return sent;
+}
+
 let timer: NodeJS.Timeout | null = null;
 let reengageTimer: NodeJS.Timeout | null = null;
 
@@ -213,13 +332,16 @@ export function startReminderScheduler(): void {
   setTimeout(() => {
     runReminderSweep().catch((err) => logger.error({ err }, "Reminder sweep failed"));
     runReengagementSweep().catch((err) => logger.error({ err }, "Re-engagement sweep failed"));
+    runDocumentReminderSweep().catch((err) => logger.error({ err }, "Document reminder sweep failed"));
   }, 30 * 1000);
   timer = setInterval(() => {
     runReminderSweep().catch((err) => logger.error({ err }, "Reminder sweep failed"));
   }, SWEEP_INTERVAL_MS);
-  // Re-engagement is far less time-sensitive — run it hourly.
+  // Re-engagement and barber document reminders are far less time-sensitive —
+  // run them hourly.
   reengageTimer = setInterval(() => {
     runReengagementSweep().catch((err) => logger.error({ err }, "Re-engagement sweep failed"));
+    runDocumentReminderSweep().catch((err) => logger.error({ err }, "Document reminder sweep failed"));
   }, 60 * 60 * 1000);
   void reengageTimer;
   logger.info({ intervalMs: SWEEP_INTERVAL_MS }, "Reservation reminder scheduler started");
