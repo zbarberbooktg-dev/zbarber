@@ -624,6 +624,10 @@ export interface FinancingRequest {
   yearsActive: number;
   repaymentMonths: number;
   documents: string[];
+  /** @nullable */
+  idDocument?: string | null;
+  /** @nullable */
+  guarantorIdDocument?: string | null;
   status: FinancingRequestStatus;
   /** @nullable */
   adminNote?: string | null;
@@ -662,6 +666,8 @@ export interface FinancingInput {
   repaymentMonths: number;
   /** @minItems 1 */
   documents: string[];
+  idDocument: string;
+  guarantorIdDocument: string;
 }
 
 export type FinancingStatusUpdateStatus = typeof FinancingStatusUpdateStatus[keyof typeof FinancingStatusUpdateStatus];

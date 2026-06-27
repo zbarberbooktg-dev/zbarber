@@ -1979,6 +1979,8 @@ export const ListFinancingRequestsResponse = zod.object({
   "yearsActive": zod.number(),
   "repaymentMonths": zod.number(),
   "documents": zod.array(zod.string()),
+  "idDocument": zod.string().nullish(),
+  "guarantorIdDocument": zod.string().nullish(),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
   "reviewedAt": zod.coerce.date().nullish(),
@@ -2015,7 +2017,9 @@ export const CreateFinancingRequestBody = zod.object({
   "monthlyRevenue": zod.number().min(createFinancingRequestBodyMonthlyRevenueMin),
   "yearsActive": zod.number().min(createFinancingRequestBodyYearsActiveMin),
   "repaymentMonths": zod.number().min(createFinancingRequestBodyRepaymentMonthsMin).max(createFinancingRequestBodyRepaymentMonthsMax),
-  "documents": zod.array(zod.string()).min(1)
+  "documents": zod.array(zod.string()).min(1),
+  "idDocument": zod.string(),
+  "guarantorIdDocument": zod.string()
 })
 
 
@@ -2037,6 +2041,8 @@ export const GetFinancingRequestResponse = zod.object({
   "yearsActive": zod.number(),
   "repaymentMonths": zod.number(),
   "documents": zod.array(zod.string()),
+  "idDocument": zod.string().nullish(),
+  "guarantorIdDocument": zod.string().nullish(),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
   "reviewedAt": zod.coerce.date().nullish(),
@@ -2067,6 +2073,8 @@ export const UpdateFinancingStatusResponse = zod.object({
   "yearsActive": zod.number(),
   "repaymentMonths": zod.number(),
   "documents": zod.array(zod.string()),
+  "idDocument": zod.string().nullish(),
+  "guarantorIdDocument": zod.string().nullish(),
   "status": zod.enum(['pending', 'reviewing', 'approved', 'rejected']),
   "adminNote": zod.string().nullish(),
   "reviewedAt": zod.coerce.date().nullish(),

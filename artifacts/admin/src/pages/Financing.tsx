@@ -143,6 +143,40 @@ export default function Financing() {
                 </dd>
               </div>
               <div className="flex gap-3">
+                <dt className="text-muted-foreground w-32 shrink-0">{f.idDocument}</dt>
+                <dd>
+                  {selected.idDocument ? (
+                    <a
+                      href={`/api/storage${selected.idDocument}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs hover:bg-secondary/70 transition-colors"
+                    >
+                      🪪 {f.viewDocument}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </dd>
+              </div>
+              <div className="flex gap-3">
+                <dt className="text-muted-foreground w-32 shrink-0">{f.guarantorIdDocument}</dt>
+                <dd>
+                  {selected.guarantorIdDocument ? (
+                    <a
+                      href={`/api/storage${selected.guarantorIdDocument}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs hover:bg-secondary/70 transition-colors"
+                    >
+                      🪪 {f.viewDocument}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </dd>
+              </div>
+              <div className="flex gap-3">
                 <dt className="text-muted-foreground w-32 shrink-0">{f.currentStatus}</dt>
                 <dd><StatusBadge status={selected.status} /></dd>
               </div>

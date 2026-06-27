@@ -82,6 +82,8 @@ router.post("/financing-requests", requireAuth, async (req: AuthedRequest, res) 
     yearsActive: z.number().int().min(0),
     repaymentMonths: z.number().int().min(3).max(24),
     documents: z.array(z.string().regex(/^\/objects\/[A-Za-z0-9_\-/.]+$/, "Invalid document path")).min(1),
+    idDocument: z.string().regex(/^\/objects\/[A-Za-z0-9_\-/.]+$/, "Invalid document path"),
+    guarantorIdDocument: z.string().regex(/^\/objects\/[A-Za-z0-9_\-/.]+$/, "Invalid document path"),
   }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input", details: body.error.issues }); return; }
 

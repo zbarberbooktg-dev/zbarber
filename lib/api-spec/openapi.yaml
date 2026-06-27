@@ -2858,6 +2858,10 @@ components:
           type: array
           items:
             type: string
+        idDocument:
+          type: ["string", "null"]
+        guarantorIdDocument:
+          type: ["string", "null"]
         status:
           type: string
           enum: [pending, reviewing, approved, rejected]
@@ -2872,7 +2876,7 @@ components:
 
     FinancingInput:
       type: object
-      required: [amount, purpose, description, monthlyRevenue, yearsActive, repaymentMonths, documents]
+      required: [amount, purpose, description, monthlyRevenue, yearsActive, repaymentMonths, documents, idDocument, guarantorIdDocument]
       properties:
         amount:
           type: number
@@ -2899,6 +2903,10 @@ components:
           minItems: 1
           items:
             type: string
+        idDocument:
+          type: string
+        guarantorIdDocument:
+          type: string
 
     FinancingStatusUpdate:
       type: object

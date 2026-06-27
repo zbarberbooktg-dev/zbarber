@@ -264,6 +264,9 @@ export const translations = {
       yearsActive: "Années d'activité",
       years: "ans",
       documents: "Justificatifs",
+      idDocument: "Pièce d'identité",
+      guarantorIdDocument: "Pièce d'identité du garant",
+      viewDocument: "Voir le document",
       reviewedAt: "Examinée le",
       purposes: {
         renovation: "Rénovation",
@@ -636,6 +639,9 @@ export const translations = {
       yearsActive: "Years active",
       years: "yrs",
       documents: "Documents",
+      idDocument: "ID document",
+      guarantorIdDocument: "Guarantor ID document",
+      viewDocument: "View document",
       reviewedAt: "Reviewed at",
       purposes: {
         renovation: "Renovation",
