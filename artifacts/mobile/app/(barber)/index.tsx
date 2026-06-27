@@ -1,14 +1,14 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Card, EmptyState, Pill, SectionTitle, StatBlock } from "@/components/UI";
 import { CreateSalonModal } from "@/components/CreateSalonModal";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { useAuthedFetch } from "@/lib/api";
+import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type Bucket = { revenue: number; completedCount: number; upcomingCount: number; totalCount: number };
 type RevenueData = { today: Bucket; week: Bucket; month: Bucket; year: Bucket; allTime: Bucket };
@@ -32,9 +32,9 @@ export default function BarberDashboard() {
   const c = useColors();
   const router = useRouter();
   const { t, locale } = useApp();
+  const { selectedSalonId, setSelectedSalonId } = useApp();
   const fetcher = useAuthedFetch();
   const [period, setPeriod] = useState<Period>("today");
-  const [selectedIdx, setSelectedIdx] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data: salons, isLoading: barberLoading, error: barberError, refetch: refetchBarber } = useQuery<MyBarbers>({
@@ -42,16 +42,30 @@ export default function BarberDashboard() {
     queryFn: () => fetcher<MyBarbers>("/api/barbers/me"),
   });
 
-  const barber = salons && salons.length > 0 ? salons[selectedIdx] ?? salons[0] : null;
+  // Keep the globally-selected salon valid: default to the first salon when
+  // nothing is selected yet or the stored selection is no longer owned.
+  useEffect(() => {
+    if (!salons || salons.length === 0) return;
+    if (selectedSalonId == null || !salons.some((s) => s.id === selectedSalonId)) {
+      setSelectedSalonId(salons[0]!.id);
+    }
+  }, [salons, selectedSalonId, setSelectedSalonId]);
+
+  const barber = salons && salons.length > 0
+    ? (salons.find((s) => s.id === selectedSalonId) ?? salons[0])
+    : null;
+  const salonId = barber?.id ?? null;
 
   const { data: revenue } = useQuery<RevenueData>({
-    queryKey: ["myRevenue"],
-    queryFn: () => fetcher<RevenueData>("/api/barbers/me/revenue"),
+    queryKey: ["myRevenue", salonId],
+    enabled: salonId != null,
+    queryFn: () => fetcher<RevenueData>(withSalon("/api/barbers/me/revenue", salonId)),
   });
 
   const { data: reservations } = useQuery<{ data: Reservation[]; total: number }>({
-    queryKey: ["myReservations"],
-    queryFn: () => fetcher<{ data: Reservation[]; total: number }>("/api/reservations?limit=50"),
+    queryKey: ["myReservations", salonId],
+    enabled: salonId != null,
+    queryFn: () => fetcher<{ data: Reservation[]; total: number }>(withSalon("/api/reservations?limit=50", salonId)),
   });
 
   if (barberLoading) {
@@ -140,12 +154,12 @@ export default function BarberDashboard() {
             Mes salons
           </Text>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {salons.map((s, idx) => {
-              const active = idx === selectedIdx;
+            {salons.map((s) => {
+              const active = s.id === salonId;
               return (
                 <Pressable
                   key={s.id}
-                  onPress={() => setSelectedIdx(idx)}
+                  onPress={() => setSelectedSalonId(s.id)}
                   style={{
                     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
                     backgroundColor: active ? c.primary : c.muted,

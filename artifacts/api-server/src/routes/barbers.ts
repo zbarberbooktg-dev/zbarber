@@ -54,11 +54,34 @@ async function archiveExpiredForBarber(barberId: number): Promise<void> {
     ));
 }
 
+// Resolve the barber's working salon for a self-service (`/barbers/me/*`) request.
+// Salons are fully independent entities: an owner with multiple salons must be
+// able to target a specific one via the `salonId` query param. We always verify
+// the requested salon is owned by the caller (ownership authorization) before
+// returning it. When no `salonId` is given we default to the first salon (by id)
+// for backward compatibility with single-salon callers.
 async function getMyBarberOr404(req: AuthedRequest, res: import("express").Response) {
   if (req.localUser!.role !== "barber") { res.status(403).json({ error: "Barber account required" }); return null; }
-  const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, req.localUser!.id)).limit(1);
-  if (!b) { res.status(404).json({ error: "Salon profile not found" }); return null; }
-  return b;
+  const salons = await db.select().from(barbersTable)
+    .where(eq(barbersTable.userId, req.localUser!.id))
+    .orderBy(barbersTable.id);
+  if (salons.length === 0) { res.status(404).json({ error: "Salon profile not found" }); return null; }
+  const raw = req.query.salonId;
+  if (raw !== undefined && raw !== "") {
+    const sid = parseInt(String(raw));
+    if (!Number.isFinite(sid)) { res.status(400).json({ error: "Invalid salonId" }); return null; }
+    const match = salons.find((s) => s.id === sid);
+    if (!match) { res.status(403).json({ error: "Salon not owned" }); return null; }
+    return match;
+  }
+  return salons[0]!;
+}
+
+// Return the ids of every salon owned by the caller (for cross-salon ownership
+// checks where a self-service helper isn't used).
+async function ownedSalonIds(userId: number): Promise<number[]> {
+  const rows = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, userId));
+  return rows.map((r) => r.id);
 }
 
 async function barberWithDetails(id: number) {

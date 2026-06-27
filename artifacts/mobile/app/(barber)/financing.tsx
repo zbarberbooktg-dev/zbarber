@@ -18,7 +18,7 @@ import {
 import { Button, Card, EmptyState, Pill, SectionTitle } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { apiUrl, useAuthedFetch } from "@/lib/api";
+import { apiUrl, useAuthedFetch, withSalon } from "@/lib/api";
 
 type Purpose = "renovation" | "tools" | "products" | "other";
 type Status = "pending" | "reviewing" | "approved" | "rejected";
@@ -62,13 +62,13 @@ const STATUS_LABEL: Record<Status, string> = {
 export default function BarberFinancing() {
   const c = useColors();
   const fetcher = useAuthedFetch();
-  const { locale } = useApp();
+  const { locale, selectedSalonId } = useApp();
   const qc = useQueryClient();
   const [openForm, setOpenForm] = useState(false);
 
   const { data, isLoading, refetch } = useQuery<{ data: FinancingRequest[]; total: number }>({
-    queryKey: ["myFinancing"],
-    queryFn: () => fetcher<{ data: FinancingRequest[]; total: number }>("/api/financing-requests?limit=50"),
+    queryKey: ["myFinancing", selectedSalonId],
+    queryFn: () => fetcher<{ data: FinancingRequest[]; total: number }>(withSalon("/api/financing-requests?limit=50", selectedSalonId)),
   });
 
   const requests = data?.data ?? [];
@@ -150,10 +150,11 @@ export default function BarberFinancing() {
 
       <FinancingFormModal
         visible={openForm}
+        salonId={selectedSalonId}
         onClose={() => setOpenForm(false)}
         onCreated={() => {
           setOpenForm(false);
-          qc.invalidateQueries({ queryKey: ["myFinancing"] });
+          qc.invalidateQueries({ queryKey: ["myFinancing", selectedSalonId] });
           refetch();
         }}
       />
@@ -161,7 +162,7 @@ export default function BarberFinancing() {
   );
 }
 
-function FinancingFormModal({ visible, onClose, onCreated }: { visible: boolean; onClose: () => void; onCreated: () => void }) {
+function FinancingFormModal({ visible, salonId, onClose, onCreated }: { visible: boolean; salonId: number | null; onClose: () => void; onCreated: () => void }) {
   const c = useColors();
   const fetcher = useAuthedFetch();
   const [amount, setAmount] = useState("");
@@ -190,7 +191,7 @@ function FinancingFormModal({ visible, onClose, onCreated }: { visible: boolean;
       if (!Number.isFinite(months) || months < 3 || months > 24) throw new Error("Remboursement entre 3 et 24 mois");
       if (description.trim().length < 30) throw new Error("Description : 30 caractères minimum");
       if (docs.length < 1) throw new Error("Joignez au moins un justificatif");
-      return await fetcher<FinancingRequest>("/api/financing-requests", {
+      return await fetcher<FinancingRequest>(withSalon("/api/financing-requests", salonId), {
         method: "POST",
         body: JSON.stringify({
           amount: amt,

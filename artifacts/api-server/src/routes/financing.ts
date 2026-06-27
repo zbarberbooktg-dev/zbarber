@@ -15,8 +15,18 @@ router.get("/financing-requests", requireAuthOrAdmin, async (req: AdminAuthedReq
   if (!req.admin) {
     const user = req.localUser!;
     if (user.role === "barber") {
-      const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-      rows = b ? rows.filter(r => r.barberId === b.id) : [];
+      // Per-salon scoping: filter to the selected (owned) salon when salonId is
+      // given; otherwise return requests for every owned salon.
+      const owned = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id));
+      const ownedIds = owned.map(o => o.id);
+      const rawSalon = (req.query as Record<string, string>).salonId;
+      if (rawSalon !== undefined && rawSalon !== "") {
+        const sid = parseInt(rawSalon);
+        if (!Number.isFinite(sid) || !ownedIds.includes(sid)) { res.status(403).json({ error: "Salon not owned" }); return; }
+        rows = rows.filter(r => r.barberId === sid);
+      } else {
+        rows = ownedIds.length ? rows.filter(r => ownedIds.includes(r.barberId)) : [];
+      }
     } else {
       res.status(403).json({ error: "Forbidden" }); return;
     }
@@ -35,8 +45,8 @@ router.get("/financing-requests/:id", requireAuthOrAdmin, async (req: AdminAuthe
   if (!req.admin) {
     const user = req.localUser!;
     if (user.role === "barber") {
-      const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-      if (!b || row.barberId !== b.id) { res.status(403).json({ error: "Forbidden" }); return; }
+      const owned = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id));
+      if (!owned.some(o => o.id === row.barberId)) { res.status(403).json({ error: "Forbidden" }); return; }
     } else {
       res.status(403).json({ error: "Forbidden" }); return;
     }
@@ -48,8 +58,20 @@ router.get("/financing-requests/:id", requireAuthOrAdmin, async (req: AdminAuthe
 router.post("/financing-requests", requireAuth, async (req: AuthedRequest, res) => {
   const user = req.localUser!;
   if (user.role !== "barber") { res.status(403).json({ error: "Only barbers can submit financing requests" }); return; }
-  const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-  if (!b) { res.status(404).json({ error: "Barber profile not found" }); return; }
+  // Resolve the target salon: the selected (owned) salon when salonId is given,
+  // otherwise the first owned salon. Each request is scoped to one salon.
+  const salons = await db.select().from(barbersTable)
+    .where(eq(barbersTable.userId, user.id)).orderBy(barbersTable.id);
+  if (salons.length === 0) { res.status(404).json({ error: "Barber profile not found" }); return; }
+  let b = salons[0]!;
+  const rawSalon = (req.query as Record<string, string>).salonId;
+  if (rawSalon !== undefined && rawSalon !== "") {
+    const sid = parseInt(rawSalon);
+    if (!Number.isFinite(sid)) { res.status(400).json({ error: "Invalid salonId" }); return; }
+    const match = salons.find(s => s.id === sid);
+    if (!match) { res.status(403).json({ error: "Salon not owned" }); return; }
+    b = match;
+  }
   if (b.status !== "approved") { res.status(403).json({ error: "Barber must be approved to submit a financing request" }); return; }
 
   const body = z.object({

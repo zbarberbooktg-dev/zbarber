@@ -7,6 +7,14 @@ export function apiUrl(path: string): string {
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
+// Append the selected salon id to an API path so multi-salon barbers scope
+// every self-service request to the salon they picked in the dashboard.
+export function withSalon(path: string, salonId: number | null | undefined): string {
+  if (salonId == null) return path;
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}salonId=${salonId}`;
+}
+
 export function useAuthedFetch() {
   const { getToken } = useAuth();
   return useCallback(

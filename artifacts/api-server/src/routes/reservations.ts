@@ -24,8 +24,19 @@ router.get("/reservations", requireAuthOrAdmin, async (req: AdminAuthedRequest &
     if (user.role === "client") {
       rows = rows.filter(r => r.clientId === user.id);
     } else if (user.role === "barber") {
-      const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-      rows = b ? rows.filter(r => r.barberId === b.id) : [];
+      // Salons are independent. Show reservations for the selected salon when a
+      // (validated, owned) salonId is given; otherwise show every owned salon's
+      // reservations — never collapse to the first salon only.
+      const owned = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id));
+      const ownedIds = owned.map(o => o.id);
+      const rawSalon = (req.query as Record<string, string>).salonId;
+      if (rawSalon !== undefined && rawSalon !== "") {
+        const sid = parseInt(rawSalon);
+        if (!Number.isFinite(sid) || !ownedIds.includes(sid)) { res.status(403).json({ error: "Salon not owned" }); return; }
+        rows = rows.filter(r => r.barberId === sid);
+      } else {
+        rows = ownedIds.length ? rows.filter(r => ownedIds.includes(r.barberId)) : [];
+      }
     }
   }
   // admin: see all
@@ -75,8 +86,8 @@ router.get("/reservations/:id", requireAuthOrAdmin, async (req: AdminAuthedReque
     const user = req.localUser!;
     if (user.role === "client" && r.clientId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
     if (user.role === "barber") {
-      const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-      if (!b || r.barberId !== b.id) { res.status(403).json({ error: "Forbidden" }); return; }
+      const owned = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id));
+      if (!owned.some(o => o.id === r.barberId)) { res.status(403).json({ error: "Forbidden" }); return; }
     }
   }
   res.json(await enrichReservation(r));
@@ -100,8 +111,8 @@ router.patch("/reservations/:id", requireAuthOrAdmin, async (req: AdminAuthedReq
   // Client can cancel their own. Barber can confirm/complete/cancel their own.
   if (user.role === "client" && existing.clientId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
   if (user.role === "barber") {
-    const [b] = await db.select().from(barbersTable).where(eq(barbersTable.userId, user.id)).limit(1);
-    if (!b || existing.barberId !== b.id) { res.status(403).json({ error: "Forbidden" }); return; }
+    const owned = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id));
+    if (!owned.some(o => o.id === existing.barberId)) { res.status(403).json({ error: "Forbidden" }); return; }
   }
   // Clients may only cancel their own reservation; barbers can set any status on their salon.
   const allowedStatuses = user.role === "client"

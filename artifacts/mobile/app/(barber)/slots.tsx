@@ -14,7 +14,7 @@ import {
 import { Button, Card, Pill } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { useAuthedFetch } from "@/lib/api";
+import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type Slot = { time: string; iso: string; available: boolean; reason?: string | null };
 type DayAvailability = { date: string; isWorking: boolean; isBlocked: boolean; slots: Slot[] };
@@ -28,7 +28,7 @@ function ymd(d: Date) {
 
 export default function BarberSlots() {
   const c = useColors();
-  const { locale } = useApp();
+  const { locale, selectedSalonId } = useApp();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
 
@@ -46,7 +46,9 @@ export default function BarberSlots() {
     queryKey: ["barbersMe"],
     queryFn: () => fetcher<MyBarber[]>("/api/barbers/me"),
   });
-  const barberId = salons?.[0]?.id;
+  // Resolve the selected salon (falls back to the first owned salon) so availability
+  // and days-off are scoped to whichever salon the barber picked in the dashboard.
+  const barberId = (salons?.find((s) => s.id === selectedSalonId) ?? salons?.[0])?.id;
 
   const range = useMemo(() => {
     const from = days[0]?.iso ?? selectedDate;
@@ -63,14 +65,14 @@ export default function BarberSlots() {
   const { data: daysOff } = useQuery<DayOff[]>({
     queryKey: ["myDaysOff", barberId],
     enabled: !!barberId,
-    queryFn: () => fetcher<DayOff[]>(`/api/barbers/me/days-off`),
+    queryFn: () => fetcher<DayOff[]>(withSalon("/api/barbers/me/days-off", barberId)),
   });
 
   const day = availability?.find((d) => d.date === selectedDate);
   const dayOffForDate = daysOff?.find((d) => d.date === selectedDate);
 
   const blockDay = async (force: boolean) => {
-    await fetcher(`/api/barbers/me/days-off`, {
+    await fetcher(withSalon("/api/barbers/me/days-off", barberId), {
       method: "POST",
       body: JSON.stringify({ date: selectedDate, force }),
     });
@@ -84,7 +86,7 @@ export default function BarberSlots() {
     if (!barberId) return;
     try {
       if (dayOffForDate) {
-        await fetcher(`/api/barbers/me/days-off/${dayOffForDate.id}`, { method: "DELETE" });
+        await fetcher(withSalon(`/api/barbers/me/days-off/${dayOffForDate.id}`, barberId), { method: "DELETE" });
         await Promise.all([
           qc.invalidateQueries({ queryKey: ["myDaysOff", barberId] }),
           qc.invalidateQueries({ queryKey: ["myAvailability", barberId] }),

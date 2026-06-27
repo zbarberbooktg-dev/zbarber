@@ -41,6 +41,8 @@ type AppState = {
   themePref: ThemePref;
   lang: Lang;
   ready: boolean;
+  selectedSalonId: number | null;
+  setSelectedSalonId: (id: number | null) => Promise<void>;
   setRole: (role: AppRole) => Promise<void>;
   setThemePref: (t: ThemePref) => Promise<void>;
   setLang: (l: Lang) => Promise<void>;
@@ -54,6 +56,7 @@ const AppContext = createContext<AppState | null>(null);
 
 const THEME_KEY = "gbc.theme";
 const LANG_KEY = "gbc.lang";
+const SELECTED_SALON_KEY = "gbc.selectedSalon";
 
 type SyncResult = { user: SyncedUser; barber: SyncedBarber | null } | null;
 
@@ -113,6 +116,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [barberProfile, setBarberProfile] = useState<SyncedBarber | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [initialSyncDone, setInitialSyncDone] = useState(false);
+  const [selectedSalonId, setSelectedSalonIdState] = useState<number | null>(null);
 
   useEffect(() => {
     setAuthTokenGetter(() => getToken());
@@ -126,12 +130,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [t, l] = await Promise.all([
+        const [t, l, s] = await Promise.all([
           AsyncStorage.getItem(THEME_KEY),
           AsyncStorage.getItem(LANG_KEY),
+          AsyncStorage.getItem(SELECTED_SALON_KEY),
         ]);
         if (t === "light" || t === "dark" || t === "system") setThemePrefState(t);
         if (l === "fr" || l === "en") setLangState(l);
+        if (s != null && s !== "") {
+          const n = parseInt(s);
+          if (Number.isFinite(n)) setSelectedSalonIdState(n);
+        }
       } catch {}
       setStorageReady(true);
     })();
@@ -181,6 +190,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(THEME_KEY, t);
   };
 
+  const setSelectedSalonId = async (id: number | null) => {
+    setSelectedSalonIdState(id);
+    if (id == null) await AsyncStorage.removeItem(SELECTED_SALON_KEY);
+    else await AsyncStorage.setItem(SELECTED_SALON_KEY, String(id));
+  };
+
   const setLang = async (l: Lang) => {
     setLangState(l);
     await AsyncStorage.setItem(LANG_KEY, l);
@@ -203,6 +218,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       themePref,
       lang,
       ready: storageReady && isLoaded && initialSyncDone,
+      selectedSalonId,
+      setSelectedSalonId,
       setRole,
       setThemePref,
       setLang,
@@ -211,7 +228,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       t: translations[lang],
       locale: localeMap[lang],
     }),
-    [user, barberProfile, syncing, themePref, lang, storageReady, isLoaded, initialSyncDone],
+    [user, barberProfile, syncing, themePref, lang, storageReady, isLoaded, initialSyncDone, selectedSalonId],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
