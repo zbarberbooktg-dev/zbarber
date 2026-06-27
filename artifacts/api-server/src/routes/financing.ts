@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, financingRequestsTable, barbersTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { db, financingRequestsTable, barbersTable, objectUploadsTable } from "@workspace/db";
+import { eq, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAdminAuth, requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
@@ -94,6 +94,28 @@ router.post("/financing-requests", requireAuth, async (req: AuthedRequest, res) 
       if (existing.some(r => r.status === "pending" || r.status === "reviewing")) {
         throw new Error("ACTIVE_REQUEST_EXISTS");
       }
+      // Anti path-claiming: every referenced object path must have been uploaded
+      // by the submitting user (verified via the object_uploads binding created
+      // at upload time). Without this, an attacker who learns another barber's
+      // ID-document path could submit it in their own financing request and
+      // become an authorized viewer of that PII via the reference-based ACL.
+      const submittedPaths = [
+        ...new Set<string>([
+          ...body.data.documents,
+          body.data.idDocument,
+          body.data.guarantorIdDocument,
+        ]),
+      ];
+      const uploadRows = await tx
+        .select({ objectPath: objectUploadsTable.objectPath, userId: objectUploadsTable.userId })
+        .from(objectUploadsTable)
+        .where(inArray(objectUploadsTable.objectPath, submittedPaths));
+      const uploadOwner = new Map(uploadRows.map((r) => [r.objectPath, r.userId]));
+      for (const path of submittedPaths) {
+        if (uploadOwner.get(path) !== user.id) {
+          throw new Error("PATH_CONFLICT");
+        }
+      }
       const [row] = await tx.insert(financingRequestsTable).values({ ...body.data, barberId: b.id }).returning();
       return row;
     });
@@ -109,6 +131,9 @@ router.post("/financing-requests", requireAuth, async (req: AuthedRequest, res) 
   } catch (e) {
     if (e instanceof Error && e.message === "ACTIVE_REQUEST_EXISTS") {
       res.status(409).json({ error: "You already have a pending or under-review financing request" }); return;
+    }
+    if (e instanceof Error && e.message === "PATH_CONFLICT") {
+      res.status(400).json({ error: "One or more document paths are invalid" }); return;
     }
     throw e;
   }
