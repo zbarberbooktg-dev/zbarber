@@ -1,13 +1,12 @@
 - [Clerk auth architecture](clerk-auth-arch.md) — Clerk JIT provisioning via /auth/sync; mobile uses useAuthedFetch (not generated hooks) for barber self-service routes.
 - [Clerk Future API on mobile](clerk-future-api.md) — @clerk/expo 3.x exposes only the future SignIn API (no isLoaded/setActive; methods namespaced; returns {error}); also covers enumeration-safe reset flow.
-- [Stable fetch over getToken](clerk-gettoken-stable-fetch.md) — hooks wrapping unstable @clerk/expo getToken must return a referentially-stable callback (latest-ref + [] deps) or consumers loop into "Maximum update depth exceeded".
 - [Admin Clerk Bearer](admin-clerk-bearer.md) — browser SPAs on Replit shared proxy must send Clerk JWT via Authorization header; cookie auth silently 401s in dev.
 - [Multi-salon barber model](multi-salon.md) — /barbers/me returns array; no unique constraint on barbersTable.userId; consumers must extract [0] for primary salon.
 - [Orval naming collision](orval-naming.md) — component schema names must not match auto-generated response type names (operationId + "Response"); rename schema to avoid TS2308.
 - [Barber approval gate](barber-approval-gate.md) — layout uses barberProfile.status (from AppContext, populated by /auth/sync barber field), NOT user.status.
 - [Security fixes](security-fixes.md) — gallery delete IDOR fix: scope by both barberId AND photoId; client reservation status limited to "cancelled" only.
 - [Object storage ACL](object-storage-acl.md) — GET /storage/objects/* must refuse unreferenced paths; never serve "any authenticated user" fallback for orphan uploads.
-- [Object storage provider](object-storage-provider.md) — 3 backends (local VPS disk / Replit sidecar / real GCS) via getStorageProvider; StoredObject union + HMAC-signed self-URL upload for local; objectPath shape identical so clients unchanged.
+- [Object storage provider](object-storage-provider.md) — dual backend (Replit sidecar default vs real GCS off-Replit); credentials AND URL signing both branch on getStorageProvider().
 - [Express router.use order](express-router-use-order.md) — adminRouter's top-level `router.use(requireAuth)` blocks any public router mounted AFTER it in routes/index.ts; mount public routers first.
 - [Availability model](availability-model.md) — server-side slot generation from weekly hours + service duration + reservations + daysOffTable; clients never recompute slots.
 - [Countries & cities catalog](countries-cities-catalog.md) — all city/country writes go through resolveAndPersistLocation (rejects unknown countries, dedups cities per country); country UI always renders before city.
@@ -21,9 +20,5 @@
 - [360° panorama viewer](panorama-360-viewer.md) — Pannellum in WebView/iframe; same-origin baseUrl for WebGL CORS, escape `<` to stop stored XSS, switch scenes via injectJS (native) / postMessage (web).
 - [Articles (L'édito)](articles-edito.md) — server-side sanitize-html on contentHtml is the only XSS defense (mobile RenderHTML trusts API); sortOrder = max+1 server-side; visibility window = published + startsAt≤now + (endsAt null or future).
 - [Reminder scheduler](reminder-scheduler.md) — 24h email reminders must claim-then-send (atomic UPDATE...RETURNING on reminderSentAt) to avoid double-emails; window is upper-bound (now..now+24h) to survive downtime.
-- [Pushing workflow files from Replit](vps-deploy-ops.md) — Replit's GitHub OAuth lacks `workflow` scope (token via GIT_ASKPASS); push .github/workflows/* edits with a PAT via `env -u GIT_ASKPASS GIT_TERMINAL_PROMPT=1 ... -c core.askpass=`.
 - [Barber /me routes are primary-salon only](multi-salon.md) — all `/barbers/me/*` self-service routes resolve via getMyBarberOr404 = salons[0]; mobile must NOT show a salon selector on /me-backed screens (queue, realisations) or it falsely implies per-salon scoping.
-- [Mobile EAS profiles](mobile-eas-profiles.md) — native builds retarget backend via one host (EXPO_PUBLIC_DOMAIN) per eas.json profile; Clerk keys there are placeholders & proxy is prod-only (auth breaks silently if unset).
-- [Windows local Expo native build](windows-expo-native-build.md) — `expo run:android` on Windows needs hoisted .npmrc + expo-build-properties dup-resource exclude + ninja 1.12 (LongPathsEnabled alone insufficient); hoisted linker then breaks expo-router env inlining → fixed by a self-contained Babel plugin in babel.config.js (env var does nothing).
-- [Clerk prod proxy setup](clerk-prod-proxy-setup.md) — prod instance defaults to CNAME (no proxy_url); FAPI 400 host_invalid is EXPECTED until you PATCH /v1/domains proxy_url (dashboard form is unreliable).
-- [Expo app screenshots](expo-web-screenshots.md) — screenshot the real app via Playwright on the Expo *web* dev port (root `/`, not `/mobile/` proxy); needs Nix chromium executablePath; mouse.wheel not window.scrollTo.
+- [Expo splash on iOS](expo-splash-ios.md) — white bands = backgroundColor not applied via legacy expo.splash; use expo-splash-screen plugin + transparent logo + imageWidth; native-rebuild only.

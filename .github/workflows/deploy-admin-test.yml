@@ -1,7 +1,6 @@
 name: Deploy — admin (test) → admin.test.zbarber.net
 
-# Manual only — push-to-test auto-deploy is handled by deploy-test.yml.
-# Use this to redeploy ONLY the admin service to test on demand.
+# Manual only: this never runs automatically.
 on:
   workflow_dispatch:
 

@@ -8,21 +8,11 @@
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0C1118"
-    },
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "net.zbarber.app",
-      "config": {
-        "usesNonExemptEncryption": false
-      }
+      "supportsTablet": false
     },
     "android": {
-      "softwareKeyboardLayoutMode": "resize",
-      "package": "net.zbarber.app"
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -37,23 +27,15 @@
       "expo-font",
       "expo-web-browser",
       [
-        "expo-build-properties",
+        "expo-splash-screen",
         {
-          "android": {
-            "packagingOptions": {
-              "exclude": [
-                "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
-              ]
-            }
-          },
-          "ios": {
-            "extraPods": [
-              { "name": "GoogleUtilities", "modular_headers": true },
-              { "name": "RecaptchaInterop", "modular_headers": true },
-              { "name": "AppAuth", "modular_headers": true },
-              { "name": "GTMSessionFetcher", "modular_headers": true },
-              { "name": "PromisesObjC", "modular_headers": true }
-            ]
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0C1118",
+          "dark": {
+            "image": "./assets/images/splash-icon.png",
+            "backgroundColor": "#0C1118"
           }
         }
       ]
