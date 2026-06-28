@@ -1,6 +1,7 @@
 name: Deploy — vitrine (test) → test.zbarber.net
 
-# Manual only: this never runs automatically.
+# Manual only — push-to-test auto-deploy is handled by deploy-test.yml.
+# Use this to redeploy ONLY the vitrine service to test on demand.
 on:
   workflow_dispatch:
 

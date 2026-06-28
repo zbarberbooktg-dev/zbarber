@@ -1,6 +1,8 @@
 import { Storage, File } from "@google-cloud/storage";
 import { Readable } from "stream";
-import { randomUUID } from "crypto";
+import { randomUUID, createHmac, timingSafeEqual } from "crypto";
+import fs from "fs";
+import path from "path";
 import {
   ObjectAclPolicy,
   ObjectPermission,
@@ -11,25 +13,35 @@ import {
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
-type StorageProvider = "replit" | "gcs";
+type StorageProvider = "replit" | "gcs" | "local";
+
+/**
+ * A backend-agnostic handle to a stored object.
+ * - GCS / Replit sidecar → wraps a `@google-cloud/storage` File.
+ * - Local (VPS disk) → an absolute filesystem path plus its logical entity id.
+ */
+export type StoredObject =
+  | { provider: "gcs" | "replit"; file: File }
+  | { provider: "local"; entityId: string; absPath: string };
 
 /**
  * Decide which storage backend to use.
  *
  * - On Replit, the managed sidecar (default) brokers GCS credentials, so no
  *   service-account key is needed.
- * - Off Replit (e.g. a VPS), set OBJECT_STORAGE_PROVIDER=gcs and provide real
- *   Google Cloud Storage service-account credentials via either
- *   GOOGLE_APPLICATION_CREDENTIALS (path to a JSON key file) or
- *   GCS_CREDENTIALS_JSON (the JSON key inline).
+ * - Off Replit (e.g. a VPS), set OBJECT_STORAGE_PROVIDER=local to store files on
+ *   the server's own disk (under LOCAL_STORAGE_DIR), or =gcs to use a real Google
+ *   Cloud Storage bucket (GOOGLE_APPLICATION_CREDENTIALS / GCS_CREDENTIALS_JSON).
  *
- * If credentials are present but the provider isn't set explicitly, we
- * auto-select "gcs" so a misconfigured-but-credentialed VPS still works.
+ * If a provider isn't set explicitly we auto-select: LOCAL_STORAGE_DIR ⇒ local,
+ * else GCS credentials ⇒ gcs, else the Replit sidecar.
  */
 export function getStorageProvider(): StorageProvider {
   const explicit = process.env.OBJECT_STORAGE_PROVIDER?.trim().toLowerCase();
+  if (explicit === "local") return "local";
   if (explicit === "gcs") return "gcs";
   if (explicit === "replit") return "replit";
+  if (process.env.LOCAL_STORAGE_DIR) return "local";
   if (process.env.GCS_CREDENTIALS_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     return "gcs";
   }
@@ -37,6 +49,12 @@ export function getStorageProvider(): StorageProvider {
 }
 
 function createObjectStorageClient(): Storage {
+  if (getStorageProvider() === "local") {
+    // Not used by the local backend; constructed lazily-safe so importing this
+    // module off-Replit doesn't require any GCS credentials.
+    return new Storage();
+  }
+
   if (getStorageProvider() === "gcs") {
     const projectId = process.env.GCS_PROJECT_ID?.trim() || undefined;
     const inlineCreds = process.env.GCS_CREDENTIALS_JSON?.trim();
@@ -87,6 +105,72 @@ export class ObjectNotFoundError extends Error {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Local (VPS disk) backend helpers
+// ---------------------------------------------------------------------------
+
+const LOCAL_UPLOAD_PATH = "/api/storage/local-upload";
+const LOCAL_OBJECT_NAME_RE = /^uploads\/[0-9a-fA-F-]{36}$/;
+const LOCAL_MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // matches nginx client_max_body_size
+
+export function getLocalStorageDir(): string {
+  const dir = process.env.LOCAL_STORAGE_DIR?.trim();
+  if (!dir) {
+    throw new Error(
+      "LOCAL_STORAGE_DIR not set. Point it at a writable directory on the server " +
+        "(e.g. /srv/zbarber/storage/prod) when OBJECT_STORAGE_PROVIDER=local.",
+    );
+  }
+  return dir;
+}
+
+/** Whether an upload object name is a safe `uploads/<uuid>` path. */
+export function isValidLocalUploadName(objectName: string): boolean {
+  return LOCAL_OBJECT_NAME_RE.test(objectName);
+}
+
+function signLocalUpload(objectName: string, exp: number): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error("SESSION_SECRET is required to sign local-storage upload URLs");
+  }
+  return createHmac("sha256", secret).update(`${objectName}:${exp}`).digest("hex");
+}
+
+/** Verify an HMAC-signed, time-limited local upload token. */
+export function verifyLocalUploadToken(
+  objectName: string,
+  exp: string | undefined,
+  sig: string | undefined,
+): boolean {
+  if (!exp || !sig) return false;
+  const expNum = Number(exp);
+  if (!Number.isFinite(expNum) || Date.now() > expNum) return false;
+  let expected: string;
+  try {
+    expected = signLocalUpload(objectName, expNum);
+  } catch {
+    return false;
+  }
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * Resolve a logical entity id (e.g. "uploads/<uuid>" or "public/foo.png") to an
+ * absolute path under LOCAL_STORAGE_DIR, refusing any path-traversal attempt.
+ */
+function resolveLocalAbsPath(entityId: string): string {
+  const base = path.resolve(getLocalStorageDir());
+  const abs = path.resolve(base, entityId);
+  if (abs !== base && !abs.startsWith(base + path.sep)) {
+    throw new ObjectNotFoundError();
+  }
+  return abs;
+}
+
 export class ObjectStorageService {
   constructor() {}
 
@@ -120,7 +204,68 @@ export class ObjectStorageService {
     return dir;
   }
 
-  async searchPublicObject(filePath: string): Promise<File | null> {
+  /**
+   * Write bytes for a local object plus a sidecar `.meta.json` (content type).
+   * Accepts a Buffer or a Readable stream; enforces a max size on streams.
+   */
+  async putLocalObject(
+    objectName: string,
+    contentType: string,
+    body: Readable | Buffer,
+    maxBytes: number = LOCAL_MAX_UPLOAD_BYTES,
+  ): Promise<void> {
+    const absPath = resolveLocalAbsPath(objectName);
+    await fs.promises.mkdir(path.dirname(absPath), { recursive: true });
+
+    if (Buffer.isBuffer(body)) {
+      if (body.length > maxBytes) throw new Error("Object too large");
+      await fs.promises.writeFile(absPath, body);
+    } else {
+      await new Promise<void>((resolve, reject) => {
+        let written = 0;
+        let aborted = false;
+        const ws = fs.createWriteStream(absPath);
+        const abort = (err: Error) => {
+          if (aborted) return;
+          aborted = true;
+          ws.destroy();
+          body.destroy?.();
+          fs.promises.unlink(absPath).catch(() => {});
+          reject(err);
+        };
+        body.on("data", (chunk: Buffer) => {
+          written += chunk.length;
+          if (written > maxBytes) abort(new Error("Object too large"));
+        });
+        body.on("error", abort);
+        ws.on("error", abort);
+        ws.on("finish", () => {
+          if (!aborted) resolve();
+        });
+        body.pipe(ws);
+      });
+    }
+
+    await fs.promises.writeFile(
+      `${absPath}.meta.json`,
+      JSON.stringify({ contentType }),
+    );
+  }
+
+  async searchPublicObject(filePath: string): Promise<StoredObject | null> {
+    if (getStorageProvider() === "local") {
+      // Confine to the `public` subtree specifically — NOT just LOCAL_STORAGE_DIR —
+      // so `../uploads/<uuid>` can't escape into private uploads via this
+      // unauthenticated endpoint.
+      const publicRoot = path.join(path.resolve(getLocalStorageDir()), "public");
+      const absPath = path.resolve(publicRoot, filePath);
+      if (absPath !== publicRoot && !absPath.startsWith(publicRoot + path.sep)) {
+        return null;
+      }
+      if (!fs.existsSync(absPath)) return null;
+      return { provider: "local", entityId: `public/${filePath}`, absPath };
+    }
+
     for (const searchPath of this.getPublicObjectSearchPaths()) {
       const fullPath = `${searchPath}/${filePath}`;
 
@@ -130,14 +275,38 @@ export class ObjectStorageService {
 
       const [exists] = await file.exists();
       if (exists) {
-        return file;
+        return { provider: getStorageProvider() as "gcs" | "replit", file };
       }
     }
 
     return null;
   }
 
-  async downloadObject(file: File, cacheTtlSec: number = 3600): Promise<Response> {
+  async downloadObject(obj: StoredObject, cacheTtlSec: number = 3600): Promise<Response> {
+    if (obj.provider === "local") {
+      const stat = await fs.promises.stat(obj.absPath);
+      let contentType = "application/octet-stream";
+      try {
+        const meta = JSON.parse(
+          await fs.promises.readFile(`${obj.absPath}.meta.json`, "utf8"),
+        );
+        if (meta?.contentType) contentType = meta.contentType as string;
+      } catch {
+        // No sidecar metadata — fall back to the default content type.
+      }
+      const nodeStream = fs.createReadStream(obj.absPath);
+      const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+      return new Response(webStream, {
+        headers: {
+          "Content-Type": contentType,
+          "Content-Length": String(stat.size),
+          // Access is enforced at the route layer; keep caches conservative.
+          "Cache-Control": `private, max-age=${cacheTtlSec}`,
+        },
+      });
+    }
+
+    const file = obj.file;
     const [metadata] = await file.getMetadata();
     const aclPolicy = await getObjectAclPolicy(file);
     const isPublic = aclPolicy?.visibility === "public";
@@ -156,7 +325,28 @@ export class ObjectStorageService {
     return new Response(webStream, { headers });
   }
 
-  async getObjectEntityUploadURL(): Promise<string> {
+  /**
+   * Build an upload URL the client PUTs the file to.
+   * - local → an HMAC-signed, time-limited URL pointing back at this API
+   *   (requires `baseUrl`, e.g. `${req.protocol}://${req.get("host")}`).
+   * - gcs / replit → a presigned object-storage URL.
+   */
+  async getObjectEntityUploadURL(baseUrl?: string): Promise<string> {
+    if (getStorageProvider() === "local") {
+      // Touch the dir env early so misconfig fails loudly at request time.
+      getLocalStorageDir();
+      const objectName = `uploads/${randomUUID()}`;
+      const exp = Date.now() + 900_000;
+      const sig = signLocalUpload(objectName, exp);
+      const base = (baseUrl ?? process.env.PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+      if (!base) {
+        throw new Error(
+          "Cannot build a local upload URL: pass a baseUrl or set PUBLIC_API_URL.",
+        );
+      }
+      return `${base}${LOCAL_UPLOAD_PATH}/${objectName}?exp=${exp}&sig=${sig}`;
+    }
+
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -178,7 +368,7 @@ export class ObjectStorageService {
     });
   }
 
-  async getObjectEntityFile(objectPath: string): Promise<File> {
+  async getObjectEntityFile(objectPath: string): Promise<StoredObject> {
     if (!objectPath.startsWith("/objects/")) {
       throw new ObjectNotFoundError();
     }
@@ -189,6 +379,15 @@ export class ObjectStorageService {
     }
 
     const entityId = parts.slice(1).join("/");
+
+    if (getStorageProvider() === "local") {
+      const absPath = resolveLocalAbsPath(entityId);
+      if (!fs.existsSync(absPath)) {
+        throw new ObjectNotFoundError();
+      }
+      return { provider: "local", entityId, absPath };
+    }
+
     let entityDir = this.getPrivateObjectDir();
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
@@ -201,7 +400,7 @@ export class ObjectStorageService {
     if (!exists) {
       throw new ObjectNotFoundError();
     }
-    return objectFile;
+    return { provider: getStorageProvider() as "gcs" | "replit", file: objectFile };
   }
 
   /**
@@ -264,6 +463,21 @@ export class ObjectStorageService {
   }
 
   normalizeObjectEntityPath(rawPath: string): string {
+    // Local upload URLs point back at this API: .../api/storage/local-upload/<objectName>?...
+    const localIdx = rawPath.indexOf(`${LOCAL_UPLOAD_PATH}/`);
+    if (localIdx !== -1) {
+      let pathname = rawPath;
+      try {
+        pathname = new URL(rawPath).pathname;
+      } catch {
+        pathname = rawPath.split("?")[0];
+      }
+      const marker = `${LOCAL_UPLOAD_PATH}/`;
+      const at = pathname.indexOf(marker);
+      const objectName = pathname.slice(at + marker.length);
+      return `/objects/${objectName}`;
+    }
+
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
       return rawPath;
     }
@@ -293,8 +507,13 @@ export class ObjectStorageService {
       return normalizedPath;
     }
 
-    const objectFile = await this.getObjectEntityFile(normalizedPath);
-    await setObjectAclPolicy(objectFile, aclPolicy);
+    const obj = await this.getObjectEntityFile(normalizedPath);
+    if (obj.provider === "local") {
+      // The local backend stores no per-object ACL; access is enforced at the
+      // route layer (see routes/storage.ts).
+      return normalizedPath;
+    }
+    await setObjectAclPolicy(obj.file, aclPolicy);
     return normalizedPath;
   }
 

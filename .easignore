@@ -1,0 +1,72 @@
+cd C:\zbarber
+@'
+# .easignore - controls what `eas build` uploads to EAS Build.
+# When this file exists, EAS uses it INSTEAD of .gitignore, so it must
+# re-list deps, caches, native build folders AND secrets.
+
+# --- Local native projects & build caches (the 6.5 GB; EAS prebuilds these) ---
+artifacts/mobile/android/
+artifacts/mobile/ios/
+android/
+ios/
+**/android/
+**/ios/
+**/.gradle/
+**/.cxx/
+**/.kotlin/
+**/build/
+**/Pods/
+**/DerivedData/
+
+# --- Dependencies (EAS reinstalls from pnpm-lock.yaml) ---
+node_modules
+node_modules/
+**/node_modules
+**/node_modules/
+.pnpm-store/
+**/.pnpm-store/
+
+# --- Build output / caches ---
+dist/
+**/dist/
+tmp/
+out-tsc/
+*.tsbuildinfo
+.expo/
+**/.expo/
+.expo-shared/
+coverage/
+.cache/
+.local/
+.turbo/
+
+# --- Secrets / credentials - NEVER upload ---
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+zbarber_deploy
+zbarber_deploy.pub
+*.pem
+id_rsa
+id_ed25519
+id_ecdsa
+
+# --- System / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# --- Not needed for the mobile native build ---
+.agents/
+attached_assets/
+screenshots/
+.github/
+deploy/
+artifacts/mockup-sandbox/public/
+artifacts/vitrine/public/
+artifacts/admin/public/
+'@ | Set-Content -Path .easignore -Encoding utf8

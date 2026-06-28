@@ -15,7 +15,7 @@ import { Platform, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ClerkProvider, ClerkLoaded } from "@clerk/expo";
+import { ClerkProvider, ClerkLoaded, ClerkLoading } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -145,6 +145,9 @@ export default function RootLayout() {
       proxyUrl={proxyUrl}
       localization={clerkLocalization}
     >
+      {/* <ClerkLoading>
+        <View style={{ flex: 1, backgroundColor: "red", alignItems: "center", justifyContent: "center" }} />
+      </ClerkLoading> */}
       <ClerkLoaded>
         <SafeAreaProvider>
           <ErrorBoundary>
