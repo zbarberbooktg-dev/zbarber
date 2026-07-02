@@ -1,4 +1,4 @@
-lockfileVersion: '9.0'
+﻿lockfileVersion: '9.0'
 
 settings:
   autoInstallPeers: false
@@ -496,8 +496,7 @@ importers:
         specifier: ~54.0.34
         version: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native-webview@13.16.1(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       expo-build-properties:
-        specifier: ^56.0.19
-        version: 56.0.19(expo@54.0.34)
+$1 58f0351cb7199cb3c9d20597d3c3a8c7e6f8f512
       expo-device:
         specifier: ~8.0.10
         version: 8.0.10(expo@54.0.34)
@@ -4627,8 +4626,7 @@ packages:
       react: '*'
       react-native: '*'
 
-  expo-build-properties@56.0.19:
-    resolution: {integrity: sha512-InoviXcxWosNp4cC7L3SWoiY99Xr2HdgN+LYHb6mUm/BBVxy1mIMrZR+3PJ2gwDZzW6EJNDz8ioASWGHBTmzpA==}
+$1 58f0351cb7199cb3c9d20597d3c3a8c7e6f8f512
     peerDependencies:
       expo: '*'
 
@@ -12045,11 +12043,7 @@ snapshots:
       react: 19.1.0
       react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
 
-  expo-build-properties@56.0.19(expo@54.0.34):
-    dependencies:
-      '@expo/schema-utils': 56.0.1
-      expo: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native-webview@13.16.1(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
-      resolve-from: 5.0.0
+$1 58f0351cb7199cb3c9d20597d3c3a8c7e6f8f512
       semver: 7.8.1
 
   expo-constants@18.0.13(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)):
@@ -15438,3 +15432,4 @@ snapshots:
       '@types/react': 19.1.17
       react: 19.1.0
       use-sync-external-store: 1.6.0(react@19.1.0)
+
