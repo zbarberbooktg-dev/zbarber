@@ -144,7 +144,12 @@ export default function ForgotPasswordScreen() {
       if (submitted.error) { setErr(friendlyError(submitted.error)); return; }
 
       if (signIn.status === "complete") {
-        await signIn.finalize({ navigate: () => router.replace("/") });
+        // The session is now active. Navigation home is handled declaratively by
+        // the `isSignedIn` guard above (<Redirect href="/">). Do NOT also navigate
+        // imperatively here: the two competing REPLACE-to-"/" dispatches race while
+        // the (auth) navigator unmounts and throw
+        // "The action 'REPLACE' with payload {name:index} was not handled by any navigator".
+        await signIn.finalize({ navigate: () => {} });
         return;
       }
 

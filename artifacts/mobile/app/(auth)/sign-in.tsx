@@ -112,7 +112,10 @@ export default function SignInScreen() {
         return;
       }
       if (signIn.status === "complete") {
-        await signIn.finalize({ navigate: () => router.replace("/") });
+        // Session active — the `isSignedIn` guard above (<Redirect href="/">)
+        // handles navigation home. Navigating imperatively here too races that
+        // redirect and throws "REPLACE {name:index} was not handled by any navigator".
+        await signIn.finalize({ navigate: () => {} });
         return;
       }
       if (signIn.status === "needs_second_factor") {
@@ -157,7 +160,9 @@ export default function SignInScreen() {
         return;
       }
       if (signIn.status === "complete") {
-        await signIn.finalize({ navigate: () => router.replace("/") });
+        // Session active — navigation home is handled by the `isSignedIn` guard
+        // above; navigating here too races it and throws the unhandled-REPLACE error.
+        await signIn.finalize({ navigate: () => {} });
         return;
       }
       setSubmitError(`Vérification incomplète (statut: ${signIn.status ?? "inconnu"})`);
