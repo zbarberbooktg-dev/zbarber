@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@workspace/mobile",
   "version": "0.0.0",
   "private": true,
@@ -71,7 +71,7 @@
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@workspace/legal-content": "workspace:*",
     "expo": "~54.0.34",
-$1 58f0351cb7199cb3c9d20597d3c3a8c7e6f8f512
+    "expo-build-properties": "~1.0.10",
     "expo-device": "~8.0.10",
     "expo-document-picker": "^56.0.4",
     "expo-notifications": "~0.32.17",

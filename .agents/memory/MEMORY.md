@@ -29,3 +29,4 @@
 - [expo-build-properties plugin](expo-build-properties.md) — app.json plugins must be installed deps or expo start fails with PluginError; this one carries the Android META-INF packaging-exclude fix (test branch dropped it — Android EAS build risk).
 - [Mobile EAS profiles](mobile-eas-profiles.md) — native builds retarget backend via one host (EXPO_PUBLIC_DOMAIN) per eas.json profile; Clerk keys there are placeholders & proxy is prod-only (auth breaks silently if unset).
 - [Clerk prod proxy setup](clerk-prod-proxy-setup.md) — prod instance defaults to CNAME (no proxy_url); FAPI 400 host_invalid is EXPECTED until you PATCH /v1/domains proxy_url (dashboard form is unreliable).
+- [Mobile package.json corruption](mobile-package-json-corruption.md) — bad Windows edit injects `$1 <sha>` sed-artifact + UTF-8 BOM; BOM passes pnpm but crashes Expo's json parser; fix = restore dep, regen lockfile, strip BOM.
