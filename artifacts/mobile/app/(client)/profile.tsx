@@ -12,6 +12,7 @@ import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
+import { setBrowseIntent } from "@/lib/browseIntent";
 
 export default function ClientProfile() {
   const c = useColors();
@@ -228,7 +229,10 @@ export default function ClientProfile() {
             label={lang === "fr" ? "Accueil" : "Home"}
             variant="secondary"
             icon="home"
-            onPress={() => router.push("/?browse=1")}
+            onPress={() => {
+              setBrowseIntent();
+              router.push("/?browse=1");
+            }}
           />
           {hasPendingBarberRequest ? (
             <Button
