@@ -13,7 +13,7 @@ import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
-import { setBrowseIntent } from "@/lib/browseIntent";
+import { setBrowsing } from "@/lib/browseIntent";
 
 type MyBarber = {
   id: number;
@@ -236,7 +236,7 @@ export default function BarberProfile() {
             variant="secondary"
             icon="home"
             onPress={() => {
-              setBrowseIntent();
+              setBrowsing(true);
               router.push("/?browse=1");
             }}
           />
