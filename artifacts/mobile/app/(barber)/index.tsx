@@ -9,6 +9,7 @@ import { CreateSalonModal } from "@/components/CreateSalonModal";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch, withSalon } from "@/lib/api";
+import { setBrowseIntent } from "@/lib/browseIntent";
 
 type Bucket = { revenue: number; completedCount: number; upcomingCount: number; totalCount: number };
 type RevenueData = { today: Bucket; week: Bucket; month: Bucket; year: Bucket; allTime: Bucket };
@@ -141,16 +142,33 @@ export default function BarberDashboard() {
       style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 16 }}
     >
-      <View>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 13 }}>{t.hello} 👋</Text>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 24, marginTop: 4 }}>{barber.salonName}</Text>
-        <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
-          <Pill
-            label={barber.status === "approved" ? t.salonApproved : t.salonPending}
-            tone={barber.status === "approved" ? "success" : "warning"}
-            icon={barber.status === "approved" ? "check" : "clock"}
-          />
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 13 }}>{t.hello} 👋</Text>
+          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 24, marginTop: 4 }}>{barber.salonName}</Text>
+          <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
+            <Pill
+              label={barber.status === "approved" ? t.salonApproved : t.salonPending}
+              tone={barber.status === "approved" ? "success" : "warning"}
+              icon={barber.status === "approved" ? "check" : "clock"}
+            />
+          </View>
         </View>
+        <Pressable
+          onPress={() => {
+            setBrowseIntent();
+            router.push("/?browse=1");
+          }}
+          hitSlop={8}
+          accessibilityLabel={(t as any).home ?? "Accueil"}
+          style={{
+            width: 42, height: 42, borderRadius: 21,
+            backgroundColor: c.muted, borderWidth: 1, borderColor: c.border,
+            alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <Feather name="home" size={18} color={c.primary} />
+        </Pressable>
       </View>
 
       {/* Multi-salon selector — shown when barber owns more than one salon */}
@@ -244,9 +262,9 @@ export default function BarberDashboard() {
         <Shortcut c={c} icon="image" label="Galerie" onPress={() => router.push("/(barber)/gallery")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <Shortcut c={c} icon="layers" label="Avant / Après" onPress={() => router.push("/(barber)/realisations")} />
-        <Shortcut c={c} icon="compass" label="Visite 360°" onPress={() => router.push("/(barber)/panoramas")} />
-        <Shortcut c={c} icon="dollar-sign" label="Financement" onPress={() => router.push("/(barber)/financing")} />
+        <Shortcut c={c} vertical icon="layers" label="Avant / Après" onPress={() => router.push("/(barber)/realisations")} />
+        <Shortcut c={c} vertical icon="compass" label="Visite 360°" onPress={() => router.push("/(barber)/panoramas")} />
+        <Shortcut c={c} vertical icon="dollar-sign" label="Financement" onPress={() => router.push("/(barber)/financing")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="bar-chart-2" label="Statistiques" onPress={() => router.push("/(barber)/stats")} />
@@ -301,25 +319,49 @@ export default function BarberDashboard() {
   );
 }
 
-function Shortcut({ c, icon, label, onPress }: {
+function Shortcut({ c, icon, label, onPress, vertical }: {
   c: ReturnType<typeof useColors>;
   icon: keyof typeof Feather.glyphMap;
   label: string;
   onPress: () => void;
+  vertical?: boolean;
 }) {
+  const iconCircle = (
+    <View style={{
+      width: 36, height: 36, borderRadius: 18, backgroundColor: c.accent,
+      alignItems: "center", justifyContent: "center",
+    }}>
+      <Feather name={icon} size={16} color={c.primary} />
+    </View>
+  );
+
   return (
     <Pressable onPress={onPress} style={{ flex: 1 }}>
       {({ pressed }) => (
-        <Card style={{ opacity: pressed ? 0.85 : 1 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{
-              width: 36, height: 36, borderRadius: 18, backgroundColor: c.accent,
-              alignItems: "center", justifyContent: "center",
-            }}>
-              <Feather name={icon} size={16} color={c.primary} />
+        <Card style={{ opacity: pressed ? 0.85 : 1, flex: 1 }}>
+          {vertical ? (
+            // Narrow (3-per-row) tiles stack the icon over a centered, wrapping
+            // label so long words like "Financement" never overflow the card.
+            <View style={{ alignItems: "center", justifyContent: "center", gap: 8, flex: 1 }}>
+              {iconCircle}
+              <Text
+                numberOfLines={2}
+                style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 12, lineHeight: 16, textAlign: "center" }}
+              >
+                {label}
+              </Text>
             </View>
-            <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>{label}</Text>
-          </View>
+          ) : (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              {iconCircle}
+              <Text
+                numberOfLines={2}
+                style={{ flex: 1, color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}
+              >
+                {label}
+              </Text>
+            </View>
+          )}
         </Card>
       )}
     </Pressable>

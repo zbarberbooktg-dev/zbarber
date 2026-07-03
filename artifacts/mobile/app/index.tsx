@@ -33,6 +33,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/contexts/AppContext";
 import colors from "@/constants/colors";
 import { useAuthedFetch } from "@/lib/api";
+import { consumeBrowseIntent } from "@/lib/browseIntent";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ONBOARDING_KEY } from "./onboarding";
 
@@ -72,6 +73,9 @@ export default function PublicHome() {
   const fetcher = useAuthedFetch();
   const [query, setQuery] = useState("");
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  // Captured once per mount: a barber/admin who tapped "Accueil" from their
+  // profile reaches the public home instead of being redirected to /(barber).
+  const [browseIntent] = useState(() => consumeBrowseIntent());
   const [locationRefreshing, setLocationRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const featuredYRef = useRef(0);
@@ -117,7 +121,7 @@ export default function PublicHome() {
 
   // Signed-in barber/admin → dashboard, UNLESS they explicitly chose to browse
   // the public home from their profile (?browse=1).
-  if (isSignedIn && user && (role === "barber" || role === "admin") && browse !== "1") {
+  if (isSignedIn && user && (role === "barber" || role === "admin") && browse !== "1" && !browseIntent) {
     return <Redirect href="/(barber)" />;
   }
 

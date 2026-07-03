@@ -13,6 +13,7 @@ import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
+import { setBrowseIntent } from "@/lib/browseIntent";
 
 type MyBarber = {
   id: number;
@@ -234,7 +235,10 @@ export default function BarberProfile() {
             label={lang === "fr" ? "Accueil" : "Home"}
             variant="secondary"
             icon="home"
-            onPress={() => router.push("/?browse=1")}
+            onPress={() => {
+              setBrowseIntent();
+              router.push("/?browse=1");
+            }}
           />
           <Button
             label={(t as any).legalTerms ?? "Conditions d'utilisation"}
