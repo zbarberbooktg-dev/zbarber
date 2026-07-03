@@ -156,6 +156,7 @@ export default function BarberDashboard() {
         </View>
         <Pressable
           onPress={() => {
+            console.log("[ZB-NAV] home icon tapped -> setBrowsing(true) + navigate /");
             setBrowsing(true);
             router.navigate("/?browse=1");
           }}
