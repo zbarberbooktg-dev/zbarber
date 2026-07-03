@@ -237,11 +237,7 @@ export default function BarberProfile() {
             icon="home"
             onPress={() => {
               setBrowsing(true);
-<<<<<<< HEAD
-              router.push("/index?browse=1");
-=======
               router.navigate("/?browse=1");
->>>>>>> 56d12274ed5cbe351a2b8a97c8fe34ca523c4b29
             }}
           />
           <Button
