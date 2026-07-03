@@ -134,6 +134,14 @@ DATABASE_URL='postgres://.../zbarber_test' pnpm --filter @workspace/db run push
 exit
 ```
 
+> **Note:** After this one-time bootstrap, every `api` deploy auto-syncs the schema.
+> `deploy.sh api <env>` reads `DATABASE_URL` from `/etc/zbarber/api-<env>.env` and runs
+> `drizzle-kit push` **before** rebuilding/restarting the service, so schema changes go
+> live with the code. The push is non-interactive and does **not** use `--force`:
+> additive changes (new columns/tables) apply automatically, but a destructive or
+> ambiguous diff makes the deploy fail red instead of dropping data — resolve those by
+> running the push manually with the commands above.
+
 ## 7. systemd services
 
 ```bash

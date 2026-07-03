@@ -46,6 +46,38 @@ case "$SERVICE" in
     echo "==> Static build ready: artifacts/$SERVICE/dist/public (served by nginx)"
     ;;
   api)
+    # --- Sync DB schema BEFORE building/restarting -------------------------
+    # The deploy pipeline is the ONLY thing that touches the VPS DB schema.
+    # Without this, columns/tables added to lib/db/src/schema/* never reach the
+    # DB and reads on the affected table 500 ("column ... does not exist").
+    # We push BEFORE restarting so the freshly-started code always runs against
+    # the migrated schema.
+    ENV_FILE="/etc/zbarber/api-$ENVIRONMENT.env"
+    echo "==> Syncing DB schema (drizzle-kit push) for $ENVIRONMENT"
+    if [ ! -f "$ENV_FILE" ]; then
+      echo "!! Env file $ENV_FILE not found; cannot read DATABASE_URL" >&2
+      exit 1
+    fi
+    # Extract DATABASE_URL only (systemd EnvironmentFile format: KEY=value; the
+    # value is the rest of the line and may itself contain '='). Strip optional
+    # surrounding single/double quotes. `|| true` keeps `set -e`/pipefail from
+    # aborting before our explicit empty check below.
+    DB_URL="$(grep -E '^DATABASE_URL=' "$ENV_FILE" | head -n1 | cut -d= -f2- || true)"
+    DB_URL="${DB_URL%\"}"; DB_URL="${DB_URL#\"}"
+    DB_URL="${DB_URL%\'}"; DB_URL="${DB_URL#\'}"
+    if [ -z "$DB_URL" ]; then
+      echo "!! DATABASE_URL not set in $ENV_FILE" >&2
+      exit 1
+    fi
+    # Non-interactive push: additive changes (new columns/tables) apply cleanly.
+    # For destructive/ambiguous changes drizzle-kit prompts; with stdin from
+    # /dev/null that prompt gets EOF and the push aborts (non-zero) instead of
+    # silently dropping data — the deploy then fails red and a human runs it by
+    # hand. We deliberately do NOT use `push --force` here to avoid unattended
+    # data loss on prod.
+    DATABASE_URL="$DB_URL" pnpm --filter @workspace/db run push </dev/null
+    echo "==> DB schema in sync for $ENVIRONMENT"
+
     echo "==> Building @workspace/api-server (esbuild bundle)"
     NODE_ENV=production pnpm --filter @workspace/api-server build
     echo "==> Restarting systemd service zbarber-api-$ENVIRONMENT"
