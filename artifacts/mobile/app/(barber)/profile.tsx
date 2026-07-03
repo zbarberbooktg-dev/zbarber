@@ -236,12 +236,9 @@ export default function BarberProfile() {
             variant="secondary"
             icon="home"
             onPress={() => {
+              console.log("[ZB-NAV] barber profile Accueil tapped -> setBrowsing(true) + replace /");
               setBrowsing(true);
-<<<<<<< HEAD
-              router.push("/index?browse=1");
-=======
-              router.navigate("/?browse=1");
->>>>>>> 56d12274ed5cbe351a2b8a97c8fe34ca523c4b29
+              router.replace("/?browse=1");
             }}
           />
           <Button
