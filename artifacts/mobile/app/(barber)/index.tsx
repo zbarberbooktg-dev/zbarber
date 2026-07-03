@@ -9,7 +9,7 @@ import { CreateSalonModal } from "@/components/CreateSalonModal";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch, withSalon } from "@/lib/api";
-import { setBrowseIntent } from "@/lib/browseIntent";
+import { setBrowsing } from "@/lib/browseIntent";
 
 type Bucket = { revenue: number; completedCount: number; upcomingCount: number; totalCount: number };
 type RevenueData = { today: Bucket; week: Bucket; month: Bucket; year: Bucket; allTime: Bucket };
@@ -156,8 +156,9 @@ export default function BarberDashboard() {
         </View>
         <Pressable
           onPress={() => {
-            setBrowseIntent();
-            router.push("/?browse=1");
+            console.log("[ZB-NAV] home icon tapped -> setBrowsing(true) + navigate /");
+            setBrowsing(true);
+            router.navigate("/?browse=1");
           }}
           hitSlop={8}
           accessibilityLabel={(t as any).home ?? "Accueil"}

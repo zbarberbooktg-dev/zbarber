@@ -33,7 +33,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/contexts/AppContext";
 import colors from "@/constants/colors";
 import { useAuthedFetch } from "@/lib/api";
-import { consumeBrowseIntent } from "@/lib/browseIntent";
+import { useBrowsing } from "@/lib/browseIntent";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ONBOARDING_KEY } from "./onboarding";
 
@@ -73,9 +73,10 @@ export default function PublicHome() {
   const fetcher = useAuthedFetch();
   const [query, setQuery] = useState("");
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
-  // Captured once per mount: a barber/admin who tapped "Accueil" from their
-  // profile reaches the public home instead of being redirected to /(barber).
-  const [browseIntent] = useState(() => consumeBrowseIntent());
+  // Reactive: a barber/admin who tapped "Accueil"/home reaches the public home
+  // instead of being redirected to /(barber). Reactive (not mount-once) because
+  // expo-router may reuse this screen instance instead of remounting it.
+  const browsing = useBrowsing();
   const [locationRefreshing, setLocationRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const featuredYRef = useRef(0);
@@ -121,9 +122,12 @@ export default function PublicHome() {
 
   // Signed-in barber/admin → dashboard, UNLESS they explicitly chose to browse
   // the public home from their profile (?browse=1).
-  if (isSignedIn && user && (role === "barber" || role === "admin") && browse !== "1" && !browseIntent) {
+  console.log("[ZB-NAV] index gate", { isSignedIn, hasUser: !!user, role, browse, browsing });
+  if (isSignedIn && user && (role === "barber" || role === "admin") && browse !== "1" && !browsing) {
+    console.log("[ZB-NAV] index -> REDIRECT to /(barber)");
     return <Redirect href="/(barber)" />;
   }
+  console.log("[ZB-NAV] index -> RENDER public home");
 
   const featured = list.slice(0, 6);
   const nearby = list.slice(0, 4);
