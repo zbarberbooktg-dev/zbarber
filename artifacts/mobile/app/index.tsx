@@ -122,9 +122,12 @@ export default function PublicHome() {
 
   // Signed-in barber/admin → dashboard, UNLESS they explicitly chose to browse
   // the public home from their profile (?browse=1).
+  console.log("[ZB-NAV] index gate", { isSignedIn, hasUser: !!user, role, browse, browsing });
   if (isSignedIn && user && (role === "barber" || role === "admin") && browse !== "1" && !browsing) {
+    console.log("[ZB-NAV] index -> REDIRECT to /(barber)");
     return <Redirect href="/(barber)" />;
   }
+  console.log("[ZB-NAV] index -> RENDER public home");
 
   const featured = list.slice(0, 6);
   const nearby = list.slice(0, 4);
