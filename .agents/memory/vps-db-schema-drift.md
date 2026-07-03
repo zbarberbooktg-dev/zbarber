@@ -28,11 +28,16 @@ If only ONE table's routes 500 while all others return 200, it's schema drift on
 that table — not a code bug and not an auth/token bug. `/api/healthz` (no DB)
 staying 200 confirms the server itself is healthy.
 
-**How to fix:** run `drizzle-kit push` against the target env DB (SSH to VPS,
-load `api-<env>.env`, `pnpm --filter @workspace/db run push`). For a durable fix,
-add a migration step to `deploy/deploy.sh api <env>` so each deploy syncs schema —
-but that needs the env's `DATABASE_URL` loaded in the deploy shell and pushing the
-workflow/script edit (workflow files need a PAT with `workflow` scope from Replit).
+**How it's fixed now (implemented):** `deploy/deploy.sh` (the `api` branch) auto-runs
+the schema sync on every api deploy — it reads `DATABASE_URL` from
+`/etc/zbarber/api-<env>.env` and runs `pnpm --filter @workspace/db run push`
+**before** rebuilding/restarting, so schema goes live with the code. This covers
+BOTH envs because `deploy-test.yml` (auto) and `deploy-api-prod.yml` (manual
+dispatch) both call `deploy.sh api <env>` — no `.github/workflows/*` edit needed,
+so no `workflow`-scope PAT required. The push is non-interactive and does NOT use
+`--force`: stdin is `/dev/null`, so additive changes apply but a destructive/
+ambiguous diff aborts the deploy (red) instead of dropping data — resolve those by
+running the push by hand (SSH to VPS, load `api-<env>.env`, run the push).
 
 **Recently-added `barbersTable` columns most likely to be missing on a stale DB:**
 two-step-verification / document fields (`first_validated_at`, `document_url`,
