@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useListBarbers, useListHomeGalleryPhotos, useListPublicArticles } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
 import * as Location from "expo-location";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -52,6 +52,7 @@ const styleImages = [
 
 export default function PublicHome() {
   const router = useRouter();
+  const pathname = usePathname();
   const { browse } = useLocalSearchParams<{ browse?: string }>();
   const insets = useSafeAreaInsets();
   const { isSignedIn, isLoaded } = useAuth();
@@ -122,8 +123,11 @@ export default function PublicHome() {
 
   // Signed-in barber/admin → dashboard, UNLESS they explicitly chose to browse
   // the public home from their profile (?browse=1).
-  console.log("[ZB-NAV] index gate", { isSignedIn, hasUser: !!user, role, browse, browsing });
-  if (isSignedIn && user && (role === "barber" || role === "admin") && browse !== "1" && !browsing) {
+  // A barber/admin reaches the public home either via the dedicated "/browse"
+  // route (unambiguous, unlike "/") or via the browse intent flag/param.
+  const forceBrowse = pathname === "/browse" || browse === "1" || browsing;
+  console.log("[ZB-NAV] index gate", { pathname, isSignedIn, hasUser: !!user, role, browse, browsing, forceBrowse });
+  if (isSignedIn && user && (role === "barber" || role === "admin") && !forceBrowse) {
     console.log("[ZB-NAV] index -> REDIRECT to /(barber)");
     return <Redirect href="/(barber)" />;
   }
