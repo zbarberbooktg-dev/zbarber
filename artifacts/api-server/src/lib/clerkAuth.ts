@@ -51,8 +51,14 @@ export async function provisionUserFromClerk(clerkUserId: string) {
 }
 
 export async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction): Promise<void> {
-  const auth = getAuth(req);
-  const clerkUserId = auth?.userId;
+  // A malformed/unverifiable token makes getAuth throw. Treat that as
+  // "unauthenticated" (401) rather than letting it bubble into a 500.
+  let clerkUserId: string | null | undefined;
+  try {
+    clerkUserId = getAuth(req)?.userId;
+  } catch (err) {
+    req.log?.warn({ err }, "getAuth failed — treating as unauthenticated");
+  }
   if (!clerkUserId) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const user = await provisionUserFromClerk(clerkUserId);
