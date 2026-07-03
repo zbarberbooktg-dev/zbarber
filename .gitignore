@@ -60,3 +60,6 @@ id_ecdsa
 # Replit
 .cache/
 .local/
+
+# Debug/scratch uploads (screenshots, pasted terminal output) — not source
+attached_assets/
