@@ -33,6 +33,14 @@ Regression test: `test/apiResilience.test.ts` mocks `@clerk/express` so the midd
 errors and `getAuth` throws, then asserts public `/barbers` = 200 JSON and protected
 `/barbers/me` = clean 401 JSON.
 
-Related UX note: after a password reset the user is auto-signed-in, so the auth
-screens' `isSignedIn` guard redirects them home — that is intended, not a bug. Home
-already hides the login/register CTAs when signed in.
+Related UX rule — gate auth UI on Clerk `isSignedIn`, NOT on the locally-synced
+`user`. When the token can't be verified, `/auth/sync` fails and `user` stays null
+while `isSignedIn` is true. Home once gated its login/register CTAs on
+`isSignedIn && user`, so a signed-in-but-unsynced user still saw "Connexion /
+Inscription"; tapping them hit auth screens that redirect on `isSignedIn` alone →
+visible loop. Gate CTAs and screen guards on the SAME signal (`isSignedIn`); only
+personalized content (e.g. "Bonjour {name}") may additionally require `user`, with a
+generic fallback (never deref `user` in the signed-in branch).
+
+Also: after a password reset the user is auto-signed-in, so the auth screens'
+`isSignedIn` guard redirects them home — intended, not a bug.

@@ -170,7 +170,7 @@ export default function PublicHome() {
           </Text>
         </View>
 
-        {isSignedIn && user ? (
+        {isSignedIn ? (
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <Pressable
               onPress={handleRefreshLocation}
