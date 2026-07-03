@@ -157,7 +157,7 @@ export default function BarberDashboard() {
         <Pressable
           onPress={() => { 
             setBrowsing(true);
-            router.push("/?browse=1");
+            router.navigate("/?browse=1");
           }}
           hitSlop={8}
           accessibilityLabel={(t as any).home ?? "Accueil"}
