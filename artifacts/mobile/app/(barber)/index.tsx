@@ -155,7 +155,7 @@ export default function BarberDashboard() {
           </View>
         </View>
         <Pressable
-          onPress={() => {
+          onPress={() => { 
             setBrowsing(true);
             router.push("/?browse=1");
           }}
