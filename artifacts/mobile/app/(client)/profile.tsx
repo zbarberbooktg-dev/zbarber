@@ -230,8 +230,9 @@ export default function ClientProfile() {
             variant="secondary"
             icon="home"
             onPress={() => {
+              console.log("[ZB-NAV] client profile Accueil tapped -> setBrowsing(true) + replace /");
               setBrowsing(true);
-              router.navigate("/?browse=1");
+              router.replace("/?browse=1");
             }}
           />
           {hasPendingBarberRequest ? (

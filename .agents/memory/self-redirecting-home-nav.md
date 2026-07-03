@@ -1,10 +1,10 @@
 ---
-name: Self-redirecting home + one-shot browse intent
-description: Why signed-in barber/admin "Accueil" nav to the public home uses a module flag, not a query param.
+name: Escaping a redirect-gated default landing from inside a nested navigator
+description: How a barber/admin reaches the redirect-gated public home from inside the (barber) Tabs — use router.replace to a root sibling, not a bypass flag.
 ---
 
-The public home (`artifacts/mobile/app/index.tsx`) redirects signed-in barbers/admins to `/(barber)` by default. To let them view the public home anyway, use the one-shot `browseIntent` module flag (mirrors `authIntent`), NOT only a query param.
+`app/index.tsx` redirects signed-in barbers/admins to `/(barber)` by default. The barber home icon + "Accueil" buttons let them reach the public home anyway.
 
-**Why:** the "Accueil" button used `router.push("/?browse=1")` and the home gate read `browse` via `useLocalSearchParams`. That param round-trip through a screen that redirects-by-default is fragile from inside a nested Tabs navigator — it intermittently landed back on the Salon tab. A module-level flag is delivery-independent and reliable.
-
-**How to apply:** callers `setBrowseIntent()` then navigate; the home screen captures `useState(() => consumeBrowseIntent())` once per mount and skips the redirect when set. Keep the `?browse=1` check too as belt-and-suspenders (covers screen-instance reuse where the useState initializer doesn't re-run). Any future "let a redirect-gated role escape its default landing" case should reach for the same flag pattern rather than a query param.
+**Rule:** to escape a redirect-gated default landing to a *root-sibling* screen from inside a nested navigator (Tabs), use `router.replace("/<sibling>")` — not `navigate`/`push`.
+**Why:** `navigate`/`push` to `"/"` get captured by the current nested navigator and never reliably reach the root Stack's `index`, so the gate keeps bouncing the user back. No bypass-flag variant (query param, one-shot module flag, reactive store) fixes this because the flag was never the problem — the call was. `replace` to a root sibling works (proven: sign-out does `router.replace("/role-select")`).
+**How to apply:** set any bypass intent, then `router.replace(...)`; don't burn time iterating on flag mechanisms first. Keep a flag as belt-and-suspenders only.
