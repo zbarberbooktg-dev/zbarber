@@ -38,6 +38,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LocationPickerMap } from "@/components/LocationPickerMap";
+
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
 import { resolveObjectUrl } from "@/lib/imageUpload";
@@ -100,6 +102,9 @@ export default function PublicSalonDetail() {
   const [clientCoords, setClientCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [quote, setQuote] = useState<{ inRange: boolean; distanceKm: number; fee: number | null } | null>(null);
+  // Bumped only on a fresh GPS capture so the map recenters; dragging the marker
+  // must NOT bump it (that would yank the map back and fight the user).
+  const [captureSeq, setCaptureSeq] = useState(0);
   const [quoting, setQuoting] = useState(false);
 
   // Favorites (only meaningful when signed in as a client)
@@ -207,8 +212,27 @@ export default function PublicSalonDetail() {
     return result;
   }, [availability, locale]);
 
-  // Capture the client's GPS location, then ask the server to quote the travel
-  // fee for a home visit at that point (distance + matching fee zone).
+  // Ask the server to quote the travel fee (distance + matching fee zone) for a
+  // home visit at the given point. Shared by the GPS capture and by the map when
+  // the client fine-tunes the marker on their exact address.
+  const quoteFor = React.useCallback(async (coords: { latitude: number; longitude: number }) => {
+    setQuoting(true);
+    try {
+      const q = await fetcher<{ inRange: boolean; distanceKm: number; fee: number | null }>(
+        `/api/barbers/${barberId}/home-service/quote`,
+        { method: "POST", body: JSON.stringify(coords) },
+      );
+      setQuote(q);
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message ?? t.hsPermissionDenied);
+    } finally {
+      setQuoting(false);
+    }
+    // fetcher (useAuthedFetch) has an unstable identity every render; read latest via closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barberId]);
+
+  // Capture the client's GPS location, drop it on the map, then quote the fee.
   const captureAndQuote = async () => {
     setLocating(true);
     setQuote(null);
@@ -218,19 +242,22 @@ export default function PublicSalonDetail() {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
       setClientCoords(coords);
-      setQuoting(true);
-      const q = await fetcher<{ inRange: boolean; distanceKm: number; fee: number | null }>(
-        `/api/barbers/${barberId}/home-service/quote`,
-        { method: "POST", body: JSON.stringify(coords) },
-      );
-      setQuote(q);
+      setCaptureSeq((n) => n + 1);
+      await quoteFor(coords);
     } catch (e: any) {
       Alert.alert("Erreur", e?.message ?? t.hsPermissionDenied);
     } finally {
       setLocating(false);
-      setQuoting(false);
     }
   };
+
+  // The client dragged/tapped the marker to their exact address: re-quote for the
+  // settled point without recentering the map (no captureSeq bump).
+  const handleMapChange = React.useCallback((lat: number, lng: number) => {
+    const coords = { latitude: lat, longitude: lng };
+    setClientCoords(coords);
+    quoteFor(coords);
+  }, [quoteFor]);
 
   const switchMode = (next: "salon" | "home") => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -712,6 +739,22 @@ export default function PublicSalonDetail() {
                     {locating || quoting ? t.hsLocating : (clientCoords ? t.hsUseMyLocation : t.hsGetLocation)}
                   </Text>
                 </Pressable>
+                {clientCoords && (
+                  <View style={{ marginTop: 10, gap: 8 }}>
+                    <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12 }}>
+                      {t.hsMapHint}
+                    </Text>
+                    <LocationPickerMap
+                      latitude={clientCoords.latitude}
+                      longitude={clientCoords.longitude}
+                      onChange={handleMapChange}
+                      recenterKey={captureSeq}
+                      height={200}
+                      tint={PALETTE.gold}
+                      background={PALETTE.surface}
+                    />
+                  </View>
+                )}
                 {quote && (
                   quote.inRange ? (
                     <View style={{ marginTop: 8, gap: 4 }}>

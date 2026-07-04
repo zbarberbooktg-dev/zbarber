@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { Button, Card } from "@/components/UI";
+import { LocationPickerMap } from "@/components/LocationPickerMap";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch, withSalon } from "@/lib/api";
@@ -64,6 +65,8 @@ export default function BarberHomeService() {
 
   const [enabled, setEnabled] = useState(false);
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  // Bumped on a fresh GPS capture so the map recenters; dragging the marker must not.
+  const [coordsSeq, setCoordsSeq] = useState(0);
   const [hours, setHours] = useState<HoursRow[]>(DEFAULT_HOURS);
   const [zones, setZones] = useState<Zone[]>([]);
   const [locating, setLocating] = useState(false);
@@ -100,6 +103,7 @@ export default function BarberHomeService() {
       if (status !== "granted") { setErr(t.hsPermissionDenied); return; }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      setCoordsSeq((n) => n + 1);
     } catch {
       setErr(t.hsPermissionDenied);
     } finally {
@@ -114,7 +118,11 @@ export default function BarberHomeService() {
 
   const handleSave = async () => {
     setErr(null); setOk(null);
+    const validZones = zones.filter((z) => z.maxRadiusKm > 0);
     if (enabled && !coords) { setErr(t.hsNeedLocation); return; }
+    // Enabling the home service requires at least one distance zone so the client
+    // can be shown a travel fee automatically.
+    if (enabled && validZones.length === 0) { setErr(t.hsNeedZones); return; }
     setSaving(true);
     try {
       await fetcher(withSalon("/api/barbers/me/home-service", selectedSalonId), {
@@ -185,11 +193,25 @@ export default function BarberHomeService() {
             <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>{t.hsSalonLocation}</Text>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2, marginBottom: 12 }}>{t.hsSalonLocationHint}</Text>
             {coords && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                <Feather name="map-pin" size={14} color={c.primary} />
-                <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 13 }}>
-                  {t.hsLocationSet}: {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
+              <View style={{ gap: 8, marginBottom: 12 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Feather name="map-pin" size={14} color={c.primary} />
+                  <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 13 }}>
+                    {t.hsLocationSet}: {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
+                  </Text>
+                </View>
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12 }}>
+                  {t.hsSalonMapHint}
                 </Text>
+                <LocationPickerMap
+                  latitude={coords.latitude}
+                  longitude={coords.longitude}
+                  onChange={(lat, lng) => setCoords({ latitude: lat, longitude: lng })}
+                  recenterKey={coordsSeq}
+                  height={200}
+                  tint={c.primary}
+                  background={c.card}
+                />
               </View>
             )}
             <Button

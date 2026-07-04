@@ -458,6 +458,21 @@ router.put("/barbers/me/home-service", requireAuth, async (req: AuthedRequest, r
     return;
   }
 
+  // Enabling the service requires at least one distance zone (stored or provided
+  // now) so a travel fee can always be quoted to clients. Zones sent in this
+  // request take precedence; otherwise fall back to what's already stored.
+  let effectiveZoneCount: number;
+  if (body.data.zones !== undefined) {
+    effectiveZoneCount = body.data.zones.length;
+  } else {
+    const existing = await db.select().from(homeServiceZonesTable).where(eq(homeServiceZonesTable.barberId, b.id));
+    effectiveZoneCount = existing.length;
+  }
+  if (body.data.enabled && effectiveZoneCount === 0) {
+    res.status(400).json({ error: "At least one distance zone is required to enable the home service" });
+    return;
+  }
+
   await db.update(barbersTable).set({
     homeServiceEnabled: body.data.enabled,
     ...(body.data.latitude !== undefined ? { latitude: body.data.latitude } : {}),
