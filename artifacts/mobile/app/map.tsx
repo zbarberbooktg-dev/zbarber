@@ -209,7 +209,12 @@ export default function MapScreen() {
     } finally {
       setLoading(false);
     }
-  }, [categoryId, fetcher]);
+    // `fetcher` (useAuthedFetch) has an unstable identity on every render because
+    // @clerk/expo's getToken is fresh each render; including it here would make
+    // fetchBarbers — and the effect below that depends on it — loop forever
+    // ("Maximum update depth exceeded"). We read the latest fetcher via closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryId]);
 
   useEffect(() => {
     fetchBarbers();
