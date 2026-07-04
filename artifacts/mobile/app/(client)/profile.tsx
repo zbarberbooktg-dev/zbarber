@@ -243,14 +243,7 @@ export default function ClientProfile() {
               disabled
               onPress={() => {}}
             />
-          ) : (
-            <Button
-              label={t.becomeBarber}
-              variant="secondary"
-              icon="scissors"
-              onPress={() => setCreateSalonOpen(true)}
-            />
-          )}
+          ) : null}
           <Button
             label={(t as any).legalTerms ?? "Conditions d'utilisation"}
             variant="ghost"
