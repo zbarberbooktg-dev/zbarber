@@ -31,3 +31,9 @@ const allowedStatuses = user.role === "client"
 `barberWithDetails()` no longer returns `ownerEmail`. Only `ownerName` is included in public barber profile responses.
 
 **Why:** Exposing the barber's account email via a public unauthenticated endpoint is a PII leak.
+
+## Service must be bound to barber in booking + availability
+Any endpoint that accepts both a `barberId` and a `serviceId` must fetch the service scoped by BOTH (`and(eq(id, serviceId), eq(barberId, barberId))`), not by `serviceId` alone — in `POST /reservations` and `GET /barbers/:id/availability`.
+
+**Why:** A client could pass a `serviceId` from a different barber; the booking/availability would then use the wrong duration/price, and (with home-service) freeze a travel fee against a mismatched service. Independent existence checks on each id are not enough.
+**How to apply:** Whenever a route takes a barber + a child entity (service, schedule, zone, photo), scope the child query by the parent id too.

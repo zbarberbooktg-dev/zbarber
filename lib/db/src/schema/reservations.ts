@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean, doublePrecision, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -18,6 +18,17 @@ export const reservationsTable = pgTable(
     scheduledAt: timestamp("scheduled_at").notNull(),
     status: reservationStatusEnum("status").notNull().default("pending"),
     notes: text("notes"),
+    // ── Home ("à domicile") service ──
+    // When true, this booking is a home visit: the client provided a GPS location
+    // and the server computed the travel distance + fee from the barber's zones.
+    isHomeService: boolean("is_home_service").notNull().default(false),
+    serviceLatitude: doublePrecision("service_latitude"),
+    serviceLongitude: doublePrecision("service_longitude"),
+    travelDistanceKm: doublePrecision("travel_distance_km"),
+    // Extra travel fee (FC) charged on top of the service price, matched from the
+    // barber's radius zones at booking time (frozen so later zone edits don't
+    // retroactively change an existing reservation's price).
+    travelFee: doublePrecision("travel_fee"),
     reminderSentAt: timestamp("reminder_sent_at"),
     // Claim marker for the post-appointment thank-you / review-invite email,
     // set once when the reservation transitions to "completed" so the email is

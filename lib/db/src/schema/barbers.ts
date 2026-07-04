@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, doublePrecision, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, doublePrecision, boolean, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -26,6 +26,10 @@ export const barbersTable = pgTable("barbers", {
   whatsapp: text("whatsapp"),
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
+  // Whether this salon offers an at-home ("à domicile") service. When true, the
+  // barber configures weekly home-visit hours (homeServiceHoursTable) and
+  // distance-tiered travel fees (homeServiceZonesTable).
+  homeServiceEnabled: boolean("home_service_enabled").notNull().default(false),
   status: barberStatusEnum("status").notNull().default("pending"),
   profileViews: integer("profile_views").notNull().default(0),
   subscriptionPlanId: integer("subscription_plan_id"),

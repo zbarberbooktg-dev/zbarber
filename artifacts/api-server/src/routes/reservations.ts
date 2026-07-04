@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { db, reservationsTable, usersTable, barbersTable, servicesTable } from "@workspace/db";
+import { db, reservationsTable, usersTable, barbersTable, servicesTable, homeServiceZonesTable } from "@workspace/db";
 import { eq, desc, or, and, inArray, sql, lt } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
 import { sendPush } from "../lib/push";
 import { sendThankYouEmail } from "../lib/reminderScheduler";
+import { haversineKm, matchZone } from "../lib/geo";
 
 const router = Router();
 
@@ -88,18 +89,60 @@ router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {
   // Any non-admin account can book like a client (a barber browses and books in
   // other salons exactly like a client). Admins manage, they do not book.
   if (user.role === "admin") { res.status(403).json({ error: "Admins cannot book" }); return; }
-  const body = z.object({ barberId: z.number(), serviceId: z.number(), scheduledAt: z.string(), notes: z.string().optional() }).safeParse(req.body);
+  const body = z.object({
+    barberId: z.number(),
+    serviceId: z.number(),
+    scheduledAt: z.string(),
+    notes: z.string().optional(),
+    isHomeService: z.boolean().optional(),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
+  }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   // Verify barber is approved
   const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, body.data.barberId)).limit(1);
   if (!b || b.status !== "approved") { res.status(400).json({ error: "Barber not available" }); return; }
+
+  // Home ("à domicile") booking: validate the salon offers it, then compute the
+  // straight-line distance from the salon to the client's GPS location and match
+  // it to a fee zone. The fee is frozen onto the reservation so later zone edits
+  // don't retroactively change this booking's price. Out-of-range → 400.
+  const homeFields = {
+    isHomeService: false as boolean,
+    serviceLatitude: null as number | null,
+    serviceLongitude: null as number | null,
+    travelDistanceKm: null as number | null,
+    travelFee: null as number | null,
+  };
+  if (body.data.isHomeService) {
+    if (!b.homeServiceEnabled || b.latitude == null || b.longitude == null) {
+      res.status(400).json({ error: "Home service not available for this salon" }); return;
+    }
+    if (body.data.latitude == null || body.data.longitude == null) {
+      res.status(400).json({ error: "Location required for a home service" }); return;
+    }
+    const zones = await db.select().from(homeServiceZonesTable).where(eq(homeServiceZonesTable.barberId, body.data.barberId));
+    const distanceKm = haversineKm(b.latitude, b.longitude, body.data.latitude, body.data.longitude);
+    const zone = matchZone(zones.map((z2) => ({ maxRadiusKm: z2.maxRadiusKm, fee: z2.fee })), distanceKm);
+    if (!zone) { res.status(400).json({ error: "Location out of service range" }); return; }
+    homeFields.isHomeService = true;
+    homeFields.serviceLatitude = body.data.latitude;
+    homeFields.serviceLongitude = body.data.longitude;
+    homeFields.travelDistanceKm = Math.round(distanceKm * 100) / 100;
+    homeFields.travelFee = zone.fee;
+  }
+
   const scheduledAt = new Date(body.data.scheduledAt);
   // Resolve the requested service's duration so we can reason about the booking
   // as a time *range* [scheduledAt, scheduledAt + durationMinutes), not just a
   // start instant. Services without a positive duration default to a single
   // 30-min slot so they still participate in overlap detection.
   const [svc] = await db.select({ durationMinutes: servicesTable.durationMinutes })
-    .from(servicesTable).where(eq(servicesTable.id, body.data.serviceId)).limit(1);
+    .from(servicesTable)
+    .where(and(
+      eq(servicesTable.id, body.data.serviceId),
+      eq(servicesTable.barberId, body.data.barberId),
+    )).limit(1);
   if (!svc) { res.status(400).json({ error: "Service not found" }); return; }
   const newDuration = svc.durationMinutes && svc.durationMinutes > 0 ? svc.durationMinutes : 30;
   const newStart = scheduledAt;
@@ -134,7 +177,14 @@ router.post("/reservations", requireAuth, async (req: AuthedRequest, res) => {
           sql`${reservationsTable.scheduledAt} + (greatest(${servicesTable.durationMinutes}, 1) * interval '1 minute') > ${newStart}`,
         )).limit(1);
       if (clash) throw new BookingClashError();
-      const [inserted] = await tx.insert(reservationsTable).values({ ...body.data, clientId: user.id, scheduledAt }).returning();
+      const [inserted] = await tx.insert(reservationsTable).values({
+        barberId: body.data.barberId,
+        serviceId: body.data.serviceId,
+        notes: body.data.notes,
+        clientId: user.id,
+        scheduledAt,
+        ...homeFields,
+      }).returning();
       return inserted!;
     });
   } catch (err) {
