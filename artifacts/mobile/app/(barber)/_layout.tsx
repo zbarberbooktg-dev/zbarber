@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, useSegments } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import React from "react";
 import { Platform } from "react-native";
@@ -12,6 +12,7 @@ export default function BarberTabs() {
   const c = useColors();
   const { role, ready, syncing, user, barberProfile, t } = useApp();
   const { isSignedIn } = useAuth();
+  const segments = useSegments();
   const isWeb = Platform.OS === "web";
 
   if (!ready || (isSignedIn && syncing && !user)) return null;
@@ -29,10 +30,20 @@ export default function BarberTabs() {
   // - any other non-approved status (pending/rejected/suspended) is sent to the
   //   pending screen.
   const awaitingDocument = role === "barber" && barberProfile?.status === "awaiting_document";
-  if (role === "barber" && barberProfile && barberProfile.status !== "approved" && !awaitingDocument) {
+  const blocked =
+    role === "barber" && !!barberProfile && barberProfile.status !== "approved" && !awaitingDocument;
+  // `pending` lives inside THIS layout, so redirecting to it unconditionally
+  // re-fires the redirect on every render → "Maximum update depth exceeded".
+  // Only redirect when we're not already on the pending screen; once there, fall
+  // through and render the Tabs navigator so the pending screen can display.
+  const onPending = segments[segments.length - 1] === "pending";
+  if (blocked && !onPending) {
     return <Redirect href="/(barber)/pending" />;
   }
-  const featureTabHref = awaitingDocument ? null : undefined;
+  // Hide every feature tab while awaiting a document or otherwise not approved,
+  // so a blocked barber only ever sees the pending / profile surfaces.
+  const featureTabHref = awaitingDocument || blocked ? null : undefined;
+  const profileTabHref = blocked ? null : undefined;
 
   return (
     <Tabs
@@ -87,6 +98,7 @@ export default function BarberTabs() {
       <Tabs.Screen
         name="profile"
         options={{
+          href: profileTabHref,
           title: t.tabProfile,
           tabBarIcon: ({ color, size }) => <Feather name="user" size={size - 2} color={color} />,
         }}
