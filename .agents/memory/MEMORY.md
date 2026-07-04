@@ -12,6 +12,7 @@
 - [Object storage provider](object-storage-provider.md) — 3 backends (local VPS disk / Replit sidecar / real GCS) via getStorageProvider; StoredObject union + HMAC-signed self-URL upload for local; objectPath shape identical so clients unchanged.
 - [Express router.use order](express-router-use-order.md) — adminRouter's top-level `router.use(requireAuth)` blocks any public router mounted AFTER it in routes/index.ts; mount public routers first.
 - [Availability model](availability-model.md) — server-side slot generation from weekly hours + service duration + reservations + daysOffTable; clients never recompute slots.
+- [Location-picker map](location-picker-map.md) — Leaflet-in-WebView draggable marker; recenter only via caller-bumped key on fresh GPS (never on drag) or the map fights the user; home service needs ≥1 zone (client+server).
 - [Countries & cities catalog](countries-cities-catalog.md) — all city/country writes go through resolveAndPersistLocation (rejects unknown countries, dedups cities per country); country UI always renders before city.
 - [Account deletion](account-deletion.md) — DELETE /api/auth/me anonymizes (not hard-deletes) because reservations/reviews FK clientId lacks cascade; public vitrine form stored in accountDeletionRequestsTable.
 - [Account role model](dual-role.md) — every account is a client; barber is admin-validated (only PATCH /barbers/:id/approve flips role); no self-promotion (active-role deleted, sync/salon-create/metaRole no longer promote).
