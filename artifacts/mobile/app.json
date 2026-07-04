@@ -53,6 +53,12 @@
       "expo-web-browser",
       "expo-notifications",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Zbarber utilise votre position pour calculer les frais de déplacement du service à domicile."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

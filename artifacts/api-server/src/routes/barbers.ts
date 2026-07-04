@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable, panoramasTable, objectUploadsTable } from "@workspace/db";
+import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable, panoramasTable, objectUploadsTable, homeServiceHoursTable, homeServiceZonesTable } from "@workspace/db";
 import { eq, avg, count, and, lt, lte, gte, inArray, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
@@ -7,6 +7,35 @@ import { requireAdminAuth } from "../lib/adminAuth";
 import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
 import { notifyAdmin, renderEmail, sendEmail } from "../lib/email";
 import { sendPush } from "../lib/push";
+import { haversineKm, matchZone } from "../lib/geo";
+
+const WEEK_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+// Load a barber's full at-home service config (weekly hours + fee zones) plus the
+// salon's stored coordinates. Hours are normalised to all 7 days for the UI.
+async function loadHomeServiceConfig(barber: typeof barbersTable.$inferSelect) {
+  const [hoursRows, zones] = await Promise.all([
+    db.select().from(homeServiceHoursTable).where(eq(homeServiceHoursTable.barberId, barber.id)),
+    db.select().from(homeServiceZonesTable).where(eq(homeServiceZonesTable.barberId, barber.id)).orderBy(homeServiceZonesTable.maxRadiusKm),
+  ]);
+  const byDay = new Map(hoursRows.map((h) => [h.day, h]));
+  const hours = WEEK_DAYS.map((day) => {
+    const h = byDay.get(day);
+    return {
+      day,
+      isAvailable: h?.isAvailable ?? false,
+      startTime: h?.startTime ?? null,
+      endTime: h?.endTime ?? null,
+    };
+  });
+  return {
+    enabled: barber.homeServiceEnabled,
+    latitude: barber.latitude,
+    longitude: barber.longitude,
+    hours,
+    zones: zones.map((z) => ({ id: z.id, maxRadiusKm: z.maxRadiusKm, fee: z.fee })),
+  };
+}
 
 const router = Router();
 
@@ -393,6 +422,69 @@ router.put("/barbers/me/schedule", requireAuth, async (req: AuthedRequest, res) 
   res.json(sched);
 });
 
+// ── Barber: at-home ("à domicile") service configuration ───
+router.get("/barbers/me/home-service", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  res.json(await loadHomeServiceConfig(b));
+});
+
+router.put("/barbers/me/home-service", requireAuth, async (req: AuthedRequest, res) => {
+  const b = await getMyBarberOr404(req, res);
+  if (!b) return;
+  const body = z.object({
+    enabled: z.boolean(),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
+    hours: z.array(z.object({
+      day: z.enum(WEEK_DAYS),
+      isAvailable: z.boolean(),
+      startTime: z.string().optional().nullable(),
+      endTime: z.string().optional().nullable(),
+    })).optional(),
+    zones: z.array(z.object({
+      maxRadiusKm: z.number().positive(),
+      fee: z.number().min(0),
+    })).optional(),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
+
+  // Enabling the service requires salon coordinates (stored or provided now) so
+  // distance/fee can be computed for clients.
+  const nextLat = body.data.latitude ?? b.latitude;
+  const nextLng = body.data.longitude ?? b.longitude;
+  if (body.data.enabled && (nextLat == null || nextLng == null)) {
+    res.status(400).json({ error: "Salon location (GPS) is required to enable the home service" });
+    return;
+  }
+
+  await db.update(barbersTable).set({
+    homeServiceEnabled: body.data.enabled,
+    ...(body.data.latitude !== undefined ? { latitude: body.data.latitude } : {}),
+    ...(body.data.longitude !== undefined ? { longitude: body.data.longitude } : {}),
+  }).where(eq(barbersTable.id, b.id));
+
+  if (body.data.hours) {
+    await db.delete(homeServiceHoursTable).where(eq(homeServiceHoursTable.barberId, b.id));
+    const rows = body.data.hours.map((h) => ({
+      barberId: b.id,
+      day: h.day,
+      isAvailable: h.isAvailable,
+      startTime: h.isAvailable ? (h.startTime ?? null) : null,
+      endTime: h.isAvailable ? (h.endTime ?? null) : null,
+    }));
+    if (rows.length) await db.insert(homeServiceHoursTable).values(rows);
+  }
+  if (body.data.zones) {
+    await db.delete(homeServiceZonesTable).where(eq(homeServiceZonesTable.barberId, b.id));
+    if (body.data.zones.length) {
+      await db.insert(homeServiceZonesTable).values(body.data.zones.map((z2) => ({ barberId: b.id, maxRadiusKm: z2.maxRadiusKm, fee: z2.fee })));
+    }
+  }
+  const [fresh] = await db.select().from(barbersTable).where(eq(barbersTable.id, b.id)).limit(1);
+  res.json(await loadHomeServiceConfig(fresh!));
+});
+
 // ── Barber: create salon profile (status starts pending) ───
 router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
   const user = req.localUser!;
@@ -611,21 +703,33 @@ router.get("/barbers/:id/availability", async (req, res) => {
     from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     serviceId: z.string().optional(),
+    mode: z.enum(["salon", "home"]).optional(),
   }).safeParse(req.query);
   if (!query.success) { res.status(400).json({ error: "from/to required (YYYY-MM-DD)" }); return; }
+  const mode = query.data.mode ?? "salon";
 
   // Default slot step = 30 min; if serviceId provided, use its durationMinutes.
   let stepMinutes = 30;
   if (query.data.serviceId) {
     const sid = parseInt(query.data.serviceId);
     if (Number.isFinite(sid)) {
-      const [svc] = await db.select({ d: servicesTable.durationMinutes }).from(servicesTable).where(eq(servicesTable.id, sid)).limit(1);
+      const [svc] = await db.select({ d: servicesTable.durationMinutes }).from(servicesTable).where(and(eq(servicesTable.id, sid), eq(servicesTable.barberId, id))).limit(1);
       if (svc?.d && svc.d > 0) stepMinutes = svc.d;
     }
   }
 
-  const schedules = await db.select().from(schedulesTable).where(eq(schedulesTable.barberId, id));
-  const scheduleByDay = new Map(schedules.map((s) => [s.day, s]));
+  // Slot windows come from the salon weekly hours by default, or the separate
+  // home-service weekly hours when mode=home. Both are normalised to a common
+  // shape (home hours have no break, so break fields are null).
+  type DayWindow = { isWorking: boolean; startTime: string | null; endTime: string | null; breakStart: string | null; breakEnd: string | null };
+  const scheduleByDay = new Map<string, DayWindow>();
+  if (mode === "home") {
+    const hs = await db.select().from(homeServiceHoursTable).where(eq(homeServiceHoursTable.barberId, id));
+    for (const h of hs) scheduleByDay.set(h.day, { isWorking: h.isAvailable, startTime: h.startTime, endTime: h.endTime, breakStart: null, breakEnd: null });
+  } else {
+    const schedules = await db.select().from(schedulesTable).where(eq(schedulesTable.barberId, id));
+    for (const s of schedules) scheduleByDay.set(s.day, { isWorking: s.isWorking, startTime: s.startTime, endTime: s.endTime, breakStart: s.breakStart, breakEnd: s.breakEnd });
+  }
 
   // Load reservations in [from 00:00 UTC, to+1 00:00 UTC) — pending or confirmed block the slot.
   // Using UTC boundaries to match the UTC-based slot iso generation below.
@@ -710,6 +814,45 @@ router.get("/barbers/:id/availability", async (req, res) => {
   }
 
   res.json(result);
+});
+
+// ── Public: at-home service info for a salon (hours + fee zones) ───
+// Lets a client see the barber's home-visit availability and pricing tiers.
+router.get("/barbers/:id/home-service", async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid barber id" }); return; }
+  const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, id)).limit(1);
+  if (!b) { res.status(404).json({ error: "Barber not found" }); return; }
+  const cfg = await loadHomeServiceConfig(b);
+  // Don't leak the salon's precise coordinates to the public; expose only what a
+  // client needs to browse (enabled flag, hours, and the fee zones).
+  res.json({ enabled: cfg.enabled, hours: cfg.hours, zones: cfg.zones });
+});
+
+// ── Client: quote the travel fee for a home visit at a given GPS location ───
+router.post("/barbers/:id/home-service/quote", requireAuth, async (req: AuthedRequest, res) => {
+  const id = parseInt(String(req.params.id));
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid barber id" }); return; }
+  const body = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+  }).safeParse(req.body);
+  if (!body.success) { res.status(400).json({ error: "Invalid location" }); return; }
+  const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, id)).limit(1);
+  if (!b) { res.status(404).json({ error: "Barber not found" }); return; }
+  if (!b.homeServiceEnabled || b.latitude == null || b.longitude == null) {
+    res.status(400).json({ error: "Home service not available for this salon" });
+    return;
+  }
+  const zones = await db.select().from(homeServiceZonesTable).where(eq(homeServiceZonesTable.barberId, id));
+  const distanceKm = haversineKm(b.latitude, b.longitude, body.data.latitude, body.data.longitude);
+  const zone = matchZone(zones.map((z2) => ({ maxRadiusKm: z2.maxRadiusKm, fee: z2.fee })), distanceKm);
+  res.json({
+    inRange: zone != null,
+    distanceKm: Math.round(distanceKm * 100) / 100,
+    fee: zone?.fee ?? null,
+    maxRadiusKm: zone?.maxRadiusKm ?? null,
+  });
 });
 
 // ── Public: barber detail ───

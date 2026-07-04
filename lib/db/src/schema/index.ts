@@ -10,6 +10,7 @@ export * from "./notifications";
 export * from "./gallery";
 export * from "./home-gallery";
 export * from "./schedules";
+export * from "./homeService";
 export * from "./locations";
 export * from "./accountDeletionRequests";
 export * from "./adminAccounts";

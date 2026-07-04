@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { useQuery } from "@tanstack/react-query";
+import * as Location from "expo-location";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -94,6 +95,13 @@ export default function PublicSalonDetail() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
 
+  // At-home ("à domicile") booking state
+  const [mode, setMode] = useState<"salon" | "home">("salon");
+  const [clientCoords, setClientCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [quote, setQuote] = useState<{ inRange: boolean; distanceKm: number; fee: number | null } | null>(null);
+  const [quoting, setQuoting] = useState(false);
+
   // Favorites (only meaningful when signed in as a client)
   const { data: favorites, refetch: refetchFavorites } = useListFavorites({ query: { enabled: isSignedIn } as never });
   const addFavorite = useAddFavorite();
@@ -171,10 +179,18 @@ export default function PublicSalonDetail() {
   }, []);
 
   const { data: availability } = useQuery<Array<{ date: string; isWorking: boolean; isBlocked: boolean; slots: Array<{ time: string; iso: string; available: boolean; reason?: string }> }>>({
-    queryKey: ["availability", barberId, selectedService, fromIso, toIso],
-    queryFn: () => fetcher(`/api/barbers/${barberId}/availability?from=${fromIso}&to=${toIso}${selectedService ? `&serviceId=${selectedService}` : ""}`),
+    queryKey: ["availability", barberId, selectedService, fromIso, toIso, mode],
+    queryFn: () => fetcher(`/api/barbers/${barberId}/availability?from=${fromIso}&to=${toIso}${selectedService ? `&serviceId=${selectedService}` : ""}${mode === "home" ? "&mode=home" : ""}`),
     enabled: !!barberId,
   });
+
+  // Public home-service config (enabled flag + fee zones) for this salon.
+  const { data: homeService } = useQuery<{ enabled: boolean; hours: Array<{ day: string; isAvailable: boolean; startTime: string | null; endTime: string | null }>; zones: Array<{ id: number; maxRadiusKm: number; fee: number }> }>({
+    queryKey: ["homeServicePublic", barberId],
+    queryFn: () => fetcher(`/api/barbers/${barberId}/home-service`),
+    enabled: !!barberId,
+  });
+  const homeServiceEnabled = !!homeService?.enabled;
 
   const slots = React.useMemo(() => {
     const result: Array<{ label: string; iso: string }> = [];
@@ -190,6 +206,38 @@ export default function PublicSalonDetail() {
     }
     return result;
   }, [availability, locale]);
+
+  // Capture the client's GPS location, then ask the server to quote the travel
+  // fee for a home visit at that point (distance + matching fee zone).
+  const captureAndQuote = async () => {
+    setLocating(true);
+    setQuote(null);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") { Alert.alert(t.hsTitle, t.hsPermissionDenied); return; }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      setClientCoords(coords);
+      setQuoting(true);
+      const q = await fetcher<{ inRange: boolean; distanceKm: number; fee: number | null }>(
+        `/api/barbers/${barberId}/home-service/quote`,
+        { method: "POST", body: JSON.stringify(coords) },
+      );
+      setQuote(q);
+    } catch (e: any) {
+      Alert.alert("Erreur", e?.message ?? t.hsPermissionDenied);
+    } finally {
+      setLocating(false);
+      setQuoting(false);
+    }
+  };
+
+  const switchMode = (next: "salon" | "home") => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setMode(next);
+    setSelectedSlot(null);
+    if (next === "salon") { setQuote(null); }
+  };
 
   const handleBook = async () => {
     if (!isSignedIn) {
@@ -207,11 +255,22 @@ export default function PublicSalonDetail() {
       Alert.alert("Sélection incomplète", "Choisissez un service et un créneau.");
       return;
     }
+    if (mode === "home") {
+      if (!clientCoords) { Alert.alert(t.hsTitle, t.hsLocationRequired); return; }
+      if (quote && !quote.inRange) { Alert.alert(t.hsTitle, t.hsOutOfRange); return; }
+    }
     setBooking(true);
     try {
       await fetcher("/api/reservations", {
         method: "POST",
-        body: JSON.stringify({ barberId, serviceId: selectedService, scheduledAt: selectedSlot }),
+        body: JSON.stringify({
+          barberId,
+          serviceId: selectedService,
+          scheduledAt: selectedSlot,
+          ...(mode === "home" && clientCoords
+            ? { isHomeService: true, latitude: clientCoords.latitude, longitude: clientCoords.longitude }
+            : {}),
+        }),
       });
       Alert.alert("Réservation envoyée !", "Le barbier confirmera bientôt votre rendez-vous.", [
         { text: "Voir mes réservations", onPress: () => router.replace("/(client)/bookings") },
@@ -412,6 +471,18 @@ export default function PublicSalonDetail() {
                   {barber.neighborhood ? `${barber.neighborhood} • ${barber.city}` : barber.city}
                 </Text>
               </View>
+              {homeServiceEnabled && (
+                <View style={{
+                  flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, alignSelf: "flex-start",
+                  paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+                  backgroundColor: `${PALETTE.gold}18`, borderWidth: 1, borderColor: `${PALETTE.gold}40`,
+                }}>
+                  <Feather name="navigation" size={11} color={PALETTE.gold} />
+                  <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
+                    {t.hsSubtitle}
+                  </Text>
+                </View>
+              )}
             </View>
             {reviews.length > 0 && (
               <View style={{ alignItems: "center" }}>
@@ -588,7 +659,83 @@ export default function PublicSalonDetail() {
         ) : (
           <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: PALETTE.border }}>
             <SectionTitle title={isFr ? "Réserver" : "Book"} />
-            <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 12, marginTop: -6 }}>
+
+            {/* Salon vs at-home mode selector — only when this salon offers home visits */}
+            {homeServiceEnabled && (
+              <View style={{ marginBottom: 14, marginTop: -2 }}>
+                <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 8 }}>
+                  {t.hsChooseMode}
+                </Text>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {([
+                    { key: "salon" as const, icon: "home" as const, label: t.hsModeSalon },
+                    { key: "home" as const, icon: "navigation" as const, label: t.hsModeHome },
+                  ]).map((opt) => (
+                    <Pressable
+                      key={opt.key}
+                      onPress={() => switchMode(opt.key)}
+                      style={{
+                        flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+                        paddingVertical: 12,
+                        backgroundColor: mode === opt.key ? `${PALETTE.gold}18` : PALETTE.surface,
+                        borderWidth: 1,
+                        borderColor: mode === opt.key ? PALETTE.gold : PALETTE.border,
+                      }}
+                    >
+                      <Feather name={opt.icon} size={14} color={mode === opt.key ? PALETTE.gold : PALETTE.textMuted} />
+                      <Text style={{ color: mode === opt.key ? PALETTE.gold : PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* At-home location + travel-fee quote */}
+            {homeServiceEnabled && mode === "home" && (
+              <View style={{
+                marginBottom: 14, padding: 12,
+                backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border,
+              }}>
+                <Pressable
+                  onPress={captureAndQuote}
+                  disabled={locating || quoting}
+                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 10 }}
+                >
+                  {locating || quoting ? (
+                    <ActivityIndicator color={PALETTE.gold} size="small" />
+                  ) : (
+                    <Feather name="crosshair" size={15} color={PALETTE.gold} />
+                  )}
+                  <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                    {locating || quoting ? t.hsLocating : (clientCoords ? t.hsUseMyLocation : t.hsGetLocation)}
+                  </Text>
+                </Pressable>
+                {quote && (
+                  quote.inRange ? (
+                    <View style={{ marginTop: 8, gap: 4 }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13 }}>{t.hsQuoteDistance}</Text>
+                        <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>{quote.distanceKm} km</Text>
+                      </View>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13 }}>{t.hsQuoteFee}</Text>
+                        <Text style={{ color: PALETTE.gold, fontFamily: "Inter_700Bold", fontSize: 14 }}>
+                          {Number(quote.fee ?? 0).toLocaleString()} FC
+                        </Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <Text style={{ color: PALETTE.gold, fontFamily: "Inter_500Medium", fontSize: 12, marginTop: 8, textAlign: "center" }}>
+                      {t.hsOutOfRange}
+                    </Text>
+                  )
+                )}
+              </View>
+            )}
+
+            <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 12 }}>
               {isFr ? "Choisissez un service" : "Choose a service"}
             </Text>
             {services.map((s) => (
@@ -793,6 +940,9 @@ export default function PublicSalonDetail() {
             <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, textAlign: "center" }}>
               {services.find((s) => s.id === selectedService)?.name} —{" "}
               {slots.find((sl) => sl.iso === selectedSlot)?.label}
+              {mode === "home" && quote?.inRange && quote.fee != null
+                ? ` · ${t.hsTravelFee}: ${Number(quote.fee).toLocaleString()} FC`
+                : ""}
             </Text>
           )}
           <Pressable

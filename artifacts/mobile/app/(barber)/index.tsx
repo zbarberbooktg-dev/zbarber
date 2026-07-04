@@ -272,8 +272,8 @@ export default function BarberDashboard() {
         <Shortcut c={c} icon="users" label="File d'attente" onPress={() => router.push("/(barber)/queue")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
+        <Shortcut c={c} icon="home" label={t.hsBarberNav} onPress={() => router.push("/(barber)/home-service")} />
         <Shortcut c={c} icon="plus-circle" label="Nouveau salon" onPress={() => setCreateOpen(true)} />
-        <View style={{ flex: 1 }} />
       </View>
       <CreateSalonModal visible={createOpen} onClose={() => setCreateOpen(false)} />
 
