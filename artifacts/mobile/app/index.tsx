@@ -195,6 +195,18 @@ export default function PublicHome() {
                 : <Feather name="map-pin" size={14} color={PALETTE.gold} />}
             </Pressable>
             <Pressable
+              onPress={() =>
+                router.push(
+                  role === "barber" || role === "admin" ? "/(barber)/profile" : "/(client)/profile",
+                )
+              }
+              style={{ width: 36, height: 36, borderWidth: 1, borderColor: buttonBorder, alignItems: "center", justifyContent: "center" }}
+              hitSlop={6}
+              accessibilityLabel={lang === "fr" ? "Profil" : "Profile"}
+            >
+              <Feather name="user" size={14} color={PALETTE.gold} />
+            </Pressable>
+            <Pressable
               onPress={() => router.push("/(client)/bookings")}
               style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: buttonBorder }}
             >
