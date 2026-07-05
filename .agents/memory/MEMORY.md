@@ -38,3 +38,4 @@
 - [Expo dev login prompt on Replit](expo-dev-login-prompt.md) — expo start hangs on interactive "log in to Expo" (owner+projectId, no TTY); add EXPO_OFFLINE=1 to the mobile dev script so the QR works.
 - [useAuthedFetch unstable in deps](authed-fetch-unstable-deps.md) — never put the mobile fetcher/getToken in effect/callback/memo deps or a query key; fresh identity each render → "Maximum update depth exceeded" once authed.
 - [Layout self-redirect loop](layout-self-redirect-loop.md) — a group _layout must not <Redirect> to a child inside itself; guard with useSegments (skip when already there) or it loops → blank screen.
+- [Clerk test-auth vs Expo domain](clerk-testauth-expo-domain.md) — runTest's Clerk session injection can't reach the Expo web dev subdomain; verify gated logic via api-server vitest instead.

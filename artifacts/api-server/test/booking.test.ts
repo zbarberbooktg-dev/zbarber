@@ -312,3 +312,48 @@ describe("Reservation status transitions", () => {
     expect(res.body.status).toBe("cancelled");
   });
 });
+
+describe("Reservation reschedule (scheduledAt)", () => {
+  const DATE_RESCHEDULE = futureYmd(37);
+  const DATE_RESCHEDULE_TARGET = futureYmd(38);
+  let resId: number;
+
+  beforeAll(async () => {
+    const [r] = await db.insert(reservationsTable).values({
+      clientId, barberId, serviceId, scheduledAt: slotInstant(DATE_RESCHEDULE, 540), status: "confirmed",
+    }).returning();
+    resId = r!.id;
+  });
+
+  it("lets a client move a confirmed reservation to a new future slot, resetting status to pending (200)", async () => {
+    const res = await asClerk(
+      request(app).patch(`/api/reservations/${resId}`).send({ scheduledAt: slotInstant(DATE_RESCHEDULE_TARGET, 600).toISOString() }),
+      clerkClient,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("pending");
+    expect(new Date(res.body.scheduledAt).toISOString()).toBe(slotInstant(DATE_RESCHEDULE_TARGET, 600).toISOString());
+  });
+
+  it("rejects a reschedule onto a slot already taken by another reservation (409)", async () => {
+    await db.insert(reservationsTable).values({
+      clientId, barberId, serviceId, scheduledAt: slotInstant(DATE_RESCHEDULE_TARGET, 660), status: "confirmed",
+    });
+    const res = await asClerk(
+      request(app).patch(`/api/reservations/${resId}`).send({ scheduledAt: slotInstant(DATE_RESCHEDULE_TARGET, 660).toISOString() }),
+      clerkClient,
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("rejects a client reschedule within 24h of the current appointment (409)", async () => {
+    const [soon] = await db.insert(reservationsTable).values({
+      clientId, barberId, serviceId, scheduledAt: new Date(Date.now() + 60 * 60 * 1000), status: "confirmed",
+    }).returning();
+    const res = await asClerk(
+      request(app).patch(`/api/reservations/${soon!.id}`).send({ scheduledAt: slotInstant(DATE_RESCHEDULE_TARGET, 540).toISOString() }),
+      clerkClient,
+    );
+    expect(res.status).toBe(409);
+  });
+});
