@@ -39,3 +39,4 @@
 - [useAuthedFetch unstable in deps](authed-fetch-unstable-deps.md) — never put the mobile fetcher/getToken in effect/callback/memo deps or a query key; fresh identity each render → "Maximum update depth exceeded" once authed.
 - [Layout self-redirect loop](layout-self-redirect-loop.md) — a group _layout must not <Redirect> to a child inside itself; guard with useSegments (skip when already there) or it loops → blank screen.
 - [Clerk test-auth vs Expo domain](clerk-testauth-expo-domain.md) — runTest's Clerk session injection can't reach the Expo web dev subdomain; verify gated logic via api-server vitest instead.
+- [Calendar + digital clock time picker](date-time-picker-calendar.md) — booking/reschedule slot picker is a month calendar + HH:MM grid (DateTimePicker), not a flat dropdown list; reuse it for multi-week windows.
