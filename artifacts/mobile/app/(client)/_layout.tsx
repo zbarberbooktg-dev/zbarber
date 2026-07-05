@@ -1,18 +1,44 @@
 import { Feather } from "@expo/vector-icons";
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import React from "react";
-import { Platform } from "react-native";
+import { Platform, Pressable } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { consumeAuthIntent } from "@/lib/authIntent";
+import { setBrowsing } from "@/lib/browseIntent";
 
 export default function ClientTabs() {
   const c = useColors();
+  const router = useRouter();
   const { role, ready, syncing, user, t } = useApp();
   const { isSignedIn } = useAuth();
   const isWeb = Platform.OS === "web";
+
+  const HomeHeaderButton = () => (
+    <Pressable
+      onPress={() => {
+        setBrowsing(true);
+        router.push("/browse");
+      }}
+      hitSlop={8}
+      accessibilityLabel={(t as any).home ?? "Accueil"}
+      style={{
+        marginRight: 16,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: c.muted,
+        borderWidth: 1,
+        borderColor: c.border,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Feather name="home" size={17} color={c.primary} />
+    </Pressable>
+  );
 
   if (!ready || (isSignedIn && syncing && !user)) return null;
   if (!isSignedIn) {
@@ -48,6 +74,7 @@ export default function ClientTabs() {
         options={{
           title: t.tabBookings,
           tabBarIcon: ({ color, size }) => <Feather name="calendar" size={size - 2} color={color} />,
+          headerRight: () => <HomeHeaderButton />,
         }}
       />
       <Tabs.Screen
