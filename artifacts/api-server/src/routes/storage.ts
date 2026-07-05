@@ -26,7 +26,7 @@ import {
   verifyLocalUploadToken,
 } from "../lib/objectStorage";
 import { requireAuth, provisionUserFromClerk, type AuthedRequest } from "../lib/clerkAuth";
-import { resolveAdminFromCookie, type AdminAuthedRequest } from "../lib/adminAuth";
+import { resolveAdminFromCookie, requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
 
 async function attachOptionalUser(req: AuthedRequest & AdminAuthedRequest, _res: Response, next: NextFunction): Promise<void> {
   try {
@@ -52,7 +52,7 @@ async function attachOptionalUser(req: AuthedRequest & AdminAuthedRequest, _res:
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
-router.post("/storage/uploads/request-url", requireAuth, async (req: AuthedRequest, res: Response) => {
+router.post("/storage/uploads/request-url", requireAuthOrAdmin, async (req: AuthedRequest & AdminAuthedRequest, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Missing or invalid required fields" });
@@ -69,6 +69,9 @@ router.post("/storage/uploads/request-url", requireAuth, async (req: AuthedReque
     // Bind the freshly-issued object path to the requesting user so that later
     // references (e.g. financing ID documents) can be verified as owned by the
     // uploader, preventing path-claiming of another user's private files.
+    // Self-managed admins (cookie JWT) have no local `usersTable` row, so
+    // there's nothing to bind for them — they're already fully trusted by
+    // `requireAdminAuth`-gated routes regardless of object ownership.
     const userId = req.localUser?.id;
     if (userId) {
       await db
