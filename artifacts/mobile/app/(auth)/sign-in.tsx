@@ -22,14 +22,24 @@ type MfaStrategy = "totp" | "phone_code" | "email_code" | "backup_code";
 
 export default function SignInScreen() {
   const c = useColors();
-  const { t } = useApp();
+  const { t, suspendedNotice, clearSuspendedNotice } = useApp();
   const router = useRouter();
   const { signIn, errors, fetchStatus } = useSignIn();
   const { isSignedIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(
+    suspendedNotice ? (t as any).accountSuspendedNotice : null,
+  );
   const [intent] = useState(() => consumeAuthIntent());
+
+  React.useEffect(() => {
+    if (suspendedNotice) clearSuspendedNotice();
+    // Only run once on mount: this screen's job is to surface the notice that
+    // was already recorded (by the forced sign-out) and then clear it so it
+    // doesn't reappear on a later, unrelated sign-in failure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [step, setStep] = useState<"credentials" | "mfa">("credentials");
   const [mfaStrategy, setMfaStrategy] = useState<MfaStrategy | null>(null);

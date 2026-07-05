@@ -1,6 +1,8 @@
 import { useAuth } from "@clerk/expo";
 import { useCallback } from "react";
 
+import { reportSuspendedIfNeeded } from "@/lib/accountGuard";
+
 export function apiUrl(path: string): string {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   const base = domain ? `https://${domain}` : "";
@@ -26,6 +28,9 @@ export function useAuthedFetch() {
       const res = await fetch(apiUrl(path), { ...init, headers });
       if (!res.ok) {
         const errBody = await res.text().catch(() => "");
+        let parsed: unknown = null;
+        try { parsed = errBody ? JSON.parse(errBody) : null; } catch {}
+        reportSuspendedIfNeeded(res.status, parsed);
         throw new Error(errBody || `HTTP ${res.status}`);
       }
       if (res.status === 204) return null as T;

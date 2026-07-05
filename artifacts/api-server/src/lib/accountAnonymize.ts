@@ -32,7 +32,12 @@ export async function anonymizeUserAccount(userId: number, log?: Logger): Promis
       .set({
         name: "Compte supprimé",
         email: anonEmail,
-        clerkUserId: null,
+        // Keep clerkUserId (do NOT null it out): requireAuth looks accounts up
+        // by clerkUserId first, and Clerk IDs are never reused. Nulling it here
+        // used to let a deleted account "resurrect" as a brand-new active
+        // account if the best-effort Clerk deleteUser call below failed —
+        // provisionUserFromClerk would then fail the clerkUserId lookup, fail
+        // the (now-mismatched) email lookup, and insert a fresh row.
         phone: null,
         avatarUrl: null,
         city: null,

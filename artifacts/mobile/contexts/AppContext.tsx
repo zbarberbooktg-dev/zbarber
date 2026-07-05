@@ -3,11 +3,12 @@ import { DeviceEventEmitter } from "react-native";
 import { LANG_CHANGE_EVENT } from "@/hooks/useClerkLocalization";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/expo";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setUnauthorizedHandler, type ApiError } from "@workspace/api-client-react";
 
 import { localeMap, translations, type Lang } from "@/constants/i18n";
 import { apiUrl } from "@/lib/api";
 import { registerPushToken, unregisterPushToken } from "@/lib/push";
+import { ACCOUNT_SUSPENDED_EVENT, reportSuspendedIfNeeded } from "@/lib/accountGuard";
 
 export type AppRole = "client" | "barber" | "admin" | null;
 export type AppStatus = "active" | "suspended" | "pending" | null;
@@ -54,6 +55,8 @@ type AppState = {
   setLang: (l: Lang) => Promise<void>;
   signOut: () => Promise<void>;
   syncAuth: (opts?: SyncAuthOpts) => Promise<SyncedUser | null>;
+  suspendedNotice: boolean;
+  clearSuspendedNotice: () => void;
   t: (typeof translations)[Lang];
   locale: string;
 };
@@ -98,9 +101,11 @@ async function callSync(
     body: JSON.stringify(body),
   });
   if (!res.ok) {
+    let parsed: unknown = null;
+    try { parsed = await res.json(); } catch {}
+    reportSuspendedIfNeeded(res.status, parsed);
     if (throwOnError) {
-      let msg = `Sync failed (${res.status})`;
-      try { const j = await res.json(); if (j?.error) msg = j.error; } catch {}
+      const msg = (parsed as { error?: string } | null)?.error ?? `Sync failed (${res.status})`;
       throw new Error(msg);
     }
     return null;
@@ -135,7 +140,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (token && !headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
     if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
     const res = await fetch(apiUrl(path), { ...init, headers });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const parsed = await res.json().catch(() => null);
+      reportSuspendedIfNeeded(res.status, parsed);
+      throw new Error(`HTTP ${res.status}`);
+    }
     return res.status === 204 ? null : res.json().catch(() => null);
   };
 
@@ -240,6 +249,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await clerkSignOut();
   };
 
+  const [suspendedNotice, setSuspendedNotice] = useState(false);
+  const clearSuspendedNotice = () => setSuspendedNotice(false);
+
+  // Always call the *latest* signOut from the event listener below without
+  // re-subscribing on every render (signOut's identity changes each render).
+  const signOutRef = useRef(signOut);
+  signOutRef.current = signOut;
+
+  // Any request — generated hooks, useAuthedFetch, or the raw fetch calls in
+  // this file — that hits a 403 "Account suspended" response reports it here.
+  // We react once, from a single place: force a full Clerk sign-out (not just
+  // clearing local state) so a suspended/deleted account can neither keep
+  // using an already-open session nor silently sit half-signed-in, and show a
+  // notice on the sign-in screen so the user understands why.
+  useEffect(() => {
+    setUnauthorizedHandler((err: ApiError) => reportSuspendedIfNeeded(err.status, err.data));
+    const sub = DeviceEventEmitter.addListener(ACCOUNT_SUSPENDED_EVENT, () => {
+      setSuspendedNotice(true);
+      signOutRef.current().catch(() => {});
+    });
+    return () => {
+      setUnauthorizedHandler(null);
+      sub.remove();
+    };
+  }, []);
+
   const value = useMemo<AppState>(
     () => ({
       role: user?.role ?? null,
@@ -257,10 +292,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLang,
       signOut,
       syncAuth,
+      suspendedNotice,
+      clearSuspendedNotice,
       t: translations[lang],
       locale: localeMap[lang],
     }),
-    [user, barberProfile, syncing, themePref, lang, storageReady, isLoaded, initialSyncDone, selectedSalonId],
+    [user, barberProfile, syncing, themePref, lang, storageReady, isLoaded, initialSyncDone, selectedSalonId, suspendedNotice],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

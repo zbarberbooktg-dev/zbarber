@@ -177,6 +177,8 @@ export const translations = {
       cityRequired: "La ville est obligatoire.",
     },
 
+    accountSuspendedNotice: "Votre compte a été suspendu. Vous avez été déconnecté et ne pouvez pas vous reconnecter. Contactez le support pour plus d'informations.",
+
     hello: "Bonjour",
     salonApproved: "Salon approuvé",
     salonPending: "En attente",
@@ -406,6 +408,8 @@ export const translations = {
       countryRequired: "Country is required.",
       cityRequired: "City is required.",
     },
+
+    accountSuspendedNotice: "Your account has been suspended. You have been signed out and cannot sign back in. Contact support for more information.",
 
     hello: "Hello",
     salonApproved: "Shop approved",

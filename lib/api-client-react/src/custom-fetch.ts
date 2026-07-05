@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _onUnauthorized: ((error: ApiError) => void) | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +43,17 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Register a handler invoked whenever any request fails with a 401 or 403
+ * response, before the ApiError is thrown to the caller. Useful for apps that
+ * want a single place to react to auth failures (e.g. forcing a sign-out when
+ * the server reports the account was suspended), without touching every
+ * call site. Pass `null` to clear the handler.
+ */
+export function setUnauthorizedHandler(handler: ((error: ApiError) => void) | null): void {
+  _onUnauthorized = handler;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -364,7 +376,15 @@ export async function customFetch<T = unknown>(
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
-    throw new ApiError(response, errorData, requestInfo);
+    const apiError = new ApiError(response, errorData, requestInfo);
+    if ((response.status === 401 || response.status === 403) && _onUnauthorized) {
+      try {
+        _onUnauthorized(apiError);
+      } catch {
+        // Never let a handler failure mask the original API error.
+      }
+    }
+    throw apiError;
   }
 
   return (await parseSuccessBody(response, responseType, requestInfo)) as T;
