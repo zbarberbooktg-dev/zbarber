@@ -4,6 +4,7 @@ import { eq, avg, count, and, lt, lte, gte, inArray, sql, desc } from "drizzle-o
 import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAdminAuth } from "../lib/adminAuth";
+import { anonymizeUserAccount } from "../lib/accountAnonymize";
 import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
 import { notifyAdmin, renderEmail, sendEmail } from "../lib/email";
 import { sendPush } from "../lib/push";
@@ -1053,6 +1054,17 @@ router.patch("/barbers/:id/reactivate", requireAdminAuth, async (req, res) => {
   const [updated] = await db.update(barbersTable).set({ status: "approved" }).where(eq(barbersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "Barber not found" }); return; }
   res.json(updated);
+});
+
+// Admin: delete a barber account. Resolves the owning user and anonymizes it
+// (not hard-delete) to preserve reservations/reviews referential integrity;
+// the owned salon(s) are suspended + scrubbed in the same pass.
+router.delete("/barbers/:id", requireAdminAuth, async (req, res) => {
+  const id = parseInt(String(req.params.id));
+  const [barber] = await db.select({ userId: barbersTable.userId }).from(barbersTable).where(eq(barbersTable.id, id)).limit(1);
+  if (!barber) { res.status(404).json({ error: "Barber not found" }); return; }
+  await anonymizeUserAccount(barber.userId, req.log);
+  res.status(204).send();
 });
 
 // ── Schedule (public read, barber-only write) ───

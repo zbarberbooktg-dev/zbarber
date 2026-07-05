@@ -496,6 +496,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Barber"
+    delete:
+      operationId: deleteBarber
+      tags: [barbers]
+      summary: Delete barber account (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
   /barbers/{id}/first-validate:
     patch:

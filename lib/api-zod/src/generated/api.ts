@@ -689,6 +689,14 @@ export const UpdateBarberResponse = zod.object({
 
 
 /**
+ * @summary Delete barber account (admin)
+ */
+export const DeleteBarberParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
  * Step 1 of the two-step verification. Moves a pending barber to "awaiting_document", starts the 30-day window to upload an official authorization document, and activates barber capabilities so the owner can reach the upload entry. The account stays gated until the document is reviewed and the barber is finally approved.
 
  * @summary First validation of a barber account (admin)

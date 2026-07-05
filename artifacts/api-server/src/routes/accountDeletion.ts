@@ -1,46 +1,20 @@
 import { Router } from "express";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { clerkClient } from "@clerk/express";
 import { db, usersTable, accountDeletionRequestsTable } from "@workspace/db";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { notifyAdmin } from "../lib/email";
+import { anonymizeUserAccount } from "../lib/accountAnonymize";
 
 const router = Router();
 
 // ── Authenticated: delete my account ───
 // Anonymizes the user row (preserving reservations/reviews referential
-// integrity) and deletes the underlying Clerk user. Barber profile (if any)
-// is removed via FK cascade.
+// integrity), suspends any owned salon(s), and deletes the Clerk user.
 router.delete("/auth/me", requireAuth, async (req: AuthedRequest, res) => {
   const user = req.localUser!;
-  const ts = Date.now();
-  const anonEmail = `deleted-${user.id}-${ts}@deleted.local`;
   try {
-    await db.update(usersTable)
-      .set({
-        name: "Compte supprimé",
-        email: anonEmail,
-        clerkUserId: null,
-        phone: null,
-        avatarUrl: null,
-        city: null,
-        country: null,
-        latitude: null,
-        longitude: null,
-        locationUpdatedAt: null,
-        status: "suspended",
-      })
-      .where(eq(usersTable.id, user.id));
-
-    if (user.clerkUserId) {
-      try {
-        await clerkClient.users.deleteUser(user.clerkUserId);
-      } catch (e) {
-        req.log?.warn?.({ err: e, userId: user.id }, "Failed to delete Clerk user; DB anonymized");
-      }
-    }
-
+    await anonymizeUserAccount(user.id, req.log);
     res.json({ ok: true });
   } catch (e) {
     req.log?.error?.({ err: e, userId: user.id }, "Account deletion failed");

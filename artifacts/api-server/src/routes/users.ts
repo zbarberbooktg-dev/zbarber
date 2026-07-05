@@ -4,6 +4,7 @@ import { eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAdminAuth } from "../lib/adminAuth";
+import { anonymizeUserAccount } from "../lib/accountAnonymize";
 
 const router = Router();
 
@@ -73,9 +74,13 @@ router.patch("/users/:id", requireAdminAuth, async (req, res) => {
   res.json(safeUser);
 });
 
+// Admin: delete a user account. Anonymizes (not hard-delete) to preserve
+// reservations/reviews referential integrity; also suspends owned salon(s).
 router.delete("/users/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
-  await db.delete(usersTable).where(eq(usersTable.id, id));
+  const [existing] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
+  if (!existing) { res.status(404).json({ error: "User not found" }); return; }
+  await anonymizeUserAccount(id, req.log);
   res.status(204).send();
 });
 
