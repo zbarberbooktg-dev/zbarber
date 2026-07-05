@@ -5,7 +5,6 @@
  * Zbarber API
  * OpenAPI spec version: 0.1.0
  */
-import type { UserUpdateRole } from './userUpdateRole';
 
 export interface UserUpdate {
   name?: string;
@@ -17,5 +16,4 @@ export interface UserUpdate {
   city?: string | null;
   /** @nullable */
   country?: string | null;
-  role?: UserUpdateRole;
 }

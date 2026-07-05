@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, UserX, UserCheck, Trash2 } from "lucide-react";
-import { useListUsers, useSuspendUser, useActivateUser, useUpdateUser, useDeleteUser, getListUsersQueryKey } from "@workspace/api-client-react";
+import { useListUsers, useSuspendUser, useActivateUser, useDeleteUser, getListUsersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -21,7 +21,6 @@ export default function Users() {
   const { data, isLoading } = useListUsers(params as any);
   const suspend = useSuspendUser();
   const activate = useActivateUser();
-  const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
 
   const users = (data as any)?.data ?? [];
@@ -29,13 +28,6 @@ export default function Users() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListUsersQueryKey() });
   const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
-
-  function handleRoleChange(id: number, newRole: string) {
-    updateUser.mutate({ id, data: { role: newRole as any } }, {
-      onSuccess: () => { invalidate(); toast({ title: u.role_updated_toast }); },
-      onError: onErr,
-    });
-  }
 
   function handleDelete(id: number) {
     if (!confirm(u.confirmDelete)) return;
@@ -100,17 +92,9 @@ export default function Users() {
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <select
-                    value={row.role}
-                    onChange={e => handleRoleChange(row.id, e.target.value)}
-                    disabled={updateUser.isPending}
-                    title={u.changeRole}
-                    className="rounded-md border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="client">{t.statuses.client}</option>
-                    <option value="barber">{t.statuses.barber}</option>
-                    <option value="admin">{t.statuses.admin}</option>
-                  </select>
+                  <span className="inline-flex items-center rounded-md border bg-background px-2 py-1 text-xs">
+                    {t.statuses[row.role] ?? row.role}
+                  </span>
                 </td>
                 <td className="px-4 py-3"><StatusBadge status={row.status} /></td>
                 <td className="px-4 py-3 text-muted-foreground">{row.phone ?? "—"}</td>

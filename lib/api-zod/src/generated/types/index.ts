@@ -124,7 +124,6 @@ export * from './userListResponse';
 export * from './userRole';
 export * from './userStatus';
 export * from './userUpdate';
-export * from './userUpdateRole';
 export * from './walkIn';
 export * from './walkInInput';
 export * from './walkInStatus';

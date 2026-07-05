@@ -2201,9 +2201,6 @@ components:
           type: ["string", "null"]
         country:
           type: ["string", "null"]
-        role:
-          type: string
-          enum: [client, barber, admin]
 
     UserListResponse:
       type: object

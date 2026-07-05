@@ -94,15 +94,6 @@ export interface AuthResponse {
   user: User;
 }
 
-export type UserUpdateRole = typeof UserUpdateRole[keyof typeof UserUpdateRole];
-
-
-export const UserUpdateRole = {
-  client: 'client',
-  barber: 'barber',
-  admin: 'admin',
-} as const;
-
 export interface UserUpdate {
   name?: string;
   /** @nullable */
@@ -113,7 +104,6 @@ export interface UserUpdate {
   city?: string | null;
   /** @nullable */
   country?: string | null;
-  role?: UserUpdateRole;
 }
 
 export interface UserListResponse {

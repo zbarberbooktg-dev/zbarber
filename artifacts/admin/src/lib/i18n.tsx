@@ -29,7 +29,7 @@ export const translations = {
     nav: {
       dashboard: "Tableau de bord",
       barbers: "Barbiers",
-      users: "Utilisateurs",
+      users: "Clients",
       reservations: "Réservations",
       subscriptions: "Abonnements",
       financing: "Financements",
@@ -137,7 +137,7 @@ export const translations = {
       subExpires: "Expire le",
     },
     users: {
-      title: "Utilisateurs",
+      title: "Clients",
       countSuffix: (n: number) => `${n} utilisateurs inscrits`,
       searchPh: "Nom ou email...",
       allRoles: "Tous les rôles",
@@ -154,8 +154,6 @@ export const translations = {
       activate: "Activer",
       suspended_toast: "Utilisateur suspendu",
       activated_toast: "Utilisateur activé",
-      changeRole: "Changer le rôle",
-      role_updated_toast: "Rôle mis à jour",
       deleteTitle: "Supprimer le compte",
       confirmDelete: "Supprimer définitivement ce compte ? Les données personnelles seront anonymisées. Cette action est irréversible.",
       deleted_toast: "Compte supprimé",
@@ -410,7 +408,7 @@ export const translations = {
     nav: {
       dashboard: "Dashboard",
       barbers: "Barbers",
-      users: "Users",
+      users: "Clients",
       reservations: "Bookings",
       subscriptions: "Subscriptions",
       financing: "Financing",
@@ -518,7 +516,7 @@ export const translations = {
       subExpires: "Expires on",
     },
     users: {
-      title: "Users",
+      title: "Clients",
       countSuffix: (n: number) => `${n} registered users`,
       searchPh: "Name or email...",
       allRoles: "All roles",
@@ -535,8 +533,6 @@ export const translations = {
       activate: "Activate",
       suspended_toast: "User suspended",
       activated_toast: "User activated",
-      changeRole: "Change role",
-      role_updated_toast: "Role updated",
       deleteTitle: "Delete account",
       confirmDelete: "Permanently delete this account? Personal data will be anonymized. This action cannot be undone.",
       deleted_toast: "Account deleted",
