@@ -1912,6 +1912,76 @@ export const useUpdateBarber = <TError = ErrorType<unknown>,
       return useMutation(getUpdateBarberMutationOptions(options));
     }
 
+export const getDeleteBarberUrl = (id: number,) => {
+
+
+
+
+  return `/api/barbers/${id}`
+}
+
+/**
+ * @summary Delete barber account (admin)
+ */
+export const deleteBarber = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteBarberUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteBarberMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBarber>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteBarber'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBarber>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteBarber(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBarberMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBarber>>>
+
+    export type DeleteBarberMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete barber account (admin)
+ */
+export const useDeleteBarber = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBarber>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteBarberMutationOptions(options));
+    }
+
 export const getFirstValidateBarberUrl = (id: number,) => {
 
 

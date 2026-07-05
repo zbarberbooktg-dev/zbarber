@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Search, UserX, UserCheck } from "lucide-react";
-import { useListUsers, useSuspendUser, useActivateUser, useUpdateUser, getListUsersQueryKey } from "@workspace/api-client-react";
+import { Search, UserX, UserCheck, Trash2 } from "lucide-react";
+import { useListUsers, useSuspendUser, useActivateUser, useUpdateUser, useDeleteUser, getListUsersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -22,6 +22,7 @@ export default function Users() {
   const suspend = useSuspendUser();
   const activate = useActivateUser();
   const updateUser = useUpdateUser();
+  const deleteUser = useDeleteUser();
 
   const users = (data as any)?.data ?? [];
   const total = (data as any)?.total ?? 0;
@@ -32,6 +33,14 @@ export default function Users() {
   function handleRoleChange(id: number, newRole: string) {
     updateUser.mutate({ id, data: { role: newRole as any } }, {
       onSuccess: () => { invalidate(); toast({ title: u.role_updated_toast }); },
+      onError: onErr,
+    });
+  }
+
+  function handleDelete(id: number) {
+    if (!confirm(u.confirmDelete)) return;
+    deleteUser.mutate({ id }, {
+      onSuccess: () => { invalidate(); toast({ title: u.deleted_toast }); },
       onError: onErr,
     });
   }
@@ -107,7 +116,7 @@ export default function Users() {
                 <td className="px-4 py-3 text-muted-foreground">{row.phone ?? "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{new Date(row.createdAt).toLocaleDateString(locale)}</td>
                 <td className="px-4 py-3">
-                  <div className="flex justify-end">
+                  <div className="flex items-center gap-2 justify-end">
                     {row.status === "active" ? (
                       <button
                         onClick={() => suspend.mutate({ id: row.id }, { onSuccess: () => { invalidate(); toast({ title: u.suspended_toast }); }, onError: onErr })}
@@ -123,6 +132,14 @@ export default function Users() {
                         <UserCheck className="h-3.5 w-3.5" /> {u.activate}
                       </button>
                     )}
+                    <button
+                      onClick={() => handleDelete(row.id)}
+                      disabled={deleteUser.isPending}
+                      title={u.deleteTitle}
+                      className="p-1.5 rounded-md bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-40"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </td>
               </tr>

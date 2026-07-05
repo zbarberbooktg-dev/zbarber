@@ -94,6 +94,9 @@ export const translations = {
       suspendReasonPh: "Note interne...",
       confirmAction: "Confirmer",
       reasonRequired: "Veuillez indiquer un motif",
+      deleteTitle: "Supprimer le compte",
+      confirmDelete: "Supprimer définitivement ce compte barbier ? Tous les salons de ce compte seront retirés et les données personnelles anonymisées. Cette action est irréversible.",
+      deleted_toast: "Compte barbier supprimé",
     },
     barberDetail: {
       notFound: "Barbier introuvable",
@@ -153,6 +156,9 @@ export const translations = {
       activated_toast: "Utilisateur activé",
       changeRole: "Changer le rôle",
       role_updated_toast: "Rôle mis à jour",
+      deleteTitle: "Supprimer le compte",
+      confirmDelete: "Supprimer définitivement ce compte ? Les données personnelles seront anonymisées. Cette action est irréversible.",
+      deleted_toast: "Compte supprimé",
     },
     reservations: {
       title: "Réservations",
@@ -469,6 +475,9 @@ export const translations = {
       suspendReasonPh: "Internal note...",
       confirmAction: "Confirm",
       reasonRequired: "Please provide a reason",
+      deleteTitle: "Delete account",
+      confirmDelete: "Permanently delete this barber account? All shops of this account will be removed and personal data anonymized. This action cannot be undone.",
+      deleted_toast: "Barber account deleted",
     },
     barberDetail: {
       notFound: "Barber not found",
@@ -528,6 +537,9 @@ export const translations = {
       activated_toast: "User activated",
       changeRole: "Change role",
       role_updated_toast: "Role updated",
+      deleteTitle: "Delete account",
+      confirmDelete: "Permanently delete this account? Personal data will be anonymized. This action cannot be undone.",
+      deleted_toast: "Account deleted",
     },
     reservations: {
       title: "Bookings",

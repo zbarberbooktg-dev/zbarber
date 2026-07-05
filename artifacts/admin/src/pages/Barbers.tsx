@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useSearch } from "wouter";
-import { Search, Check, X, ChevronRight, Pause, Play, ShieldCheck } from "lucide-react";
-import { useListBarbers, useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber, useFirstValidateBarber, getListBarbersQueryKey } from "@workspace/api-client-react";
+import { Search, Check, X, ChevronRight, Pause, Play, ShieldCheck, Trash2 } from "lucide-react";
+import { useListBarbers, useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber, useFirstValidateBarber, useDeleteBarber, getListBarbersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -38,6 +38,7 @@ export default function Barbers() {
   const suspend = useSuspendBarber();
   const reactivate = useReactivateBarber();
   const firstValidate = useFirstValidateBarber();
+  const deleteBarber = useDeleteBarber();
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListBarbersQueryKey() });
   const onErr = (err: unknown) => toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
@@ -74,6 +75,11 @@ export default function Barbers() {
   function handleReactivate(id: number) {
     if (!confirm(b.confirmReactivate)) return;
     reactivate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.reactivated_toast }); }, onError: onErr });
+  }
+
+  function handleDelete(id: number) {
+    if (!confirm(b.confirmDelete)) return;
+    deleteBarber.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: b.deleted_toast }); }, onError: onErr });
   }
 
   const barbers = (data as any)?.data ?? [];
@@ -173,6 +179,14 @@ export default function Barbers() {
                         <Play className="h-3.5 w-3.5" />
                       </button>
                     )}
+                    <button
+                      onClick={() => handleDelete(row.id)}
+                      disabled={deleteBarber.isPending}
+                      title={b.deleteTitle}
+                      className="p-1.5 rounded-md bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-40"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                     <Link href={`/barbers/${row.id}`}>
                       <a className="p-1.5 rounded-md bg-muted hover:bg-muted/80 transition-colors">
                         <ChevronRight className="h-3.5 w-3.5" />
