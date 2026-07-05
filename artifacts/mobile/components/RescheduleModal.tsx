@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, Text, View } from "react-native";
 
-import { SlotPicker, type SlotOption } from "@/components/SlotPicker";
+import { DateTimePicker } from "@/components/DateTimePicker";
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
 import { useColors } from "@/hooks/useColors";
@@ -29,7 +29,8 @@ export function RescheduleModal({ visible, onClose, reservationId, barberId, ser
     return `${y}-${m}-${day}`;
   }, []);
   const toIso = React.useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() + 13);
+    // 8 weeks ahead so clients can reschedule across several weeks on the calendar.
+    const d = new Date(); d.setDate(d.getDate() + 55);
     const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }, []);
@@ -39,21 +40,6 @@ export function RescheduleModal({ visible, onClose, reservationId, barberId, ser
     queryFn: () => fetcher(`/api/barbers/${barberId}/availability?from=${fromIso}&to=${toIso}${serviceId ? `&serviceId=${serviceId}` : ""}`),
     enabled: visible && !!barberId,
   });
-
-  const slots: SlotOption[] = React.useMemo(() => {
-    const result: SlotOption[] = [];
-    if (!availability) return result;
-    for (const day of availability) {
-      if (!day.isWorking || day.isBlocked) continue;
-      const dayDate = new Date(day.date + "T00:00:00");
-      const dayLabel = dayDate.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
-      for (const s of day.slots) {
-        if (!s.available) continue;
-        result.push({ label: `${dayLabel} · ${s.time}`, iso: s.iso });
-      }
-    }
-    return result;
-  }, [availability, locale]);
 
   React.useEffect(() => {
     if (!visible) setSelectedSlot(null);
@@ -94,11 +80,12 @@ export function RescheduleModal({ visible, onClose, reservationId, barberId, ser
               <ActivityIndicator color={c.primary} />
             </View>
           ) : (
-            <SlotPicker
-              slots={slots}
+            <DateTimePicker
+              availability={availability}
               value={selectedSlot}
               onChange={setSelectedSlot}
-              placeholder="Choisir un créneau"
+              locale={locale}
+              placeholder="Choisir une date et une heure"
               emptyLabel="Aucun créneau disponible"
             />
           )}

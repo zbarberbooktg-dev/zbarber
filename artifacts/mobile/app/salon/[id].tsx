@@ -39,7 +39,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LocationPickerMap } from "@/components/LocationPickerMap";
-import { SlotPicker } from "@/components/SlotPicker";
+import { DateTimePicker } from "@/components/DateTimePicker";
 
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
@@ -179,7 +179,8 @@ export default function PublicSalonDetail() {
     return `${y}-${m}-${day}`;
   }, []);
   const toIso = React.useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() + 13);
+    // 8 weeks ahead so clients can plan appointments across several weeks on the calendar.
+    const d = new Date(); d.setDate(d.getDate() + 55);
     const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }, []);
@@ -198,20 +199,22 @@ export default function PublicSalonDetail() {
   });
   const homeServiceEnabled = !!homeService?.enabled;
 
-  const slots = React.useMemo(() => {
-    const result: Array<{ label: string; iso: string }> = [];
-    if (!availability) return result;
+  const hasAnySlot = React.useMemo(
+    () => (availability ?? []).some((day) => day.isWorking && !day.isBlocked && day.slots.some((s) => s.available)),
+    [availability],
+  );
+
+  const selectedSlotLabel = React.useMemo(() => {
+    if (!selectedSlot || !availability) return null;
     for (const day of availability) {
-      if (!day.isWorking || day.isBlocked) continue;
-      const dayDate = new Date(day.date + "T00:00:00");
-      const dayLabel = dayDate.toLocaleDateString(locale, { weekday: "short", day: "numeric" });
-      for (const s of day.slots) {
-        if (!s.available) continue;
-        result.push({ label: `${dayLabel} · ${s.time}`, iso: s.iso });
+      const match = day.slots.find((s) => s.iso === selectedSlot);
+      if (match) {
+        const dayLabel = new Date(day.date + "T00:00:00").toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
+        return `${dayLabel} · ${match.time}`;
       }
     }
-    return result;
-  }, [availability, locale]);
+    return null;
+  }, [availability, selectedSlot, locale]);
 
   // Ask the server to quote the travel fee (distance + matching fee zone) for a
   // home visit at the given point. Shared by the GPS capture and by the map when
@@ -832,16 +835,17 @@ export default function PublicSalonDetail() {
                 <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 10 }}>
                   {isFr ? "Choisir un créneau" : "Choose a time slot"}
                 </Text>
-                {slots.length === 0 ? (
+                {!hasAnySlot ? (
                   <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, paddingVertical: 6 }}>
                     {isFr ? "Aucun créneau disponible pour le moment." : "No time slots available right now."}
                   </Text>
                 ) : (
-                  <SlotPicker
-                    slots={slots}
+                  <DateTimePicker
+                    availability={availability}
                     value={selectedSlot}
                     onChange={(iso) => setSelectedSlot(iso === selectedSlot ? null : iso)}
-                    placeholder={isFr ? "Choisir un créneau" : "Choose a time slot"}
+                    locale={locale}
+                    placeholder={isFr ? "Choisir une date et une heure" : "Choose a date and time"}
                     emptyLabel={isFr ? "Aucun créneau disponible" : "No time slots available"}
                   />
                 )}
@@ -960,7 +964,7 @@ export default function PublicSalonDetail() {
           {selectedService && selectedSlot && (
             <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, textAlign: "center" }}>
               {services.find((s) => s.id === selectedService)?.name} —{" "}
-              {slots.find((sl) => sl.iso === selectedSlot)?.label}
+              {selectedSlotLabel}
               {mode === "home" && quote?.inRange && quote.fee != null
                 ? ` · ${t.hsTravelFee}: ${Number(quote.fee).toLocaleString()} FC`
                 : ""}
