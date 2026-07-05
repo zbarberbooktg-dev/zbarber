@@ -10,7 +10,7 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Platform, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -18,6 +18,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ClerkProvider, ClerkLoaded, ClerkLoading } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 
+import { AnimatedSplash } from "@/components/AnimatedSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import colors from "@/constants/colors";
 import { AppProvider, useApp } from "@/contexts/AppContext";
@@ -117,6 +118,9 @@ function ThemedRoot() {
   );
 }
 
+const SPLASH_TOTAL_MS = 4000;
+const SPLASH_MIN_HOLD_MS = 1200;
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -124,6 +128,9 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+
+  const mountTimeRef = useRef(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -138,6 +145,9 @@ export default function RootLayout() {
   if (!publishableKey) {
     throw new Error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY");
   }
+
+  const elapsedSinceMount = Date.now() - mountTimeRef.current;
+  const introHoldMs = Math.max(SPLASH_TOTAL_MS - elapsedSinceMount, SPLASH_MIN_HOLD_MS);
 
   return (
     <ClerkProvider
@@ -164,6 +174,9 @@ export default function RootLayout() {
           </ErrorBoundary>
         </SafeAreaProvider>
       </ClerkLoaded>
+      {showIntro && (
+        <AnimatedSplash holdMs={introHoldMs} onFinish={() => setShowIntro(false)} />
+      )}
     </ClerkProvider>
   );
 }
