@@ -219,6 +219,11 @@ export function DateTimePicker({ availability, value, onChange, locale, placehol
                     const inMonth = date.getMonth() === viewMonth;
                     const dayData = byDate.get(iso);
                     const inRange = !!dayData;
+                    // Closed by the salon: not a working day, or an explicit
+                    // day off / holiday (daysOffTable) — always grayed out,
+                    // regardless of whether it's a working day that's simply
+                    // fully booked (handled separately below).
+                    const isClosed = inRange && (!dayData!.isWorking || dayData!.isBlocked);
                     const hasSlots = inRange && dayData!.isWorking && !dayData!.isBlocked && dayData!.slots.some((s) => s.available);
                     const isActive = activeDate === iso;
                     const isToday = iso === toISODate(today);
@@ -241,7 +246,7 @@ export function DateTimePicker({ availability, value, onChange, locale, placehol
                             borderRadius: 17,
                             alignItems: "center",
                             justifyContent: "center",
-                            backgroundColor: isActive ? c.primary : "transparent",
+                            backgroundColor: isActive ? c.primary : isClosed && inMonth ? c.muted : "transparent",
                             borderWidth: isToday && !isActive ? 1 : 0,
                             borderColor: c.primary,
                           }}
@@ -251,7 +256,8 @@ export function DateTimePicker({ availability, value, onChange, locale, placehol
                               color: !inMonth ? c.border : isActive ? c.primaryForeground : hasSlots ? c.foreground : c.mutedForeground,
                               fontFamily: isActive ? "Inter_700Bold" : "Inter_500Medium",
                               fontSize: 13,
-                              opacity: disabled && inMonth ? 0.4 : 1,
+                              opacity: !inMonth ? 1 : isClosed ? 0.45 : disabled ? 0.4 : 1,
+                              textDecorationLine: isClosed && inMonth ? "line-through" : "none",
                             }}
                           >
                             {date.getDate()}

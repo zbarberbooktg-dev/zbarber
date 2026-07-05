@@ -32,23 +32,23 @@ type Props = {
 export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: Props) {
   const c = useColors();
   const { getToken } = useAuth();
-  const [country, setCountry] = useState(initial.country ?? "");
-  const [city, setCity] = useState(initial.city ?? "");
+  const [country, setCountry] = useState(initial.country ?? "Togo");
+  const [city, setCity] = useState(initial.city ?? "Lomé");
   const [neighborhood, setNeighborhood] = useState(initial.neighborhood ?? "");
   const [address, setAddress] = useState(initial.address ?? "");
-  const [phone, setPhone] = useState(initial.phone ?? "");
-  const [whatsapp, setWhatsapp] = useState(initial.whatsapp ?? "");
+  const [phone, setPhone] = useState(initial.phone ?? "+228 ");
+  const [whatsapp, setWhatsapp] = useState(initial.whatsapp ?? "+228 ");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (visible) {
-      setCountry(initial.country ?? "");
-      setCity(initial.city ?? "");
+      setCountry(initial.country ?? "Togo");
+      setCity(initial.city ?? "Lomé");
       setNeighborhood(initial.neighborhood ?? "");
       setAddress(initial.address ?? "");
-      setPhone(initial.phone ?? "");
-      setWhatsapp(initial.whatsapp ?? "");
+      setPhone(initial.phone ?? "+228 ");
+      setWhatsapp(initial.whatsapp ?? "+228 ");
       setErr(null);
     }
   }, [visible, initial.country, initial.city, initial.neighborhood, initial.address, initial.phone, initial.whatsapp]);
@@ -132,7 +132,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
             <TextInput
               value={neighborhood}
               onChangeText={setNeighborhood}
-              placeholder="Gombe"
+              placeholder="Bè"
               placeholderTextColor={c.mutedForeground}
               style={inputStyle(c)}
             />
@@ -142,7 +142,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
             <TextInput
               value={address}
               onChangeText={setAddress}
-              placeholder="Av. Kasa-Vubu n°12"
+              placeholder="Bd du 13 Janvier, Lomé"
               placeholderTextColor={c.mutedForeground}
               multiline
               style={[inputStyle(c), { minHeight: 70, textAlignVertical: "top" }]}
@@ -154,7 +154,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
-              placeholder="+243 ..."
+              placeholder="+228 ..."
               placeholderTextColor={c.mutedForeground}
               style={inputStyle(c)}
             />
@@ -165,7 +165,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
               value={whatsapp}
               onChangeText={setWhatsapp}
               keyboardType="phone-pad"
-              placeholder="+243 ..."
+              placeholder="+228 ..."
               placeholderTextColor={c.mutedForeground}
               style={inputStyle(c)}
             />

@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import React from "react";
 
 import { LegalScreen } from "@/components/LegalScreen";
+import { LegalHeaderBack } from "@/components/LegalHeaderBack";
 import { useApp } from "@/contexts/AppContext";
 import { LEGAL } from "@/constants/legal";
 
@@ -10,7 +11,13 @@ export default function TermsScreen() {
   const doc = LEGAL[lang].terms;
   return (
     <>
-      <Stack.Screen options={{ title: doc.title, headerBackTitle: "Retour" }} />
+      <Stack.Screen
+        options={{
+          title: doc.title,
+          headerBackTitle: "Retour",
+          headerLeft: () => <LegalHeaderBack />,
+        }}
+      />
       <LegalScreen doc={doc} />
     </>
   );

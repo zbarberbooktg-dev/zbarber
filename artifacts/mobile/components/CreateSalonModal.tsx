@@ -34,12 +34,12 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const { t } = useApp();
 
   const [salonName, setSalonName] = useState("");
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("Togo");
+  const [city, setCity] = useState("Lomé");
   const [neighborhood, setNeighborhood] = useState("");
   const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+  const [phone, setPhone] = useState("+228 ");
+  const [whatsapp, setWhatsapp] = useState("+228 ");
   const [bio, setBio] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoLocalUri, setLogoLocalUri] = useState<string | null>(null);
@@ -49,8 +49,8 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
 
   React.useEffect(() => {
     if (visible) {
-      setSalonName(""); setCountry(""); setCity(""); setNeighborhood(""); setAddress("");
-      setPhone(""); setWhatsapp(""); setBio(""); setLogoUrl(null); setLogoLocalUri(null); setErr(null);
+      setSalonName(""); setCountry("Togo"); setCity("Lomé"); setNeighborhood(""); setAddress("");
+      setPhone("+228 "); setWhatsapp("+228 "); setBio(""); setLogoUrl(null); setLogoLocalUri(null); setErr(null);
     }
   }, [visible]);
 
@@ -157,22 +157,22 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
           />
 
           <Field label="Quartier">
-            <TextInput value={neighborhood} onChangeText={setNeighborhood} placeholder="Gombe" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+            <TextInput value={neighborhood} onChangeText={setNeighborhood} placeholder="Bè" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>
 
           <Field label="Adresse complète">
-            <TextInput value={address} onChangeText={setAddress} placeholder="Av. Kasa-Vubu n°12" placeholderTextColor={c.mutedForeground} multiline style={[inputStyle(c), { minHeight: 60, textAlignVertical: "top" }]} />
+            <TextInput value={address} onChangeText={setAddress} placeholder="Bd du 13 Janvier, Lomé" placeholderTextColor={c.mutedForeground} multiline style={[inputStyle(c), { minHeight: 60, textAlignVertical: "top" }]} />
           </Field>
 
           <View style={{ flexDirection: "row", gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Field label="Téléphone">
-                <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+243 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+                <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+228 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
               </Field>
             </View>
             <View style={{ flex: 1 }}>
               <Field label="WhatsApp">
-                <TextInput value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" placeholder="+243 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+                <TextInput value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" placeholder="+228 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
               </Field>
             </View>
           </View>

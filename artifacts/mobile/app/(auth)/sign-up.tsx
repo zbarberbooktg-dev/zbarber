@@ -36,13 +36,13 @@ export default function SignUpScreen() {
 
   const [role, setRole] = useState<Role>("client");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+228 ");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [city, setCity] = useState("");
-  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("Lomé");
+  const [country, setCountry] = useState("Togo");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarLocalUri, setAvatarLocalUri] = useState<string | null>(null);
   const [avatarAsset, setAvatarAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -256,7 +256,7 @@ export default function SignUpScreen() {
             <TextInput value={name} onChangeText={setName} autoCapitalize="words" placeholder="Prénom Nom" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
 
             <Text style={{ fontFamily: "Inter_500Medium", color: c.foreground, marginBottom: 6 }}>Téléphone</Text>
-            <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+243 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+            <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+228 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
 
             <View style={{ marginBottom: 12 }}>
               <CountryCityFields
