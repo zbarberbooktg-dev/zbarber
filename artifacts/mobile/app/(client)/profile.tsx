@@ -230,7 +230,6 @@ export default function ClientProfile() {
             variant="secondary"
             icon="home"
             onPress={() => {
-              console.log("[ZB-NAV] client profile Accueil tapped -> setBrowsing(true) + push /browse");
               setBrowsing(true);
               router.push("/browse");
             }}
@@ -262,7 +261,7 @@ export default function ClientProfile() {
             icon="log-out"
             onPress={async () => {
               await signOut();
-              router.replace("/role-select");
+              router.replace("/");
             }}
           />
           <Button

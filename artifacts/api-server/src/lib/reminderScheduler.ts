@@ -163,6 +163,59 @@ export async function sendThankYouEmail(reservationId: number): Promise<boolean>
 }
 
 /**
+ * Send the appointment-confirmation email for a single reservation. Called when
+ * a barber (or admin) confirms a booking. Push notifications are best-effort
+ * (they silently no-op on denied permissions, simulators, web, or when no
+ * device token is registered), so this email is the reliable channel that
+ * guarantees the client is actually notified of the confirmation. Never throws.
+ */
+export async function sendConfirmationEmail(reservationId: number): Promise<boolean> {
+  try {
+    const [row] = await db
+      .select({
+        scheduledAt: reservationsTable.scheduledAt,
+        clientName: usersTable.name,
+        clientEmail: usersTable.email,
+        salonName: barbersTable.salonName,
+        serviceName: servicesTable.name,
+      })
+      .from(reservationsTable)
+      .leftJoin(usersTable, eq(reservationsTable.clientId, usersTable.id))
+      .leftJoin(barbersTable, eq(reservationsTable.barberId, barbersTable.id))
+      .leftJoin(servicesTable, eq(reservationsTable.serviceId, servicesTable.id))
+      .where(eq(reservationsTable.id, reservationId))
+      .limit(1);
+
+    if (!row?.clientEmail) return false;
+    const salon = row.salonName ?? "votre salon";
+    const service = row.serviceName ?? "votre prestation";
+    const when = formatWhen(new Date(row.scheduledAt));
+    const { html, text } = renderEmail({
+      title: `Rendez-vous confirmé — ${salon}`,
+      heading: "Votre rendez-vous est confirmé !",
+      intro: `Bonjour ${row.clientName ?? ""}, bonne nouvelle : ${salon} a confirmé votre rendez-vous.`,
+      rows: [
+        { label: "Prestation", value: service },
+        { label: "Salon", value: salon },
+        { label: "Date et heure", value: when },
+      ],
+      note: "Vous recevrez un rappel la veille de votre rendez-vous. À bientôt chez Zbarber !",
+    });
+    await sendEmail({
+      to: row.clientEmail,
+      subject: `Votre rendez-vous chez ${salon} est confirmé`,
+      html,
+      text,
+    });
+    logger.info({ reservationId }, "Confirmation email sent");
+    return true;
+  } catch (err) {
+    logger.error({ err, reservationId }, "Failed to send confirmation email");
+    return false;
+  }
+}
+
+/**
  * Re-engagement sweep: push clients who have booked before but have gone quiet
  * for REENGAGE_AFTER_DAYS, inviting them back. Claim-then-send via the user's
  * `lastReengagementAt` marker (reset to NULL on every new booking) guarantees

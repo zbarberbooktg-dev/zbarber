@@ -126,12 +126,9 @@ export default function PublicHome() {
   // A barber/admin reaches the public home either via the dedicated "/browse"
   // route (unambiguous, unlike "/") or via the browse intent flag/param.
   const forceBrowse = pathname === "/browse" || browse === "1" || browsing;
-  console.log("[ZB-NAV] index gate", { pathname, isSignedIn, hasUser: !!user, role, browse, browsing, forceBrowse });
   if (isSignedIn && user && (role === "barber" || role === "admin") && !forceBrowse) {
-    console.log("[ZB-NAV] index -> REDIRECT to /(barber)");
     return <Redirect href="/(barber)" />;
   }
-  console.log("[ZB-NAV] index -> RENDER public home");
 
   const featured = list.slice(0, 6);
   const nearby = list.slice(0, 4);

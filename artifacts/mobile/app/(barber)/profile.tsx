@@ -236,7 +236,6 @@ export default function BarberProfile() {
             variant="secondary"
             icon="home"
             onPress={() => {
-              console.log("[ZB-NAV] barber profile Accueil tapped -> setBrowsing(true) + push /browse");
               setBrowsing(true);
               router.push("/browse");
             }}
@@ -259,7 +258,7 @@ export default function BarberProfile() {
             icon="log-out"
             onPress={async () => {
               await signOut();
-              router.replace("/role-select");
+              router.replace("/");
             }}
           />
           <Button
