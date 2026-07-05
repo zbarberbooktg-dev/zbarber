@@ -203,14 +203,16 @@ export default function PublicHome() {
             >
               <Feather name="user" size={14} color={PALETTE.gold} />
             </Pressable>
-            <Pressable
-              onPress={() => router.push("/(client)/bookings")}
-              style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: buttonBorder }}
-            >
-              <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
-                {lang === "fr" ? "Mes réservations" : "My bookings"}
-              </Text>
-            </Pressable>
+            {role !== "barber" && role !== "admin" && (
+              <Pressable
+                onPress={() => router.push("/(client)/bookings")}
+                style={{ paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: buttonBorder }}
+              >
+                <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                  {lang === "fr" ? "Mes réservations" : "My bookings"}
+                </Text>
+              </Pressable>
+            )}
           </View>
         ) : (
           <View style={{ flexDirection: "row", gap: 8 }}>

@@ -148,8 +148,7 @@ export const UpdateMeBody = zod.object({
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "city": zod.string().nullish(),
-  "country": zod.string().nullish(),
-  "role": zod.enum(['client', 'barber', 'admin']).optional()
+  "country": zod.string().nullish()
 })
 
 export const UpdateMeResponse = zod.object({
@@ -262,8 +261,7 @@ export const UpdateUserBody = zod.object({
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "city": zod.string().nullish(),
-  "country": zod.string().nullish(),
-  "role": zod.enum(['client', 'barber', 'admin']).optional()
+  "country": zod.string().nullish()
 })
 
 export const UpdateUserResponse = zod.object({

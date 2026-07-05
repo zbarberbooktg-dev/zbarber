@@ -66,7 +66,9 @@ router.get("/users/:id", requireAdminAuth, async (req, res) => {
 
 router.patch("/users/:id", requireAdminAuth, async (req, res) => {
   const id = parseInt(String(req.params.id));
-  const body = z.object({ name: z.string().optional(), phone: z.string().nullable().optional(), avatarUrl: z.string().nullable().optional(), city: z.string().nullable().optional(), country: z.string().nullable().optional(), role: z.enum(["client", "barber", "admin"]).optional() }).safeParse(req.body);
+  // Role is intentionally excluded: an account's role is fixed at creation.
+  // Barber promotion is handled exclusively by PATCH /barbers/:id/approve.
+  const body = z.object({ name: z.string().optional(), phone: z.string().nullable().optional(), avatarUrl: z.string().nullable().optional(), city: z.string().nullable().optional(), country: z.string().nullable().optional() }).safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   const [updated] = await db.update(usersTable).set(body.data).where(eq(usersTable.id, id)).returning();
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }
