@@ -2607,11 +2607,15 @@ components:
 
     ReservationStatusUpdate:
       type: object
-      required: [status]
+      description: At least one of status or scheduledAt must be provided.
       properties:
         status:
           type: string
           enum: [pending, confirmed, cancelled, completed]
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Reschedule the reservation to a new date/time (subject to the same 24h and availability rules as booking).
 
     ReservationListResponse:
       type: object

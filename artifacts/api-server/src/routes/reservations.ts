@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, reservationsTable, usersTable, barbersTable, servicesTable, homeServiceZonesTable } from "@workspace/db";
-import { eq, desc, or, and, inArray, sql, lt } from "drizzle-orm";
+import { eq, desc, or, and, inArray, sql, lt, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
@@ -24,6 +24,32 @@ async function resolveSalon(barberId: number): Promise<{ salonName: string; owne
   const [b] = await db.select({ salonName: barbersTable.salonName, userId: barbersTable.userId }).from(barbersTable).where(eq(barbersTable.id, barberId)).limit(1);
   if (!b) return null;
   return { salonName: b.salonName, ownerUserId: b.userId };
+}
+
+// Throws BookingClashError when [newStart, newEnd) overlaps another active
+// (pending/confirmed) reservation for the same barber. `excludeId` lets a
+// reschedule ignore the reservation being moved. Must run inside the
+// advisory-lock transaction that also performs the write, see POST/PATCH.
+async function assertNoOverlap(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  barberId: number,
+  newStart: Date,
+  newEnd: Date,
+  excludeId?: number,
+): Promise<void> {
+  const conditions = [
+    eq(reservationsTable.barberId, barberId),
+    inArray(reservationsTable.status, ["pending", "confirmed"]),
+    lt(reservationsTable.scheduledAt, newEnd),
+    sql`${reservationsTable.scheduledAt} + (greatest(${servicesTable.durationMinutes}, 1) * interval '1 minute') > ${newStart}`,
+  ];
+  if (excludeId !== undefined) conditions.push(ne(reservationsTable.id, excludeId));
+  const [clash] = await tx.select({ id: reservationsTable.id })
+    .from(reservationsTable)
+    .innerJoin(servicesTable, eq(servicesTable.id, reservationsTable.serviceId))
+    .where(and(...conditions))
+    .limit(1);
+  if (clash) throw new BookingClashError();
 }
 
 async function enrichReservation(r: typeof reservationsTable.$inferSelect) {
@@ -239,29 +265,95 @@ router.patch("/reservations/:id", requireAuthOrAdmin, async (req: AdminAuthedReq
   }
 
   const user = req.localUser!;
-  // Client can cancel their own. Barber can confirm/complete/cancel their own.
+  // Client can cancel/reschedule their own. Barber can confirm/complete/cancel/reschedule their own.
   if (user.role === "client" && existing.clientId !== user.id) { res.status(403).json({ error: "Forbidden" }); return; }
   if (user.role === "barber") {
     const owned = await db.select({ id: barbersTable.id }).from(barbersTable).where(eq(barbersTable.userId, user.id));
     if (!owned.some(o => o.id === existing.barberId)) { res.status(403).json({ error: "Forbidden" }); return; }
   }
-  // Clients may only cancel their own reservation; barbers can set any status on their salon.
+  // Clients may only cancel their own reservation (plus reschedule, handled below);
+  // barbers can set any status on their salon's reservations.
   const allowedStatuses = user.role === "client"
     ? (["cancelled"] as const)
     : (["pending", "confirmed", "cancelled", "completed"] as const);
-  const body = z.object({ status: z.enum(allowedStatuses) }).safeParse(req.body);
+  const body = z.object({
+    status: z.enum(allowedStatuses).optional(),
+    scheduledAt: z.string().optional(),
+  }).refine((d) => d.status !== undefined || d.scheduledAt !== undefined, { message: "status or scheduledAt required" })
+    .safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
-  // Enforce 24h cancellation window for clients.
-  if (user.role === "client" && body.data.status === "cancelled") {
-    const scheduled = new Date(existing.scheduledAt).getTime();
-    if (scheduled - Date.now() < 24 * 60 * 60 * 1000) {
-      res.status(409).json({ error: "Cancellation window closed — less than 24h before appointment." });
+
+  const actor: "client" | "barber" = user.role === "barber" ? "barber" : "client";
+  let workingRow = existing;
+  let rescheduled = false;
+
+  // --- Reschedule (scheduledAt change) ---
+  if (body.data.scheduledAt !== undefined) {
+    if (existing.status !== "pending" && existing.status !== "confirmed") {
+      res.status(409).json({ error: "Only pending or confirmed reservations can be rescheduled." });
       return;
     }
+    // Clients may only reschedule up to 24h before the CURRENT appointment time
+    // (same window as cancellation); barbers manage their own calendar freely.
+    if (actor === "client") {
+      const currentScheduled = new Date(existing.scheduledAt).getTime();
+      if (currentScheduled - Date.now() < 24 * 60 * 60 * 1000) {
+        res.status(409).json({ error: "Modification window closed — less than 24h before appointment." });
+        return;
+      }
+    }
+    const newStart = new Date(body.data.scheduledAt);
+    if (Number.isNaN(newStart.getTime()) || newStart.getTime() <= Date.now()) {
+      res.status(400).json({ error: "Invalid date" });
+      return;
+    }
+    const [svc] = await db.select({ durationMinutes: servicesTable.durationMinutes })
+      .from(servicesTable).where(eq(servicesTable.id, existing.serviceId)).limit(1);
+    const duration = svc?.durationMinutes && svc.durationMinutes > 0 ? svc.durationMinutes : 30;
+    const newEnd = new Date(newStart.getTime() + duration * 60_000);
+    try {
+      workingRow = await db.transaction(async (tx) => {
+        await tx.execute(sql`select pg_advisory_xact_lock(${RESERVATION_LOCK_NS}, ${existing.barberId})`);
+        await assertNoOverlap(tx, existing.barberId, newStart, newEnd, existing.id);
+        const [updated] = await tx.update(reservationsTable)
+          .set({
+            scheduledAt: newStart,
+            // A client-initiated reschedule needs the barber's re-confirmation.
+            // A barber rescheduling keeps the current status unless they also
+            // pass an explicit status below.
+            ...(actor === "client" ? { status: "pending" as const } : {}),
+          })
+          .where(eq(reservationsTable.id, id))
+          .returning();
+        return updated!;
+      });
+    } catch (err) {
+      if (err instanceof BookingClashError) { res.status(409).json({ error: "Slot already booked" }); return; }
+      if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "23505") {
+        res.status(409).json({ error: "Slot already booked" }); return;
+      }
+      throw err;
+    }
+    rescheduled = true;
   }
-  const [updated] = await db.update(reservationsTable).set({ status: body.data.status }).where(eq(reservationsTable.id, id)).returning();
-  await notifyStatusChange(existing, updated, user.role === "barber" ? "barber" : "client");
-  res.json(await enrichReservation(updated));
+
+  // --- Explicit status change (applied after any reschedule) ---
+  if (body.data.status !== undefined) {
+    if (actor === "client" && body.data.status === "cancelled") {
+      const scheduled = new Date(workingRow.scheduledAt).getTime();
+      if (scheduled - Date.now() < 24 * 60 * 60 * 1000) {
+        res.status(409).json({ error: "Cancellation window closed — less than 24h before appointment." });
+        return;
+      }
+    }
+    const rowBeforeStatus = workingRow;
+    const [updated] = await db.update(reservationsTable).set({ status: body.data.status }).where(eq(reservationsTable.id, id)).returning();
+    workingRow = updated!;
+    await notifyStatusChange(rowBeforeStatus, workingRow, actor);
+  }
+  if (rescheduled) await notifyReschedule(workingRow, actor);
+
+  res.json(await enrichReservation(workingRow));
 });
 
 // Send the appropriate push (and thank-you email) when a reservation's status
@@ -297,6 +389,22 @@ async function notifyStatusChange(
     // Any other status change (e.g. back to pending = a modification) tells the
     // barber so they can re-review.
     if (salon?.ownerUserId && actor !== "barber") void sendPush(salon.ownerUserId, "Réservation modifiée", "Un rendez-vous a été modifié.", { type: "reservation_modified", reservationId: after.id });
+  }
+}
+
+// Notify the other party when a reservation's date/time is changed (separate
+// from status transitions handled by notifyStatusChange, to avoid double
+// notifications when a reschedule also flips status to "pending").
+async function notifyReschedule(
+  after: typeof reservationsTable.$inferSelect,
+  actor: "client" | "barber",
+): Promise<void> {
+  const salon = await resolveSalon(after.barberId);
+  const salonName = salon?.salonName ?? "le salon";
+  if (actor === "client") {
+    if (salon?.ownerUserId) void sendPush(salon.ownerUserId, "Réservation modifiée", "Un client a changé l'horaire de son rendez-vous.", { type: "reservation_modified", reservationId: after.id });
+  } else {
+    void sendPush(after.clientId, "Réservation modifiée", `${salonName} a changé l'horaire de votre rendez-vous.`, { type: "reservation_modified", reservationId: after.id });
   }
 }
 

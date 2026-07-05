@@ -7,6 +7,11 @@
  */
 import type { ReservationStatusUpdateStatus } from './reservationStatusUpdateStatus';
 
+/**
+ * At least one of status or scheduledAt must be provided.
+ */
 export interface ReservationStatusUpdate {
-  status: ReservationStatusUpdateStatus;
+  status?: ReservationStatusUpdateStatus;
+  /** Reschedule the reservation to a new date/time (subject to the same 24h and availability rules as booking). */
+  scheduledAt?: Date;
 }

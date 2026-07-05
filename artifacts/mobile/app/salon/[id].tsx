@@ -39,6 +39,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LocationPickerMap } from "@/components/LocationPickerMap";
+import { SlotPicker } from "@/components/SlotPicker";
 
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
@@ -778,7 +779,7 @@ export default function PublicSalonDetail() {
               </View>
             )}
 
-            <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 12 }}>
+            <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 14 }}>
               {isFr ? "Choisissez un service" : "Choose a service"}
             </Text>
             {services.map((s) => (
@@ -792,9 +793,9 @@ export default function PublicSalonDetail() {
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  paddingVertical: 14,
-                  paddingHorizontal: 14,
-                  marginBottom: 8,
+                  paddingVertical: 16,
+                  paddingHorizontal: 16,
+                  marginBottom: 12,
                   backgroundColor: selectedService === s.id ? `${PALETTE.gold}18` : PALETTE.surface,
                   borderWidth: 1,
                   borderColor: selectedService === s.id ? PALETTE.gold : PALETTE.border,
@@ -827,46 +828,23 @@ export default function PublicSalonDetail() {
 
             {/* Time-slot picker — grouped with services in one booking block */}
             {selectedService && (
-              <View style={{ marginTop: 14 }}>
-                <Accordion
-                  title={isFr ? "Choisir un créneau" : "Choose a time slot"}
-                  count={slots.length}
-                  defaultOpen
-                >
-                  {slots.length === 0 ? (
-                    <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, paddingVertical: 6 }}>
-                      {isFr ? "Aucun créneau disponible pour le moment." : "No time slots available right now."}
-                    </Text>
-                  ) : (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
-                      {slots.map((sl) => (
-                        <Pressable
-                          key={sl.iso}
-                          onPress={() => setSelectedSlot(sl.iso === selectedSlot ? null : sl.iso)}
-                          style={{
-                            paddingHorizontal: 14,
-                            paddingVertical: 10,
-                            backgroundColor: selectedSlot === sl.iso ? PALETTE.gold : PALETTE.surface,
-                            borderWidth: 1,
-                            borderColor: selectedSlot === sl.iso ? PALETTE.gold : PALETTE.border,
-                            minWidth: 100,
-                            alignItems: "center",
-                          }}
-                        >
-                          <Text style={{
-                            color: selectedSlot === sl.iso ? "#000" : PALETTE.text,
-                            fontFamily: "Inter_600SemiBold",
-                            fontSize: 12,
-                            textAlign: "center",
-                          }}>
-                            {sl.label}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  )}
-                </Accordion>
+              <View style={{ marginTop: 20 }}>
+                <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 13, marginBottom: 10 }}>
+                  {isFr ? "Choisir un créneau" : "Choose a time slot"}
+                </Text>
+                {slots.length === 0 ? (
+                  <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, paddingVertical: 6 }}>
+                    {isFr ? "Aucun créneau disponible pour le moment." : "No time slots available right now."}
+                  </Text>
+                ) : (
+                  <SlotPicker
+                    slots={slots}
+                    value={selectedSlot}
+                    onChange={(iso) => setSelectedSlot(iso === selectedSlot ? null : iso)}
+                    placeholder={isFr ? "Choisir un créneau" : "Choose a time slot"}
+                    emptyLabel={isFr ? "Aucun créneau disponible" : "No time slots available"}
+                  />
+                )}
               </View>
             )}
           </View>

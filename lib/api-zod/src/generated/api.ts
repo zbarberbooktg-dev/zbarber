@@ -1737,8 +1737,9 @@ export const UpdateReservationStatusParams = zod.object({
 })
 
 export const UpdateReservationStatusBody = zod.object({
-  "status": zod.enum(['pending', 'confirmed', 'cancelled', 'completed'])
-})
+  "status": zod.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
+  "scheduledAt": zod.coerce.date().optional().describe('Reschedule the reservation to a new date\/time (subject to the same 24h and availability rules as booking).')
+}).describe('At least one of status or scheduledAt must be provided.')
 
 export const UpdateReservationStatusResponse = zod.object({
   "id": zod.number(),

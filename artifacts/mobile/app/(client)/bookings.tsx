@@ -13,6 +13,7 @@ import {
 
 import { Card, EmptyState, Pill } from "@/components/UI";
 import { ReviewModal } from "@/components/ReviewModal";
+import { RescheduleModal } from "@/components/RescheduleModal";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -24,6 +25,7 @@ export default function Bookings() {
   const { t, locale } = useApp();
   const [filter, setFilter] = useState<Status | "all">("all");
   const [reviewFor, setReviewFor] = useState<{ barberId: number; salonName?: string } | null>(null);
+  const [rescheduleFor, setRescheduleFor] = useState<{ id: number; barberId: number; serviceId: number | null | undefined } | null>(null);
   const { data, isLoading, refetch, isRefetching } = useListReservations(
     filter === "all" ? undefined : { status: filter },
   );
@@ -61,16 +63,9 @@ export default function Bookings() {
     );
   };
 
-  const handleReschedule = (barberId?: number | null) => {
+  const handleReschedule = (id: number, barberId?: number | null, serviceId?: number | null) => {
     if (!barberId) return;
-    Alert.alert(
-      "Modifier le rendez-vous",
-      "Pour modifier, annulez ce rendez-vous puis prenez-en un nouveau sur la page du salon.",
-      [
-        { text: "Annuler", style: "cancel" },
-        { text: "Voir le salon", onPress: () => router.push(`/salon/${barberId}` as never) },
-      ],
-    );
+    setRescheduleFor({ id, barberId, serviceId });
   };
 
   const STATUS_LABEL: Record<Status, string> = {
@@ -204,7 +199,7 @@ export default function Bookings() {
                 {canModify && (
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 12, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 }}>
                     <Pressable
-                      onPress={() => handleReschedule(item.barberId)}
+                      onPress={() => handleReschedule(item.id, item.barberId, item.serviceId)}
                       style={({ pressed }) => ({
                         flex: 1, paddingVertical: 9, borderRadius: c.radius - 4,
                         backgroundColor: c.muted, alignItems: "center", opacity: pressed ? 0.7 : 1,
@@ -267,6 +262,16 @@ export default function Bookings() {
           barberId={reviewFor.barberId}
           salonName={reviewFor.salonName}
           onSubmitted={() => refetch()}
+        />
+      )}
+      {rescheduleFor && (
+        <RescheduleModal
+          visible={!!rescheduleFor}
+          onClose={() => setRescheduleFor(null)}
+          reservationId={rescheduleFor.id}
+          barberId={rescheduleFor.barberId}
+          serviceId={rescheduleFor.serviceId}
+          onRescheduled={() => refetch()}
         />
       )}
     </View>
