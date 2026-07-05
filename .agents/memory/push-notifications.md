@@ -14,3 +14,7 @@ description: Expo push infrastructure, sendPush helper, and the re-engagement / 
 
 ## Thank-you email (on completed)
 - Triggered inline when a reservation transitions to `completed` (reservations route → `sendThankYouEmail`), NOT only via a sweep. Claim-then-send via `reservations.thankYouSentAt` so re-applying "completed" or a race can't double-send.
+
+## Confirmation email (on confirmed)
+- **Rule:** status-change client notifications MUST have an email channel, not push alone. Push is best-effort (null token on Expo Go/web/sim/denied-permission) AND there is no in-app notifications feed for mobile clients, so a push-only event can reach the client as literally nothing. On `confirmed`, `notifyStatusChange` fires `sendPush` AND `sendConfirmationEmail` (reminderScheduler.ts, mirrors thank-you).
+- **Why no dedup marker here (unlike thank-you):** `notifyStatusChange` only runs when `before.status !== after.status`, so a duplicate confirmation email is rare/low-harm. A `confirmationSentAt` column would need a VPS DB migration and deploy scripts run none (see vps-db-schema-drift) — not worth it. Fire-and-forget email already degrades gracefully (try/catch, never throws).
