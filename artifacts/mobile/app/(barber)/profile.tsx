@@ -258,7 +258,7 @@ export default function BarberProfile() {
             icon="log-out"
             onPress={async () => {
               await signOut();
-              router.replace("/role-select");
+              router.replace("/");
             }}
           />
           <Button
