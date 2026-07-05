@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireAuth, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAuthOrAdmin, type AdminAuthedRequest } from "../lib/adminAuth";
 import { sendPush } from "../lib/push";
-import { sendThankYouEmail } from "../lib/reminderScheduler";
+import { sendThankYouEmail, sendConfirmationEmail } from "../lib/reminderScheduler";
 import { haversineKm, matchZone } from "../lib/geo";
 
 const router = Router();
@@ -277,8 +277,11 @@ async function notifyStatusChange(
   const salonName = salon?.salonName ?? "le salon";
 
   if (after.status === "confirmed") {
-    // Barber/admin confirmed → tell the client.
+    // Barber/admin confirmed → tell the client. Push is best-effort (silently
+    // no-ops without a registered device token / granted permission), so we
+    // also send a confirmation email as the reliable channel.
     void sendPush(after.clientId, "Réservation confirmée", `${salonName} a confirmé votre rendez-vous.`, { type: "reservation_confirmed", reservationId: after.id });
+    void sendConfirmationEmail(after.id);
   } else if (after.status === "cancelled") {
     // A client cancellation notifies the barber; a barber/admin cancellation
     // notifies the client.
