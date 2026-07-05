@@ -183,7 +183,7 @@ export function EditProfileModal({ visible, onClose, initialName, initialPhone, 
           </Field>
 
           <Field label="Téléphone">
-            <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+243 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
+            <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+228 ..." placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>
 
           <CountryCityFields

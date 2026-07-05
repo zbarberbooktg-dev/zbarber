@@ -22,8 +22,8 @@ type Props = {
 export function CountryCityFields({
   countryName, cityName, onChange,
   countryLabel = "Pays", cityLabel = "Ville",
-  countryPlaceholder = "Ex. RD Congo",
-  cityPlaceholder = "Ex. Kinshasa",
+  countryPlaceholder = "Ex. Togo",
+  cityPlaceholder = "Ex. Lomé",
   required,
 }: Props) {
   const c = useColors();
