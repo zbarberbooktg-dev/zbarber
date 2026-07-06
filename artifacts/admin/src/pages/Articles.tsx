@@ -385,8 +385,26 @@ export default function Articles() {
             const now = Date.now();
             const startMs = new Date(a.startsAt).getTime();
             const endMs = a.endsAt ? new Date(a.endsAt).getTime() : null;
-            const inWindow = startMs <= now && (endMs === null || endMs > now);
+            const isScheduled = startMs > now;
+            const isExpired = endMs !== null && endMs <= now;
+            const inWindow = !isScheduled && !isExpired;
             const live = a.status === "published" && inWindow;
+            const badgeLabel =
+              a.status !== "published"
+                ? "Brouillon"
+                : live
+                ? "En ligne"
+                : isScheduled
+                ? "Programmé"
+                : "Expiré";
+            const badgeClass =
+              a.status !== "published"
+                ? "bg-muted text-muted-foreground"
+                : live
+                ? "bg-green-500/15 text-green-600"
+                : isScheduled
+                ? "bg-amber-500/15 text-amber-600"
+                : "bg-red-500/15 text-red-600";
             return (
               <Card key={a.id} className="p-3 flex gap-4 items-center">
                 <div className="w-28 h-20 bg-muted overflow-hidden rounded shrink-0">
@@ -402,15 +420,9 @@ export default function Articles() {
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold truncate">{a.title}</h3>
                     <span
-                      className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                        live
-                          ? "bg-green-500/15 text-green-600"
-                          : a.status === "published"
-                          ? "bg-amber-500/15 text-amber-600"
-                          : "bg-muted text-muted-foreground"
-                      }`}
+                      className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded ${badgeClass}`}
                     >
-                      {live ? "En ligne" : a.status === "published" ? "Programmé / expiré" : "Brouillon"}
+                      {badgeLabel}
                     </span>
                   </div>
                   {a.subtitle && (
