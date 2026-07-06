@@ -73,6 +73,7 @@ export default function Articles() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>("");
 
   const articles = useMemo(
     () => (data ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
@@ -86,8 +87,20 @@ export default function Articles() {
   const onErr = (err: unknown) =>
     toast({ title: formatApiError(err, t.errors), variant: "destructive" as any });
 
-  const startNew = () => setForm({ ...emptyForm });
-  const startEdit = (a: Article) =>
+  const closeForm = () => {
+    setCoverPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return "";
+    });
+    setForm(null);
+  };
+
+  const startNew = () => {
+    setCoverPreviewUrl("");
+    setForm({ ...emptyForm });
+  };
+  const startEdit = (a: Article) => {
+    setCoverPreviewUrl("");
     setForm({
       id: a.id,
       title: a.title,
@@ -98,9 +111,18 @@ export default function Articles() {
       startsAt: toLocalInput(a.startsAt),
       endsAt: toLocalInput(a.endsAt),
     });
+  };
 
   const handleFile = async (file: File) => {
     if (!form) return;
+    // Show an immediate local preview: a freshly uploaded object isn't
+    // referenced by any article yet, so the storage server refuses to serve
+    // it back (see storage.ts orphan-upload guard) until the article is saved.
+    const localPreview = URL.createObjectURL(file);
+    setCoverPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localPreview;
+    });
     setUploading(true);
     try {
       const presigned = await fetch("/api/storage/uploads/request-url", {
@@ -115,6 +137,10 @@ export default function Articles() {
       if (!put.ok) throw new Error("Échec upload");
       setForm({ ...form, coverImageUrl: objectPath });
     } catch (e) {
+      setCoverPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return "";
+      });
       onErr(e);
     } finally {
       setUploading(false);
@@ -221,7 +247,7 @@ export default function Articles() {
             <h2 className="text-lg font-semibold">
               {form.id ? "Modifier l'article" : "Nouvel article"}
             </h2>
-            <Button variant="ghost" size="sm" onClick={() => setForm(null)}>
+            <Button variant="ghost" size="sm" onClick={closeForm}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -230,9 +256,9 @@ export default function Articles() {
             <div className="md:col-span-1 space-y-3">
               <Label>Photo de couverture</Label>
               <div className="aspect-video bg-muted border rounded-md overflow-hidden flex items-center justify-center">
-                {form.coverImageUrl ? (
+                {coverPreviewUrl || form.coverImageUrl ? (
                   <img
-                    src={resolveObjectUrl(form.coverImageUrl)}
+                    src={coverPreviewUrl || resolveObjectUrl(form.coverImageUrl)}
                     alt=""
                     className="w-full h-full object-cover"
                   />
@@ -332,7 +358,7 @@ export default function Articles() {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setForm(null)}>
+            <Button variant="outline" onClick={closeForm}>
               Annuler
             </Button>
             <Button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>
