@@ -15,7 +15,7 @@ import { Platform, useColorScheme, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ClerkProvider, ClerkLoaded, ClerkLoading } from "@clerk/expo";
+import { ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 
 import { AnimatedSplash } from "@/components/AnimatedSplash";
@@ -156,24 +156,19 @@ export default function RootLayout() {
       proxyUrl={proxyUrl}
       localization={clerkLocalization}
     >
-      {/* <ClerkLoading>
-        <View style={{ flex: 1, backgroundColor: "red", alignItems: "center", justifyContent: "center" }} />
-      </ClerkLoading> */}
-      <ClerkLoaded>
-        <SafeAreaProvider>
-          <ErrorBoundary>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <KeyboardProvider>
-                <QueryClientProvider client={queryClient}>
-                  <AppProvider>
-                    <ThemedRoot />
-                  </AppProvider>
-                </QueryClientProvider>
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </ErrorBoundary>
-        </SafeAreaProvider>
-      </ClerkLoaded>
+      <SafeAreaProvider>
+        <ErrorBoundary>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <KeyboardProvider>
+              <QueryClientProvider client={queryClient}>
+                <AppProvider>
+                  <ThemedRoot />
+                </AppProvider>
+              </QueryClientProvider>
+            </KeyboardProvider>
+          </GestureHandlerRootView>
+        </ErrorBoundary>
+      </SafeAreaProvider>
       {showIntro && (
         <AnimatedSplash holdMs={introHoldMs} onFinish={() => setShowIntro(false)} />
       )}
