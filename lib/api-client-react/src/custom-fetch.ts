@@ -363,10 +363,18 @@ export async function customFetch<T = unknown>(
 
   // Attach bearer token when an auth getter is configured and no
   // Authorization header has been explicitly provided.
+  // Wrap in try-catch: if the token getter throws (e.g. Clerk not yet
+  // initialised, proxy misconfigured), degrade gracefully to unauthenticated
+  // so public routes still work. Protected routes will receive a 401 from
+  // the server and the unauthorised handler will react accordingly.
   if (_authTokenGetter && !headers.has("authorization")) {
-    const token = await _authTokenGetter();
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
+    try {
+      const token = await _authTokenGetter();
+      if (token) {
+        headers.set("authorization", `Bearer ${token}`);
+      }
+    } catch {
+      // Token retrieval failed — proceed without auth.
     }
   }
 
