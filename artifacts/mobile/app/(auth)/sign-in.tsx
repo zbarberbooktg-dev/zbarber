@@ -1,9 +1,10 @@
 import { useSignIn, useAuth } from "@clerk/expo";
 import { Feather } from "@expo/vector-icons";
 import { Link, Redirect, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -32,6 +33,7 @@ export default function SignInScreen() {
     suspendedNotice ? (t as any).accountSuspendedNotice : null,
   );
   const [intent] = useState(() => consumeAuthIntent());
+  const scrollRef = useRef<ScrollView>(null);
 
   React.useEffect(() => {
     if (suspendedNotice) clearSuspendedNotice();
@@ -107,18 +109,30 @@ export default function SignInScreen() {
     }
   };
 
+  const showError = (msg: string) => {
+    setSubmitError(msg);
+    // Dismiss keyboard so the error text is not hidden beneath it on Android,
+    // then scroll to the top so the message is visible.
+    Keyboard.dismiss();
+    setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 120);
+  };
+
   const handleSubmit = async () => {
     setSubmitError(null);
     setInfo(null);
     const trimmed = email.trim();
     if (!trimmed || !password) {
-      setSubmitError("Veuillez saisir votre email et votre mot de passe");
+      showError("Veuillez saisir votre email et votre mot de passe");
+      return;
+    }
+    if (!signIn) {
+      showError("Authentification en cours d'initialisation, veuillez patienter et réessayer.");
       return;
     }
     try {
       const { error } = await signIn.password({ identifier: trimmed, password });
       if (error) {
-        setSubmitError(error.message ?? "Identifiants invalides");
+        showError(error.message ?? "Identifiants invalides");
         return;
       }
       if (signIn.status === "complete") {
@@ -136,13 +150,13 @@ export default function SignInScreen() {
         (errors as any)?.fields?.identifier?.message ||
         (errors as any)?.fields?.password?.message ||
         (errors as any)?.global?.[0]?.message;
-      setSubmitError(
+      showError(
         fieldErr ??
           `Connexion impossible (statut: ${signIn.status ?? "inconnu"}). Vérifiez vos identifiants.`,
       );
     } catch (err: any) {
       console.warn("[sign-in] error", err);
-      setSubmitError(err?.message ?? err?.errors?.[0]?.message ?? "Erreur de connexion");
+      showError(err?.message ?? err?.errors?.[0]?.message ?? "Erreur de connexion inattendue");
     }
   };
 
@@ -151,7 +165,11 @@ export default function SignInScreen() {
     setInfo(null);
     const code = mfaCode.trim();
     if (!code) {
-      setSubmitError("Veuillez saisir le code de vérification");
+      showError("Veuillez saisir le code de vérification");
+      return;
+    }
+    if (!signIn) {
+      showError("Authentification en cours d'initialisation, veuillez réessayer.");
       return;
     }
     try {
@@ -166,7 +184,7 @@ export default function SignInScreen() {
         res = await signIn.mfa.verifyBackupCode({ code });
       }
       if (res.error) {
-        setSubmitError(res.error.message ?? "Code invalide");
+        showError(res.error.message ?? "Code invalide");
         return;
       }
       if (signIn.status === "complete") {
@@ -175,10 +193,10 @@ export default function SignInScreen() {
         await signIn.finalize({ navigate: () => {} });
         return;
       }
-      setSubmitError(`Vérification incomplète (statut: ${signIn.status ?? "inconnu"})`);
+      showError(`Vérification incomplète (statut: ${signIn.status ?? "inconnu"})`);
     } catch (err: any) {
       console.warn("[sign-in mfa] error", err);
-      setSubmitError(err?.message ?? err?.errors?.[0]?.message ?? "Erreur de vérification");
+      showError(err?.message ?? err?.errors?.[0]?.message ?? "Erreur de vérification inattendue");
     }
   };
 
@@ -197,7 +215,7 @@ export default function SignInScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Pressable
         onPress={() => router.replace("/")}
@@ -214,6 +232,7 @@ export default function SignInScreen() {
       </Pressable>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24, paddingTop: 96, paddingBottom: 96 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"

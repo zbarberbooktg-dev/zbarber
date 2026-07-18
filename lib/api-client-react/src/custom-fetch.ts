@@ -373,7 +373,14 @@ export async function customFetch<T = unknown>(
   // the server and the unauthorised handler will react accordingly.
   if (_authTokenGetter && !headers.has("authorization")) {
     try {
-      const token = await _authTokenGetter();
+      // Race the token getter against a 5-second timeout. If the Clerk proxy is
+      // unreachable or slow to initialise, we must not stall the entire fetch
+      // queue — public routes work fine without a token and protected routes
+      // will receive a 401 that the unauthorised handler can react to.
+      const token = await Promise.race([
+        _authTokenGetter(),
+        new Promise<string | null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      ]);
       if (token) {
         headers.set("authorization", `Bearer ${token}`);
       }
