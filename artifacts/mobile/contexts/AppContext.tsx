@@ -284,7 +284,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       syncing,
       themePref,
       lang,
-      ready: storageReady && isLoaded && initialSyncDone,
+      ready: storageReady,
       selectedSalonId,
       setSelectedSalonId,
       setRole,

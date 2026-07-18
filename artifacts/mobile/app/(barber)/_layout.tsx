@@ -11,11 +11,11 @@ import { consumeAuthIntent } from "@/lib/authIntent";
 export default function BarberTabs() {
   const c = useColors();
   const { role, ready, syncing, user, barberProfile, t } = useApp();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const segments = useSegments();
   const isWeb = Platform.OS === "web";
 
-  if (!ready || (isSignedIn && syncing && !user)) return null;
+  if (!isLoaded || !ready || (isSignedIn && syncing && !user)) return null;
   if (!isSignedIn) {
     const intent = consumeAuthIntent();
     if (intent === "signup") return <Redirect href="/(auth)/sign-up" />;

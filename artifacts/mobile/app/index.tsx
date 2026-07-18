@@ -109,8 +109,10 @@ export default function PublicHome() {
     );
   }, [data, query]);
 
-  // While Clerk or AppContext loads, or onboarding state unknown — show spinner
-  if (!isLoaded || onboardingDone === null || (!isSignedIn ? false : !ready || (syncing && !user))) {
+  // While onboarding state unknown, or signed-in user still syncing — show spinner.
+  // Do NOT gate on !isLoaded: the home screen is public and must show immediately
+  // even if the Clerk proxy is slow. Auth state catches up in the background.
+  if (onboardingDone === null || (isSignedIn && (!ready || (syncing && !user)))) {
     return (
       <View style={{ flex: 1, backgroundColor: PALETTE.bg, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator color={PALETTE.gold} />

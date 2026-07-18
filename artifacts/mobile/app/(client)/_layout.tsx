@@ -13,7 +13,7 @@ export default function ClientTabs() {
   const c = useColors();
   const router = useRouter();
   const { role, ready, syncing, user, t } = useApp();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const isWeb = Platform.OS === "web";
 
   const HomeHeaderButton = () => (
@@ -40,7 +40,7 @@ export default function ClientTabs() {
     </Pressable>
   );
 
-  if (!ready || (isSignedIn && syncing && !user)) return null;
+  if (!isLoaded || !ready || (isSignedIn && syncing && !user)) return null;
   if (!isSignedIn) {
     const intent = consumeAuthIntent();
     if (intent === "signup") return <Redirect href="/(auth)/sign-up" />;
