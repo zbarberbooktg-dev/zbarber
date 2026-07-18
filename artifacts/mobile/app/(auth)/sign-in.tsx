@@ -25,8 +25,9 @@ export default function SignInScreen() {
   const c = useColors();
   const { t, suspendedNotice, clearSuspendedNotice } = useApp();
   const router = useRouter();
-  const { signIn, errors, fetchStatus } = useSignIn();
+  const { signIn, errors } = useSignIn();
   const { isSignedIn } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(
@@ -56,8 +57,6 @@ export default function SignInScreen() {
   if (isSignedIn) {
     return <Redirect href="/" />;
   }
-
-  const busy = fetchStatus === "fetching";
 
   const enterMfa = async () => {
     const factors = (signIn.supportedSecondFactors ?? []) as Array<{ strategy: string }>;
@@ -129,6 +128,7 @@ export default function SignInScreen() {
       showError("Authentification en cours d'initialisation, veuillez patienter et réessayer.");
       return;
     }
+    setIsSubmitting(true);
     try {
       const { error } = await signIn.password({ identifier: trimmed, password });
       if (error) {
@@ -157,6 +157,8 @@ export default function SignInScreen() {
     } catch (err: any) {
       console.warn("[sign-in] error", err);
       showError(err?.message ?? err?.errors?.[0]?.message ?? "Erreur de connexion inattendue");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -172,6 +174,7 @@ export default function SignInScreen() {
       showError("Authentification en cours d'initialisation, veuillez réessayer.");
       return;
     }
+    setIsSubmitting(true);
     try {
       let res: { error: any } = { error: null };
       if (mfaStrategy === "totp") {
@@ -188,8 +191,6 @@ export default function SignInScreen() {
         return;
       }
       if (signIn.status === "complete") {
-        // Session active — navigation home is handled by the `isSignedIn` guard
-        // above; navigating here too races it and throws the unhandled-REPLACE error.
         await signIn.finalize({ navigate: () => {} });
         return;
       }
@@ -197,6 +198,8 @@ export default function SignInScreen() {
     } catch (err: any) {
       console.warn("[sign-in mfa] error", err);
       showError(err?.message ?? err?.errors?.[0]?.message ?? "Erreur de vérification inattendue");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -341,16 +344,16 @@ export default function SignInScreen() {
 
         <Pressable
           onPress={step === "credentials" ? handleSubmit : handleMfaSubmit}
-          disabled={busy}
+          disabled={isSubmitting}
           style={({ pressed }) => ({
             backgroundColor: c.primary,
             padding: 16,
             borderRadius: c.radius,
             alignItems: "center",
-            opacity: busy ? 0.6 : pressed ? 0.85 : 1,
+            opacity: isSubmitting ? 0.6 : pressed ? 0.85 : 1,
           })}
         >
-          {busy ? (
+          {isSubmitting ? (
             <ActivityIndicator color={c.primaryForeground} />
           ) : (
             <Text style={{ color: c.primaryForeground, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
@@ -371,7 +374,7 @@ export default function SignInScreen() {
                   <Pressable
                     key={s}
                     onPress={() => switchStrategy(s)}
-                    disabled={busy}
+                    disabled={isSubmitting}
                     style={{
                       borderWidth: 1,
                       borderColor: c.border,
