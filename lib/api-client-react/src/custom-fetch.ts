@@ -1,3 +1,7 @@
+// React Native injects __DEV__ as a global; declare it so TypeScript knows it
+// may exist (it is absent in web/Node environments).
+declare const __DEV__: boolean | undefined;
+
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
 };
@@ -380,7 +384,25 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  // Development-only request/response logger.
+  const _dev = typeof __DEV__ !== "undefined" && __DEV__;
+  if (_dev) {
+    console.log(`[HTTP →] ${method} ${requestInfo.url}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(input, { ...init, method, headers });
+  } catch (networkErr) {
+    if (_dev) {
+      console.log(`[HTTP ✗] ${method} ${requestInfo.url}`, networkErr);
+    }
+    throw networkErr;
+  }
+
+  if (_dev) {
+    console.log(`[HTTP ←] ${method} ${requestInfo.url} → ${response.status}`);
+  }
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
