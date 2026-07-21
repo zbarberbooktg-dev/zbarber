@@ -130,15 +130,21 @@ export default function SignInScreen() {
     }
     setIsSubmitting(true);
     try {
-      const { error } = await signIn.password({ identifier: trimmed, password });
+      console.warn("[sign-in] calling signIn.password...");
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout: le serveur d'authentification ne répond pas (>15s)")), 15000),
+      );
+      const result = await Promise.race([
+        signIn.password({ identifier: trimmed, password }),
+        timeout,
+      ]);
+      console.warn("[sign-in] result status:", signIn.status, "error:", JSON.stringify((result as any)?.error ?? null));
+      const { error } = result as { error: any };
       if (error) {
-        showError(error.message ?? "Identifiants invalides");
+        showError(error.message ?? error?.errors?.[0]?.message ?? "Identifiants invalides");
         return;
-      } 
+      }
       if (signIn.status === "complete") {
-        // Session active — the `isSignedIn` guard above (<Redirect href="/">)
-        // handles navigation home. Navigating imperatively here too races that
-        // redirect and throws "REPLACE {name:index} was not handled by any navigator".
         await signIn.finalize({ navigate: () => {} });
         return;
       }
@@ -155,7 +161,7 @@ export default function SignInScreen() {
           `Connexion impossible (statut: ${signIn.status ?? "inconnu"}). Vérifiez vos identifiants.`,
       );
     } catch (err: any) {
-      console.warn("[sign-in] error", err);
+      console.warn("[sign-in] catch:", err?.message, JSON.stringify(err?.errors ?? err ?? null));
       showError(err?.message ?? err?.errors?.[0]?.message ?? "Erreur de connexion inattendue");
     } finally {
       setIsSubmitting(false);
