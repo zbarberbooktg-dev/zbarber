@@ -31,7 +31,6 @@ if (domain) setBaseUrl(`https://${domain}`);
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
-console.warn("[clerk-config] publishableKey:", publishableKey?.slice(0, 20) + "...", "proxyUrl:", proxyUrl);
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },

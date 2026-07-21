@@ -391,10 +391,10 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  // Development-only request/response logger (warn so it's visible in Metro).
+  // Development-only request/response logger.
   const _dev = typeof __DEV__ !== "undefined" && __DEV__;
   if (_dev) {
-    console.warn(`[HTTP →] ${method} ${requestInfo.url}`);
+    console.log(`[HTTP →] ${method} ${requestInfo.url}`);
   }
 
   let response: Response;
@@ -402,13 +402,13 @@ export async function customFetch<T = unknown>(
     response = await fetch(input, { ...init, method, headers });
   } catch (networkErr) {
     if (_dev) {
-      console.warn(`[HTTP ✗] ${method} ${requestInfo.url}`, networkErr);
+      console.log(`[HTTP ✗] ${method} ${requestInfo.url}`, networkErr);
     }
     throw networkErr;
   }
 
   if (_dev) {
-    console.warn(`[HTTP ←] ${method} ${requestInfo.url} → ${response.status}`);
+    console.log(`[HTTP ←] ${method} ${requestInfo.url} → ${response.status}`);
   }
 
   if (!response.ok) {
