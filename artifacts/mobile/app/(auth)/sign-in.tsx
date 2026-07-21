@@ -134,7 +134,7 @@ export default function SignInScreen() {
       if (error) {
         showError(error.message ?? "Identifiants invalides");
         return;
-      }
+      } 
       if (signIn.status === "complete") {
         // Session active — the `isSignedIn` guard above (<Redirect href="/">)
         // handles navigation home. Navigating imperatively here too races that
