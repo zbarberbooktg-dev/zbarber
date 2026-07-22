@@ -26,6 +26,7 @@ import {
   ImageSourcePropType,
   LayoutAnimation,
   Linking,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -87,6 +88,7 @@ export default function PublicSalonDetail() {
   const fetcher = useAuthedFetch();
   const [scrolled, setScrolled] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [heroLightbox, setHeroLightbox] = useState<number | null>(null);
 
   const { data: barber, isLoading } = useGetBarber(barberId);
   const { data: servicesData } = useListBarberServices(barberId);
@@ -126,6 +128,21 @@ export default function PublicSalonDetail() {
   const { data: panoramasData } = useListBarberPanoramas(barberId);
   const panoramas = panoramasData ?? [];
   const [tourOpen, setTourOpen] = useState(false);
+
+  const heroSlides = React.useMemo<Array<{ key: string; source: ImageSourcePropType }>>(() => {
+    if (galleryData && galleryData.length > 0) {
+      return galleryData.map((p) => ({
+        key: String(p.id),
+        source: { uri: resolveObjectUrl(p.photoUrl)! },
+      }));
+    }
+    return [{
+      key: "fallback",
+      source: barber?.logoUrl
+        ? { uri: resolveObjectUrl(barber.logoUrl)! }
+        : salonFallbacks[barberId % salonFallbacks.length],
+    }];
+  }, [galleryData, barber, barberId]);
 
   const isFr = String(locale).startsWith("fr");
   const handleToggleFavorite = async () => {
@@ -376,20 +393,6 @@ export default function PublicSalonDetail() {
         {(() => {
           const screenW = Dimensions.get("window").width;
           const heroH = Math.round(screenW * 9 / 16);
-          const heroSlides: Array<{ key: string; source: ImageSourcePropType }> =
-            galleryData && galleryData.length > 0
-              ? galleryData.map((p) => ({
-                  key: String(p.id),
-                  source: { uri: resolveObjectUrl(p.photoUrl)! },
-                }))
-              : [
-                  {
-                    key: "fallback",
-                    source: barber.logoUrl
-                      ? { uri: resolveObjectUrl(barber.logoUrl)! }
-                      : salonFallbacks[barberId % salonFallbacks.length],
-                  },
-                ];
 
           const onHeroScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
             const i = Math.round(e.nativeEvent.contentOffset.x / screenW);
@@ -406,12 +409,14 @@ export default function PublicSalonDetail() {
                 showsHorizontalScrollIndicator={false}
                 onScroll={onHeroScroll}
                 scrollEventThrottle={32}
-                renderItem={({ item }) => (
-                  <Image
-                    source={item.source}
-                    style={{ width: screenW, height: heroH }}
-                    resizeMode="cover"
-                  />
+                renderItem={({ item, index }) => (
+                  <Pressable onPress={() => setHeroLightbox(index)}>
+                    <Image
+                      source={item.source}
+                      style={{ width: screenW, height: heroH }}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
                 )}
               />
 
@@ -1022,6 +1027,61 @@ export default function PublicSalonDetail() {
           onClose={() => setTourOpen(false)}
         />
       )}
+
+      {/* Hero lightbox — fullscreen zoomable viewer */}
+      <Modal
+        visible={heroLightbox !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setHeroLightbox(null)}
+        statusBarTranslucent
+      >
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          <Pressable
+            onPress={() => setHeroLightbox(null)}
+            hitSlop={12}
+            style={{
+              position: "absolute", top: insets.top + 12, right: 20, zIndex: 10,
+              width: 40, height: 40, borderRadius: 20,
+              backgroundColor: "rgba(255,255,255,0.12)",
+              alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Feather name="x" size={22} color="#fff" />
+          </Pressable>
+
+          {heroLightbox !== null && (
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+              pinchGestureEnabled
+              minimumZoomScale={1}
+              maximumZoomScale={4}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+              centerContent
+            >
+              <Image
+                source={heroSlides[heroLightbox]?.source ?? heroSlides[0]?.source}
+                style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height * 0.82 }}
+                resizeMode="contain"
+              />
+            </ScrollView>
+          )}
+
+          {heroSlides.length > 1 && heroLightbox !== null && (
+            <View style={{
+              position: "absolute", bottom: insets.bottom + 24, alignSelf: "center",
+              backgroundColor: "rgba(255,255,255,0.12)",
+              paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999,
+            }}>
+              <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                {heroLightbox + 1} / {heroSlides.length}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
