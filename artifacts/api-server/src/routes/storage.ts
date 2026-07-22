@@ -1,5 +1,10 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { Readable } from "stream";
+import crypto from "crypto";
+import path from "path";
+import os from "os";
+import fsp from "fs/promises";
+import sharp from "sharp";
 import {
   db,
   financingRequestsTable,
@@ -276,8 +281,57 @@ router.get(
 
       const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
       const response = await objectStorageService.downloadObject(objectFile);
+
+      // Optional server-side resize: ?w=<px> for image/* (not SVG)
+      const wParam = typeof req.query.w === "string" ? parseInt(req.query.w, 10) : NaN;
+      const contentType = response.headers.get("content-type") ?? "";
+      const canResize =
+        !isNaN(wParam) && wParam > 0 && wParam <= 3000 &&
+        contentType.startsWith("image/") && !contentType.includes("svg");
+
+      if (canResize && response.body) {
+        const cacheKey = crypto
+          .createHash("sha256")
+          .update(`${objectPath}:${wParam}`)
+          .digest("hex");
+        const cacheDir = path.join(os.tmpdir(), "zbarber-img-cache");
+        const cacheFile = path.join(cacheDir, `${cacheKey}.webp`);
+
+        await fsp.mkdir(cacheDir, { recursive: true });
+
+        // Serve from disk cache when available (immutable: path+width never change)
+        const cached = await fsp.readFile(cacheFile).catch(() => null);
+        if (cached) {
+          res.setHeader("Content-Type", "image/webp");
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          res.setHeader("Content-Length", String(cached.length));
+          res.status(200).send(cached);
+          return;
+        }
+
+        // Buffer full image, resize with sharp, write cache, send
+        const chunks: Buffer[] = [];
+        for await (const chunk of Readable.fromWeb(response.body as ReadableStream<Uint8Array>)) {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        }
+        const resized = await sharp(Buffer.concat(chunks))
+          .resize(wParam, null, { withoutEnlargement: true })
+          .webp({ quality: 82 })
+          .toBuffer();
+
+        fsp.writeFile(cacheFile, resized).catch(() => {}); // fire-and-forget
+
+        res.setHeader("Content-Type", "image/webp");
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Content-Length", String(resized.length));
+        res.status(200).send(resized);
+        return;
+      }
+
+      // Default: stream the original
       res.status(response.status);
       response.headers.forEach((value, key) => res.setHeader(key, value));
+      res.setHeader("Cache-Control", "public, max-age=3600");
       if (response.body) {
         const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
         nodeStream.pipe(res);

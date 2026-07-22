@@ -22,7 +22,6 @@ import {
   Alert,
   Dimensions,
   FlatList,
-  Image,
   ImageSourcePropType,
   LayoutAnimation,
   Linking,
@@ -44,6 +43,7 @@ import { DateTimePicker } from "@/components/DateTimePicker";
 
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
+import { Image } from "expo-image";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ScrollHint } from "@/components/ScrollHint";
 import { PanoramaViewer } from "@/components/PanoramaViewer";
@@ -133,13 +133,13 @@ export default function PublicSalonDetail() {
     if (galleryData && galleryData.length > 0) {
       return galleryData.map((p) => ({
         key: String(p.id),
-        source: { uri: resolveObjectUrl(p.photoUrl)! },
+        source: { uri: resolveObjectUrl(p.photoUrl, 1200)! },
       }));
     }
     return [{
       key: "fallback",
       source: barber?.logoUrl
-        ? { uri: resolveObjectUrl(barber.logoUrl)! }
+        ? { uri: resolveObjectUrl(barber.logoUrl, 200)! }
         : salonFallbacks[barberId % salonFallbacks.length],
     }];
   }, [galleryData, barber, barberId]);
@@ -438,7 +438,7 @@ export default function PublicSalonDetail() {
                   overflow: "hidden", backgroundColor: PALETTE.surface,
                 }}>
                   <Image
-                    source={{ uri: resolveObjectUrl(barber.logoUrl)! }}
+                    source={{ uri: resolveObjectUrl(barber.logoUrl, 200)! }}
                     style={{ width: "100%", height: "100%" }}
                     resizeMode="cover"
                   />
@@ -868,7 +868,7 @@ export default function PublicSalonDetail() {
               style={{ borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: PALETTE.border, position: "relative" }}
             >
               <Image
-                source={{ uri: resolveObjectUrl(panoramas[0].imageUrl)! }}
+                source={{ uri: resolveObjectUrl(panoramas[0].imageUrl, 600)! }}
                 style={{ width: "100%", height: 170 }}
                 resizeMode="cover"
               />
@@ -895,7 +895,7 @@ export default function PublicSalonDetail() {
               {realisations.map((r) => (
                 <View key={r.id} style={{ width: 240, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, borderRadius: 12, overflow: "hidden" }}>
                   <View style={{ flexDirection: "row" }}>
-                    {[{ uri: resolveObjectUrl(r.beforeUrl), tag: "Avant" }, { uri: resolveObjectUrl(r.afterUrl), tag: "Après" }].map((img, i) => (
+                    {[{ uri: resolveObjectUrl(r.beforeUrl, 500), tag: "Avant" }, { uri: resolveObjectUrl(r.afterUrl, 500), tag: "Après" }].map((img, i) => (
                       <View key={i} style={{ flex: 1, aspectRatio: 1, position: "relative" }}>
                         {img.uri && <Image source={{ uri: img.uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />}
                         <View style={{ position: "absolute", top: 6, left: 6, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>

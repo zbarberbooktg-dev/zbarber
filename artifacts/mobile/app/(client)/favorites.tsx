@@ -2,9 +2,9 @@ import { Feather } from "@expo/vector-icons";
 import { useListFavorites } from "@workspace/api-client-react";
 import { useRouter } from "expo-router";
 import React from "react";
+import { Image } from "expo-image";
 import {
   ActivityIndicator,
-  Image,
   ImageSourcePropType,
   Pressable,
   RefreshControl,
@@ -65,7 +65,7 @@ export default function Favorites() {
         ) : (
           <View style={{ gap: 12 }}>
             {items.map((b, idx) => {
-              const logo = resolveObjectUrl(b.logoUrl);
+              const logo = resolveObjectUrl(b.logoUrl, 200);
               return (
                 <Pressable
                   key={b.id}

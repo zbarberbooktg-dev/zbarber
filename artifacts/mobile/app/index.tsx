@@ -12,11 +12,11 @@ import { useAuth } from "@clerk/expo";
 import * as Location from "expo-location";
 import { Redirect, useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Image } from "expo-image";
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  Image,
   ImageBackground,
   ImageSourcePropType,
   Modal,
@@ -317,7 +317,7 @@ export default function PublicHome() {
                 >
                   <View style={{ aspectRatio: 4 / 3, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
                     <Image
-                      source={{ uri: resolveObjectUrl(a.coverImageUrl) ?? "" }}
+                      source={{ uri: resolveObjectUrl(a.coverImageUrl, 700) ?? "" }}
                       style={{ width: "100%", height: "100%" }}
                       resizeMode="cover"
                     />
@@ -419,7 +419,7 @@ export default function PublicHome() {
               {(homeGallery && homeGallery.length > 0
                 ? homeGallery.slice(0, 8).map((p) => ({
                     key: `db-${p.id}`,
-                    uri: resolveObjectUrl(p.imageUrl),
+                    uri: resolveObjectUrl(p.imageUrl, 900),
                     label: p.caption ?? "",
                   }))
                 : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
