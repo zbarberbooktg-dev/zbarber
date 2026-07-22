@@ -2,9 +2,9 @@ import { Feather } from "@expo/vector-icons";
 import { useListHomeGalleryPhotos } from "@workspace/api-client-react";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
+import { Image } from "expo-image";
 import {
   ActivityIndicator,
-  Image,
   ImageSourcePropType,
   Pressable,
   ScrollView,
@@ -40,7 +40,7 @@ export default function HomeGallery() {
     (data && data.length > 0)
       ? data.map((p) => ({
           key: String(p.id),
-          uri: resolveObjectUrl(p.imageUrl),
+          uri: resolveObjectUrl(p.imageUrl, 900),
           label: p.caption ?? "",
         }))
       : fallback.map((f, i) => ({ key: `fb-${i}`, src: f.src, uri: null, label: f.label }));

@@ -85,14 +85,20 @@ export async function pickAndUploadImage(
 /**
  * Resolve a stored object path to a full URL for <Image source={{ uri }}>.
  * Accepts already-full URLs (http*) and returns them unchanged.
+ * Pass `width` to request a server-side resized WebP (e.g. 400 for thumbnails,
+ * 1200 for full-screen). The server caches each (path, width) pair on disk.
  */
-export function resolveObjectUrl(objectPath: string | null | undefined): string | null {
+export function resolveObjectUrl(
+  objectPath: string | null | undefined,
+  width?: number,
+): string | null {
   if (!objectPath) return null;
   if (objectPath.startsWith("http://") || objectPath.startsWith("https://")) return objectPath;
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   const base = domain ? `https://${domain}` : "";
+  const w = width ? `?w=${width}` : "";
   if (objectPath.startsWith("/objects/")) {
-    return `${base}/api/storage${objectPath}`;
+    return `${base}/api/storage${objectPath}${w}`;
   }
-  return `${base}${objectPath.startsWith("/") ? "" : "/"}${objectPath}`;
+  return `${base}${objectPath.startsWith("/") ? "" : "/"}${objectPath}${w}`;
 }

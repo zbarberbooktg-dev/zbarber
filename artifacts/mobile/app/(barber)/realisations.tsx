@@ -2,10 +2,10 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { Image } from "expo-image";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   ScrollView,
   Text,
@@ -162,8 +162,8 @@ export default function BarberRealisations() {
       <View style={{ backgroundColor: c.card, borderRadius: c.radius, borderWidth: 1, borderColor: c.border, padding: 14, gap: 12 }}>
         <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 14 }}>Nouvelle réalisation</Text>
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <PickSlot label="Avant" uri={resolveObjectUrl(beforeUrl)} uploading={uploadingBefore} onPress={() => pickImage("before")} c={c} />
-          <PickSlot label="Après" uri={resolveObjectUrl(afterUrl)} uploading={uploadingAfter} onPress={() => pickImage("after")} c={c} />
+          <PickSlot label="Avant" uri={resolveObjectUrl(beforeUrl, 500)} uploading={uploadingBefore} onPress={() => pickImage("before")} c={c} />
+          <PickSlot label="Après" uri={resolveObjectUrl(afterUrl, 500)} uploading={uploadingAfter} onPress={() => pickImage("after")} c={c} />
         </View>
         {services && services.length > 0 && (
           <View style={{ gap: 6 }}>
@@ -224,8 +224,8 @@ export default function BarberRealisations() {
           {items.map((r) => (
             <View key={r.id} style={{ backgroundColor: c.card, borderRadius: c.radius, borderWidth: 1, borderColor: c.border, overflow: "hidden" }}>
               <View style={{ flexDirection: "row" }}>
-                <BeforeAfterImg uri={resolveObjectUrl(r.beforeUrl)} tag="Avant" c={c} />
-                <BeforeAfterImg uri={resolveObjectUrl(r.afterUrl)} tag="Après" c={c} />
+                <BeforeAfterImg uri={resolveObjectUrl(r.beforeUrl, 500)} tag="Avant" c={c} />
+                <BeforeAfterImg uri={resolveObjectUrl(r.afterUrl, 500)} tag="Après" c={c} />
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", padding: 12, gap: 8 }}>
                 <Text style={{ flex: 1, color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 13 }}>
