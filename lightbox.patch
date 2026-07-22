@@ -1,0 +1,254 @@
+diff --git a/artifacts/mobile/app/index.tsx b/artifacts/mobile/app/index.tsx
+index 024f071..a4d41ed 100644
+--- a/artifacts/mobile/app/index.tsx
++++ b/artifacts/mobile/app/index.tsx
+@@ -15,6 +15,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
+ import {
+   ActivityIndicator,
+   Alert,
++  Dimensions,
+   Image,
+   ImageBackground,
+   ImageSourcePropType,
+@@ -407,24 +408,29 @@ export default function PublicHome() {
+               textColor={PALETTE.text}
+               accentColor={PALETTE.gold}
+             />
+-            <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
+-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+-                {(homeGallery && homeGallery.length > 0
+-                  ? homeGallery.slice(0, 4).map((p) => ({
+-                      key: `db-${p.id}`,
+-                      uri: resolveObjectUrl(p.imageUrl),
+-                      label: p.caption ?? "",
+-                    }))
+-                  : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
+-                ).map((s: any) => (
+-                  <Pressable key={s.key} onPress={() => setLightbox({ uri: s.uri, src: s.src, label: s.label })} style={{ width: "48%", aspectRatio: 1, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
+-                    <Image source={s.uri ? { uri: s.uri } : s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+-                    <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
+-                    {s.label ? <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text> : null}
+-                  </Pressable>
+-                ))}
+-              </View>
+-            </View>
++            <ScrollView
++              horizontal
++              showsHorizontalScrollIndicator={false}
++              contentContainerStyle={{ paddingLeft: 20, paddingRight: 8, gap: 10, paddingBottom: 4 }}
++              snapToInterval={164}
++              decelerationRate="fast"
++              style={{ marginBottom: 36 }}
++            >
++              {(homeGallery && homeGallery.length > 0
++                ? homeGallery.slice(0, 8).map((p) => ({
++                    key: `db-${p.id}`,
++                    uri: resolveObjectUrl(p.imageUrl),
++                    label: p.caption ?? "",
++                  }))
++                : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
++              ).map((s: any) => (
++                <Pressable key={s.key} onPress={() => setLightbox({ uri: s.uri, src: s.src, label: s.label })} style={{ width: 154, aspectRatio: 3 / 4, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
++                  <Image source={s.uri ? { uri: s.uri } : s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
++                  <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
++                  {s.label ? <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text> : null}
++                </Pressable>
++              ))}
++            </ScrollView>
+ 
+             {/* Nearby list */}
+             {nearby.length > 0 && (
+@@ -487,26 +493,37 @@ export default function PublicHome() {
+         )}
+       </ScrollView>
+ 
+-      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
+-        <Pressable onPress={() => setLightbox(null)} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.95)", justifyContent: "center", alignItems: "center" }}>
++      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)} statusBarTranslucent>
++        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.96)" }}>
+           <Pressable
+             onPress={() => setLightbox(null)}
+             hitSlop={12}
+-            style={{ position: "absolute", top: insets.top + 12, right: 20, zIndex: 2, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}
++            style={{ position: "absolute", top: insets.top + 12, right: 20, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" }}
+           >
+             <Feather name="x" size={22} color="#fff" />
+           </Pressable>
+           {lightbox && (
+-            <Image
+-              source={lightbox.uri ? { uri: lightbox.uri } : lightbox.src}
+-              style={{ width: "92%", height: "70%" }}
+-              resizeMode="contain"
+-            />
++            <ScrollView
++              style={{ flex: 1 }}
++              contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}
++              pinchGestureEnabled
++              minimumZoomScale={1}
++              maximumZoomScale={4}
++              showsVerticalScrollIndicator={false}
++              showsHorizontalScrollIndicator={false}
++              centerContent
++            >
++              <Image
++                source={lightbox.uri ? { uri: lightbox.uri } : lightbox.src}
++                style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height * 0.8 }}
++                resizeMode="contain"
++              />
++            </ScrollView>
+           )}
+           {lightbox?.label ? (
+-            <Text style={{ marginTop: 18, color: "#fff", fontFamily: serifItalic, fontSize: 16 }}>{lightbox.label}</Text>
++            <Text style={{ position: "absolute", bottom: insets.bottom + 24, alignSelf: "center", color: "#fff", fontFamily: serifItalic, fontSize: 16 }}>{lightbox.label}</Text>
+           ) : null}
+-        </Pressable>
++        </View>
+       </Modal>
+     </View>
+   );
+diff --git a/artifacts/mobile/app/salon/[id].tsx b/artifacts/mobile/app/salon/[id].tsx
+index af55c23..dcd81eb 100644
+--- a/artifacts/mobile/app/salon/[id].tsx
++++ b/artifacts/mobile/app/salon/[id].tsx
+@@ -26,6 +26,7 @@ import {
+   ImageSourcePropType,
+   LayoutAnimation,
+   Linking,
++  Modal,
+   NativeScrollEvent,
+   NativeSyntheticEvent,
+   Platform,
+@@ -87,6 +88,7 @@ export default function PublicSalonDetail() {
+   const fetcher = useAuthedFetch();
+   const [scrolled, setScrolled] = useState(false);
+   const [heroIndex, setHeroIndex] = useState(0);
++  const [heroLightbox, setHeroLightbox] = useState<number | null>(null);
+ 
+   const { data: barber, isLoading } = useGetBarber(barberId);
+   const { data: servicesData } = useListBarberServices(barberId);
+@@ -127,6 +129,21 @@ export default function PublicSalonDetail() {
+   const panoramas = panoramasData ?? [];
+   const [tourOpen, setTourOpen] = useState(false);
+ 
++  const heroSlides = React.useMemo<Array<{ key: string; source: ImageSourcePropType }>>(() => {
++    if (galleryData && galleryData.length > 0) {
++      return galleryData.map((p) => ({
++        key: String(p.id),
++        source: { uri: resolveObjectUrl(p.photoUrl)! },
++      }));
++    }
++    return [{
++      key: "fallback",
++      source: barber?.logoUrl
++        ? { uri: resolveObjectUrl(barber.logoUrl)! }
++        : salonFallbacks[barberId % salonFallbacks.length],
++    }];
++  }, [galleryData, barber, barberId]);
++
+   const isFr = String(locale).startsWith("fr");
+   const handleToggleFavorite = async () => {
+     if (!isSignedIn) {
+@@ -376,20 +393,6 @@ export default function PublicSalonDetail() {
+         {(() => {
+           const screenW = Dimensions.get("window").width;
+           const heroH = Math.round(screenW * 9 / 16);
+-          const heroSlides: Array<{ key: string; source: ImageSourcePropType }> =
+-            galleryData && galleryData.length > 0
+-              ? galleryData.map((p) => ({
+-                  key: String(p.id),
+-                  source: { uri: resolveObjectUrl(p.photoUrl)! },
+-                }))
+-              : [
+-                  {
+-                    key: "fallback",
+-                    source: barber.logoUrl
+-                      ? { uri: resolveObjectUrl(barber.logoUrl)! }
+-                      : salonFallbacks[barberId % salonFallbacks.length],
+-                  },
+-                ];
+ 
+           const onHeroScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+             const i = Math.round(e.nativeEvent.contentOffset.x / screenW);
+@@ -406,12 +409,14 @@ export default function PublicSalonDetail() {
+                 showsHorizontalScrollIndicator={false}
+                 onScroll={onHeroScroll}
+                 scrollEventThrottle={32}
+-                renderItem={({ item }) => (
+-                  <Image
+-                    source={item.source}
+-                    style={{ width: screenW, height: heroH }}
+-                    resizeMode="cover"
+-                  />
++                renderItem={({ item, index }) => (
++                  <Pressable onPress={() => setHeroLightbox(index)}>
++                    <Image
++                      source={item.source}
++                      style={{ width: screenW, height: heroH }}
++                      resizeMode="cover"
++                    />
++                  </Pressable>
+                 )}
+               />
+ 
+@@ -1022,6 +1027,61 @@ export default function PublicSalonDetail() {
+           onClose={() => setTourOpen(false)}
+         />
+       )}
++
++      {/* Hero lightbox — fullscreen zoomable viewer */}
++      <Modal
++        visible={heroLightbox !== null}
++        transparent
++        animationType="fade"
++        onRequestClose={() => setHeroLightbox(null)}
++        statusBarTranslucent
++      >
++        <View style={{ flex: 1, backgroundColor: "#000" }}>
++          <Pressable
++            onPress={() => setHeroLightbox(null)}
++            hitSlop={12}
++            style={{
++              position: "absolute", top: insets.top + 12, right: 20, zIndex: 10,
++              width: 40, height: 40, borderRadius: 20,
++              backgroundColor: "rgba(255,255,255,0.12)",
++              alignItems: "center", justifyContent: "center",
++            }}
++          >
++            <Feather name="x" size={22} color="#fff" />
++          </Pressable>
++
++          {heroLightbox !== null && (
++            <ScrollView
++              style={{ flex: 1 }}
++              contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}
++              pinchGestureEnabled
++              minimumZoomScale={1}
++              maximumZoomScale={4}
++              showsVerticalScrollIndicator={false}
++              showsHorizontalScrollIndicator={false}
++              centerContent
++            >
++              <Image
++                source={heroSlides[heroLightbox]?.source ?? heroSlides[0]?.source}
++                style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height * 0.82 }}
++                resizeMode="contain"
++              />
++            </ScrollView>
++          )}
++
++          {heroSlides.length > 1 && heroLightbox !== null && (
++            <View style={{
++              position: "absolute", bottom: insets.bottom + 24, alignSelf: "center",
++              backgroundColor: "rgba(255,255,255,0.12)",
++              paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999,
++            }}>
++              <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
++                {heroLightbox + 1} / {heroSlides.length}
++              </Text>
++            </View>
++          )}
++        </View>
++      </Modal>
+     </View>
+   );
+ }
