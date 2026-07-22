@@ -15,6 +15,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   ImageBackground,
   ImageSourcePropType,
@@ -407,24 +408,29 @@ export default function PublicHome() {
               textColor={PALETTE.text}
               accentColor={PALETTE.gold}
             />
-            <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-                {(homeGallery && homeGallery.length > 0
-                  ? homeGallery.slice(0, 4).map((p) => ({
-                      key: `db-${p.id}`,
-                      uri: resolveObjectUrl(p.imageUrl),
-                      label: p.caption ?? "",
-                    }))
-                  : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
-                ).map((s: any) => (
-                  <Pressable key={s.key} onPress={() => setLightbox({ uri: s.uri, src: s.src, label: s.label })} style={{ width: "48%", aspectRatio: 1, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
-                    <Image source={s.uri ? { uri: s.uri } : s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                    <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
-                    {s.label ? <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text> : null}
-                  </Pressable>
-                ))}
-              </View>
-            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingLeft: 20, paddingRight: 8, gap: 10, paddingBottom: 4 }}
+              snapToInterval={164}
+              decelerationRate="fast"
+              style={{ marginBottom: 36 }}
+            >
+              {(homeGallery && homeGallery.length > 0
+                ? homeGallery.slice(0, 8).map((p) => ({
+                    key: `db-${p.id}`,
+                    uri: resolveObjectUrl(p.imageUrl),
+                    label: p.caption ?? "",
+                  }))
+                : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
+              ).map((s: any) => (
+                <Pressable key={s.key} onPress={() => setLightbox({ uri: s.uri, src: s.src, label: s.label })} style={{ width: 154, aspectRatio: 3 / 4, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
+                  <Image source={s.uri ? { uri: s.uri } : s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                  <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
+                  {s.label ? <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text> : null}
+                </Pressable>
+              ))}
+            </ScrollView>
 
             {/* Nearby list */}
             {nearby.length > 0 && (
@@ -487,26 +493,37 @@ export default function PublicHome() {
         )}
       </ScrollView>
 
-      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
-        <Pressable onPress={() => setLightbox(null)} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.95)", justifyContent: "center", alignItems: "center" }}>
+      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)} statusBarTranslucent>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.96)" }}>
           <Pressable
             onPress={() => setLightbox(null)}
             hitSlop={12}
-            style={{ position: "absolute", top: insets.top + 12, right: 20, zIndex: 2, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" }}
+            style={{ position: "absolute", top: insets.top + 12, right: 20, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" }}
           >
             <Feather name="x" size={22} color="#fff" />
           </Pressable>
           {lightbox && (
-            <Image
-              source={lightbox.uri ? { uri: lightbox.uri } : lightbox.src}
-              style={{ width: "92%", height: "70%" }}
-              resizeMode="contain"
-            />
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+              pinchGestureEnabled
+              minimumZoomScale={1}
+              maximumZoomScale={4}
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+              centerContent
+            >
+              <Image
+                source={lightbox.uri ? { uri: lightbox.uri } : lightbox.src}
+                style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height * 0.8 }}
+                resizeMode="contain"
+              />
+            </ScrollView>
           )}
           {lightbox?.label ? (
-            <Text style={{ marginTop: 18, color: "#fff", fontFamily: serifItalic, fontSize: 16 }}>{lightbox.label}</Text>
+            <Text style={{ position: "absolute", bottom: insets.bottom + 24, alignSelf: "center", color: "#fff", fontFamily: serifItalic, fontSize: 16 }}>{lightbox.label}</Text>
           ) : null}
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );
