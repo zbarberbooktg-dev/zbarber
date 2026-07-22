@@ -215,7 +215,7 @@ export function renderEmail(content: EmailContent): { html: string; text: string
  * Zbarber contact inbox.
  */
 export const ADMIN_NOTIFICATION_EMAIL =
-  process.env.ADMIN_NOTIFICATION_EMAIL?.trim() || "zbarberbook@gmail.com";
+  process.env.ADMIN_NOTIFICATION_EMAIL?.trim() || "contact@zbarber.net";
 
 export interface AdminNotification {
   /** Lead sentence describing what happened. */

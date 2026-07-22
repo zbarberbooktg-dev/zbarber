@@ -106,7 +106,7 @@ export const translations = {
       title: "Contactez-nous",
       lead:
         "Une question sur la plateforme ? Envie de devenir partenaire ? Notre équipe est là pour vous aider.",
-      address: "Abidjan, Côte d'Ivoire",
+      address: "Lomé, TOGO",
       name: "Nom",
       namePh: "Votre nom",
       email: "Email",
@@ -243,7 +243,7 @@ export const translations = {
     contact: {
       title: "Get in touch",
       lead: "Have a question about the platform? Interested in partnering? Our team is ready to help you.",
-      address: "Abidjan, Côte d'Ivoire",
+      address: "Lomé, TOGO",
       name: "Name",
       namePh: "Your name",
       email: "Email",
