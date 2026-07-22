@@ -16,7 +16,9 @@ import { Image } from "expo-image";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
+  Easing,
   ImageBackground,
   ImageSourcePropType,
   Modal,
@@ -50,6 +52,70 @@ const styleImages = [
   { src: require("../assets/images/client-home/style3.png"), label: "Le Taper" },
   { src: require("../assets/images/client-home/style4.png"), label: "Classique" },
 ];
+
+type GalleryItem = { key: string; uri: string | null; src?: any; label: string };
+
+const ITEM_W = 154;
+const ITEM_GAP = 10;
+const ITEM_STRIDE = ITEM_W + ITEM_GAP;
+
+function InfiniteGalleryCarousel({
+  items,
+  onPressItem,
+  serifItalic,
+  palette,
+}: {
+  items: GalleryItem[];
+  onPressItem: (item: GalleryItem) => void;
+  serifItalic: string;
+  palette: { border: string };
+}) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const animRef = useRef<Animated.CompositeAnimation | null>(null);
+  const looped = useMemo(() => [...items, ...items, ...items], [items]);
+  const totalWidth = ITEM_STRIDE * items.length;
+
+  useEffect(() => {
+    const run = () => {
+      translateX.setValue(0);
+      animRef.current = Animated.timing(translateX, {
+        toValue: -totalWidth,
+        duration: totalWidth * 28,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      });
+      animRef.current.start(({ finished }) => { if (finished) run(); });
+    };
+    run();
+    return () => animRef.current?.stop();
+  }, [totalWidth]);
+
+  return (
+    <View style={{ overflow: "hidden", marginBottom: 36 }}>
+      <Animated.View style={{ flexDirection: "row", paddingLeft: 20, paddingBottom: 4, transform: [{ translateX }] }}>
+        {looped.map((s, i) => (
+          <Pressable
+            key={`${s.key}-${i}`}
+            onPress={() => onPressItem(s)}
+            style={{ width: ITEM_W, aspectRatio: 3 / 4, marginRight: ITEM_GAP, borderWidth: 1, borderColor: palette.border, overflow: "hidden" }}
+          >
+            <Image
+              source={s.uri ? { uri: s.uri } : s.src}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+            />
+            <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
+            {s.label ? (
+              <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>
+                {s.label}
+              </Text>
+            ) : null}
+          </Pressable>
+        ))}
+      </Animated.View>
+    </View>
+  );
+}
 
 export default function PublicHome() {
   const router = useRouter();
@@ -408,29 +474,20 @@ export default function PublicHome() {
               textColor={PALETTE.text}
               accentColor={PALETTE.gold}
             />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingLeft: 20, paddingRight: 8, gap: 10, paddingBottom: 4 }}
-              snapToInterval={164}
-              decelerationRate="fast"
-              style={{ marginBottom: 36 }}
-            >
-              {(homeGallery && homeGallery.length > 0
-                ? homeGallery.slice(0, 8).map((p) => ({
-                    key: `db-${p.id}`,
-                    uri: resolveObjectUrl(p.imageUrl, 900),
-                    label: p.caption ?? "",
-                  }))
-                : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
-              ).map((s: any) => (
-                <Pressable key={s.key} onPress={() => setLightbox({ uri: s.uri, src: s.src, label: s.label })} style={{ width: 154, aspectRatio: 3 / 4, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
-                  <Image source={s.uri ? { uri: s.uri } : s.src} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                  <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
-                  {s.label ? <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>{s.label}</Text> : null}
-                </Pressable>
-              ))}
-            </ScrollView>
+            <InfiniteGalleryCarousel
+              items={
+                homeGallery && homeGallery.length > 0
+                  ? homeGallery.slice(0, 8).map((p) => ({
+                      key: `db-${p.id}`,
+                      uri: resolveObjectUrl(p.imageUrl, 900),
+                      label: p.caption ?? "",
+                    }))
+                  : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
+              }
+              onPressItem={(s) => setLightbox({ uri: s.uri, src: s.src, label: s.label })}
+              serifItalic={serifItalic}
+              palette={PALETTE}
+            />
 
             {/* Nearby list */}
             {nearby.length > 0 && (
