@@ -44,6 +44,7 @@ import { DateTimePicker } from "@/components/DateTimePicker";
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
 import { Image } from "expo-image";
+import { ShimmerImage } from "@/components/ShimmerImage";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ScrollHint } from "@/components/ScrollHint";
 import { PanoramaViewer } from "@/components/PanoramaViewer";
@@ -411,7 +412,7 @@ export default function PublicSalonDetail() {
                 scrollEventThrottle={32}
                 renderItem={({ item, index }) => (
                   <Pressable onPress={() => setHeroLightbox(index)}>
-                    <Image
+                    <ShimmerImage
                       source={item.source}
                       style={{ width: screenW, height: heroH }}
                       contentFit="cover"
