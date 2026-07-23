@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useListHomeGalleryPhotos } from "@workspace/api-client-react";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
-import { Image } from "expo-image";
+import { ShimmerImage } from "@/components/ShimmerImage";
 import {
   ActivityIndicator,
   ImageSourcePropType,
@@ -67,7 +67,7 @@ export default function HomeGallery() {
         <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
           {items.map((it: any) => (
             <View key={it.key} style={{ aspectRatio: 16 / 11, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden", position: "relative" }}>
-              <Image
+              <ShimmerImage
                 source={it.uri ? { uri: it.uri } : it.src}
                 style={{ width: "100%", height: "100%" }}
                 contentFit="cover"
