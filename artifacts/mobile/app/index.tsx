@@ -420,7 +420,7 @@ export default function PublicHome() {
                     <Image
                       source={{ uri: resolveObjectUrl(a.coverImageUrl, 700) ?? "" }}
                       style={{ width: "100%", height: "100%" }}
-                      resizeMode="cover"
+                      contentFit="cover"
                     />
                     <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(10,10,10,0.30)" }} />
                   </View>
@@ -474,7 +474,7 @@ export default function PublicHome() {
             {featured.map((b, idx) => (
               <Pressable key={b.id} onPress={() => router.push(`/salon/${b.id}` as never)} style={{ width: 240 }}>
                 <View style={{ aspectRatio: 3 / 4, borderWidth: 1, borderColor: PALETTE.border, marginBottom: 12, overflow: "hidden" }}>
-                  <Image source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                  <Image source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                   {b.rating && Number(b.rating) > 0 ? (
                     <View style={{ position: "absolute", bottom: 12, left: 12, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 8, paddingVertical: 4 }}>
                       <Feather name="star" size={11} color={PALETTE.gold} />
@@ -535,7 +535,7 @@ export default function PublicHome() {
                       onPress={() => router.push(`/salon/${b.id}` as never)}
                       style={{ flexDirection: "row", gap: 14, padding: 14, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, alignItems: "center" }}
                     >
-                      <Image source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: 72, height: 72 }} resizeMode="cover" />
+                      <Image source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: 72, height: 72 }} contentFit="cover" />
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: PALETTE.text, fontFamily: serif, fontSize: 16, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>
@@ -608,7 +608,7 @@ export default function PublicHome() {
               <Image
                 source={lightbox.uri ? { uri: lightbox.uri } : lightbox.src}
                 style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height * 0.8 }}
-                resizeMode="contain"
+                contentFit="contain"
               />
             </ScrollView>
           )}

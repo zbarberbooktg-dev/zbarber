@@ -75,7 +75,7 @@ export default function Favorites() {
                   <Image
                     source={logo ? { uri: logo } : salonFallbacks[idx % salonFallbacks.length]}
                     style={{ width: 72, height: 72, borderRadius: 6 }}
-                    resizeMode="cover"
+                    contentFit="cover"
                   />
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 16, marginBottom: 4 }} numberOfLines={1}>
