@@ -6,7 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/playfair-display";
 import { getGetPublicArticleQueryKey, useGetPublicArticle } from "@workspace/api-client-react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo } from "react";
 import {
   ActivityIndicator,
@@ -125,6 +125,7 @@ export default function ArticleDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: PALETTE.bg }}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
