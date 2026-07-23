@@ -70,7 +70,7 @@ export default function HomeGallery() {
               <Image
                 source={it.uri ? { uri: it.uri } : it.src}
                 style={{ width: "100%", height: "100%" }}
-                resizeMode="cover"
+                contentFit="cover"
               />
               {it.label ? (
                 <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: "rgba(0,0,0,0.55)" }}>

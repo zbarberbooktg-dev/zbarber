@@ -256,7 +256,7 @@ function PickSlot({ label, uri, uploading, onPress, c }: { label: string; uri: s
       {uploading ? (
         <ActivityIndicator color={c.primary} />
       ) : uri ? (
-        <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+        <Image source={{ uri }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
       ) : (
         <>
           <Feather name="camera" size={22} color={c.mutedForeground} />
@@ -270,7 +270,7 @@ function PickSlot({ label, uri, uploading, onPress, c }: { label: string; uri: s
 function BeforeAfterImg({ uri, tag, c }: { uri: string | null; tag: string; c: ReturnType<typeof useColors> }) {
   return (
     <View style={{ flex: 1, aspectRatio: 1, position: "relative" }}>
-      {uri && <Image source={{ uri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />}
+      {uri && <Image source={{ uri }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
       <View style={{ position: "absolute", top: 8, left: 8, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
         <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>{tag}</Text>
       </View>
