@@ -59,6 +59,8 @@ const ITEM_W = 154;
 const ITEM_GAP = 10;
 const ITEM_STRIDE = ITEM_W + ITEM_GAP;
 
+const MS_PER_PX = 42;
+
 function InfiniteGalleryCarousel({
   items,
   onPressItem,
@@ -72,27 +74,60 @@ function InfiniteGalleryCarousel({
 }) {
   const translateX = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
+  const currentX = useRef(0);
+  const runRef = useRef<(() => void) | undefined>(undefined);
   const looped = useMemo(() => [...items, ...items, ...items], [items]);
   const totalWidth = ITEM_STRIDE * items.length;
 
   useEffect(() => {
+    const listenerId = translateX.addListener(({ value }) => { currentX.current = value; });
+
     const run = () => {
       translateX.setValue(0);
+      currentX.current = 0;
       animRef.current = Animated.timing(translateX, {
         toValue: -totalWidth,
-        duration: totalWidth * 28,
+        duration: totalWidth * MS_PER_PX,
         easing: Easing.linear,
         useNativeDriver: true,
       });
       animRef.current.start(({ finished }) => { if (finished) run(); });
     };
+
+    runRef.current = run;
     run();
-    return () => animRef.current?.stop();
+
+    return () => {
+      translateX.removeListener(listenerId);
+      animRef.current?.stop();
+    };
   }, [totalWidth]);
+
+  const handleTouchStart = () => {
+    animRef.current?.stop();
+  };
+
+  const handleTouchEnd = () => {
+    const x = currentX.current;
+    const remaining = -totalWidth - x;
+    if (remaining >= 0) { runRef.current?.(); return; }
+    animRef.current = Animated.timing(translateX, {
+      toValue: -totalWidth,
+      duration: Math.abs(remaining) * MS_PER_PX,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    });
+    animRef.current.start(({ finished }) => { if (finished) runRef.current?.(); });
+  };
 
   return (
     <View style={{ overflow: "hidden", marginBottom: 36 }}>
-      <Animated.View style={{ flexDirection: "row", paddingLeft: 20, paddingBottom: 4, transform: [{ translateX }] }}>
+      <Animated.View
+        style={{ flexDirection: "row", paddingLeft: 20, paddingBottom: 4, transform: [{ translateX }] }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+      >
         {looped.map((s, i) => (
           <Pressable
             key={`${s.key}-${i}`}
