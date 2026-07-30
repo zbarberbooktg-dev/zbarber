@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { EmptyState } from "@/components/UI";
+import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
@@ -27,6 +28,7 @@ export default function BarberGallery() {
   const qc = useQueryClient();
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const { data: salons, isLoading: salonsLoading, error: salonsError, refetch: refetchSalons } = useQuery<MyBarber[]>({
     queryKey: ["barbersMe"],
@@ -190,7 +192,7 @@ export default function BarberGallery() {
         />
       ) : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-          {photos.map((p) => (
+          {photos.map((p, idx) => (
             <View
               key={p.id}
               style={{
@@ -198,11 +200,13 @@ export default function BarberGallery() {
                 borderRadius: c.radius - 4, overflow: "hidden", position: "relative",
               }}
             >
-              <Image
-                source={{ uri: resolveObjectUrl(p.photoUrl)! }}
-                style={{ width: "100%", height: "100%" }}
-                resizeMode="cover"
-              />
+              <Pressable onPress={() => setLightboxIdx(idx)} style={{ flex: 1 }}>
+                <Image
+                  source={{ uri: resolveObjectUrl(p.photoUrl)! }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
+              </Pressable>
               <Pressable
                 onPress={() => handleDelete(p.id)}
                 hitSlop={6}
@@ -219,6 +223,13 @@ export default function BarberGallery() {
           ))}
         </View>
       )}
+
+      <GalleryLightbox
+        items={(photos ?? []).map((p) => ({ uri: resolveObjectUrl(p.photoUrl) }))}
+        initialIndex={lightboxIdx ?? 0}
+        visible={lightboxIdx !== null}
+        onClose={() => setLightboxIdx(null)}
+      />
     </ScrollView>
   );
 }

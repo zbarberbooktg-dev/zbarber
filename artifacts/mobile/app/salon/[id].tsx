@@ -45,6 +45,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
 import { Image } from "expo-image";
 import { ShimmerImage } from "@/components/ShimmerImage";
+import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ScrollHint } from "@/components/ScrollHint";
 import { PanoramaViewer } from "@/components/PanoramaViewer";
@@ -90,6 +91,7 @@ export default function PublicSalonDetail() {
   const [scrolled, setScrolled] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroLightbox, setHeroLightbox] = useState<number | null>(null);
+  const [realisationLbIdx, setRealisationLbIdx] = useState<number | null>(null);
 
   const { data: barber, isLoading } = useGetBarber(barberId);
   const { data: servicesData } = useListBarberServices(barberId);
@@ -896,14 +898,17 @@ export default function PublicSalonDetail() {
               {realisations.map((r) => (
                 <View key={r.id} style={{ width: 240, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, borderRadius: 12, overflow: "hidden" }}>
                   <View style={{ flexDirection: "row" }}>
-                    {[{ uri: resolveObjectUrl(r.beforeUrl, 500), tag: "Avant" }, { uri: resolveObjectUrl(r.afterUrl, 500), tag: "Après" }].map((img, i) => (
-                      <View key={i} style={{ flex: 1, aspectRatio: 1, position: "relative" }}>
+                    {[{ uri: resolveObjectUrl(r.beforeUrl, 500), tag: "Avant" }, { uri: resolveObjectUrl(r.afterUrl, 500), tag: "Après" }].map((img, i) => {
+                      const lbIdx = realisations.indexOf(r) * 2 + i;
+                      return (
+                      <Pressable key={i} onPress={() => setRealisationLbIdx(lbIdx)} style={{ flex: 1, aspectRatio: 1, position: "relative" }}>
                         {img.uri && <Image source={{ uri: img.uri }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
                         <View style={{ position: "absolute", top: 6, left: 6, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
                           <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 10 }}>{img.tag}</Text>
                         </View>
-                      </View>
-                    ))}
+                      </Pressable>
+                      );
+                    })}
                   </View>
                   {(r.caption || services.find((s) => s.id === r.serviceId)) && (
                     <Text numberOfLines={1} style={{ color: PALETTE.textMuted, fontFamily: "Inter_500Medium", fontSize: 12, padding: 10 }}>
@@ -1029,60 +1034,24 @@ export default function PublicSalonDetail() {
         />
       )}
 
-      {/* Hero lightbox — fullscreen zoomable viewer */}
-      <Modal
+      {/* Hero lightbox — fullscreen swipeable + zoomable viewer */}
+      <GalleryLightbox
+        items={heroSlides.map((s) => ({ src: s.source }))}
+        initialIndex={heroLightbox ?? 0}
         visible={heroLightbox !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setHeroLightbox(null)}
-        statusBarTranslucent
-      >
-        <View style={{ flex: 1, backgroundColor: "#000" }}>
-          <Pressable
-            onPress={() => setHeroLightbox(null)}
-            hitSlop={12}
-            style={{
-              position: "absolute", top: insets.top + 12, right: 20, zIndex: 10,
-              width: 40, height: 40, borderRadius: 20,
-              backgroundColor: "rgba(255,255,255,0.12)",
-              alignItems: "center", justifyContent: "center",
-            }}
-          >
-            <Feather name="x" size={22} color="#fff" />
-          </Pressable>
+        onClose={() => setHeroLightbox(null)}
+      />
 
-          {heroLightbox !== null && (
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-              pinchGestureEnabled
-              minimumZoomScale={1}
-              maximumZoomScale={4}
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}
-              centerContent
-            >
-              <Image
-                source={heroSlides[heroLightbox]?.source ?? heroSlides[0]?.source}
-                style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height * 0.82 }}
-                contentFit="contain"
-              />
-            </ScrollView>
-          )}
-
-          {heroSlides.length > 1 && heroLightbox !== null && (
-            <View style={{
-              position: "absolute", bottom: insets.bottom + 24, alignSelf: "center",
-              backgroundColor: "rgba(255,255,255,0.12)",
-              paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999,
-            }}>
-              <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
-                {heroLightbox + 1} / {heroSlides.length}
-              </Text>
-            </View>
-          )}
-        </View>
-      </Modal>
+      {/* Realisations lightbox */}
+      <GalleryLightbox
+        items={realisations.flatMap((r) => [
+          { uri: resolveObjectUrl(r.beforeUrl, 1200), label: "Avant" },
+          { uri: resolveObjectUrl(r.afterUrl, 1200), label: "Après" },
+        ])}
+        initialIndex={realisationLbIdx ?? 0}
+        visible={realisationLbIdx !== null}
+        onClose={() => setRealisationLbIdx(null)}
+      />
     </View>
   );
 }

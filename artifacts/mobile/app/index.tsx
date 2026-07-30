@@ -21,7 +21,6 @@ import {
   Easing,
   ImageBackground,
   ImageSourcePropType,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -39,6 +38,7 @@ import { useAuthedFetch } from "@/lib/api";
 import { useBrowsing } from "@/lib/browseIntent";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ShimmerImage } from "@/components/ShimmerImage";
+import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { ONBOARDING_KEY } from "./onboarding";
 
 const heroImage = require("../assets/images/client-home/hero.png");
@@ -69,7 +69,7 @@ function InfiniteGalleryCarousel({
   palette,
 }: {
   items: GalleryItem[];
-  onPressItem: (item: GalleryItem) => void;
+  onPressItem: (item: GalleryItem, allItems: GalleryItem[]) => void;
   serifItalic: string;
   palette: { border: string };
 }) {
@@ -132,7 +132,7 @@ function InfiniteGalleryCarousel({
         {looped.map((s, i) => (
           <Pressable
             key={`${s.key}-${i}`}
-            onPress={() => onPressItem(s)}
+            onPress={() => onPressItem(s, items)}
             style={{ width: ITEM_W, aspectRatio: 3 / 4, marginRight: ITEM_GAP, borderWidth: 1, borderColor: palette.border, overflow: "hidden" }}
           >
             <ShimmerImage
@@ -184,7 +184,7 @@ export default function PublicHome() {
   const [locationRefreshing, setLocationRefreshing] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const featuredYRef = useRef(0);
-  const [lightbox, setLightbox] = useState<{ uri: string | null; src?: any; label?: string } | null>(null);
+  const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
 
   const { data, isLoading, refetch, isRefetching } = useListBarbers({ status: "approved" });
   const { data: homeGallery } = useListHomeGalleryPhotos();
@@ -520,7 +520,11 @@ export default function PublicHome() {
                     }))
                   : styleImages.map((s) => ({ key: s.label, src: s.src as any, uri: null as string | null, label: s.label }))
               }
-              onPressItem={(s) => setLightbox({ uri: s.uri, src: s.src, label: s.label })}
+              onPressItem={(s, allItems) => {
+                const idx = allItems.findIndex((it) => it.key === s.key);
+                const lbItems: LightboxItem[] = allItems.map((it) => ({ uri: it.uri, src: it.src, label: it.label }));
+                setLightbox({ items: lbItems, index: Math.max(0, idx) });
+              }}
               serifItalic={serifItalic}
               palette={PALETTE}
             />
@@ -586,38 +590,12 @@ export default function PublicHome() {
         )}
       </ScrollView>
 
-      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)} statusBarTranslucent>
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.96)" }}>
-          <Pressable
-            onPress={() => setLightbox(null)}
-            hitSlop={12}
-            style={{ position: "absolute", top: insets.top + 12, right: 20, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" }}
-          >
-            <Feather name="x" size={22} color="#fff" />
-          </Pressable>
-          {lightbox && (
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-              pinchGestureEnabled
-              minimumZoomScale={1}
-              maximumZoomScale={4}
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}
-              centerContent
-            >
-              <Image
-                source={lightbox.uri ? { uri: lightbox.uri } : lightbox.src}
-                style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height * 0.8 }}
-                contentFit="contain"
-              />
-            </ScrollView>
-          )}
-          {lightbox?.label ? (
-            <Text style={{ position: "absolute", bottom: insets.bottom + 24, alignSelf: "center", color: "#fff", fontFamily: serifItalic, fontSize: 16 }}>{lightbox.label}</Text>
-          ) : null}
-        </View>
-      </Modal>
+      <GalleryLightbox
+        items={lightbox?.items ?? []}
+        initialIndex={lightbox?.index ?? 0}
+        visible={!!lightbox}
+        onClose={() => setLightbox(null)}
+      />
     </View>
   );
 }

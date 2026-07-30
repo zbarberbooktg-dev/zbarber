@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { EmptyState } from "@/components/UI";
+import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
@@ -41,6 +42,7 @@ export default function BarberRealisations() {
   const [uploadingBefore, setUploadingBefore] = useState(false);
   const [uploadingAfter, setUploadingAfter] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [realisationLb, setRealisationLb] = useState<{ items: LightboxItem[]; index: number } | null>(null);
 
   const { data: salons, isLoading: salonsLoading } = useQuery<MyBarber[]>({
     queryKey: ["barbersMe"],
@@ -221,11 +223,29 @@ export default function BarberRealisations() {
         <EmptyState icon="layers" title="Aucune réalisation" description="Montrez vos transformations avant / après à vos clients." />
       ) : (
         <View style={{ gap: 14 }}>
-          {items.map((r) => (
+          {items.map((r, rIdx) => {
+            const flatIdx = rIdx * 2;
+            return (
             <View key={r.id} style={{ backgroundColor: c.card, borderRadius: c.radius, borderWidth: 1, borderColor: c.border, overflow: "hidden" }}>
               <View style={{ flexDirection: "row" }}>
-                <BeforeAfterImg uri={resolveObjectUrl(r.beforeUrl, 500)} tag="Avant" c={c} />
-                <BeforeAfterImg uri={resolveObjectUrl(r.afterUrl, 500)} tag="Après" c={c} />
+                <Pressable style={{ flex: 1 }} onPress={() => {
+                  const lbItems: LightboxItem[] = (items ?? []).flatMap((item) => [
+                    { uri: resolveObjectUrl(item.beforeUrl, 1200), label: "Avant" },
+                    { uri: resolveObjectUrl(item.afterUrl, 1200), label: "Après" },
+                  ]);
+                  setRealisationLb({ items: lbItems, index: flatIdx });
+                }}>
+                  <BeforeAfterImg uri={resolveObjectUrl(r.beforeUrl, 500)} tag="Avant" c={c} />
+                </Pressable>
+                <Pressable style={{ flex: 1 }} onPress={() => {
+                  const lbItems: LightboxItem[] = (items ?? []).flatMap((item) => [
+                    { uri: resolveObjectUrl(item.beforeUrl, 1200), label: "Avant" },
+                    { uri: resolveObjectUrl(item.afterUrl, 1200), label: "Après" },
+                  ]);
+                  setRealisationLb({ items: lbItems, index: flatIdx + 1 });
+                }}>
+                  <BeforeAfterImg uri={resolveObjectUrl(r.afterUrl, 500)} tag="Après" c={c} />
+                </Pressable>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", padding: 12, gap: 8 }}>
                 <Text style={{ flex: 1, color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 13 }}>
@@ -236,9 +256,17 @@ export default function BarberRealisations() {
                 </Pressable>
               </View>
             </View>
-          ))}
+          );
+          })}
         </View>
       )}
+
+      <GalleryLightbox
+        items={realisationLb?.items ?? []}
+        initialIndex={realisationLb?.index ?? 0}
+        visible={!!realisationLb}
+        onClose={() => setRealisationLb(null)}
+      />
     </ScrollView>
   );
 }
