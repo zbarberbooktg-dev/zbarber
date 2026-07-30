@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { useListHomeGalleryPhotos } from "@workspace/api-client-react";
 import { Stack, useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { ShimmerImage } from "@/components/ShimmerImage";
+import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import {
   ActivityIndicator,
   ImageSourcePropType,
@@ -35,6 +36,7 @@ export default function HomeGallery() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { data, isLoading } = useListHomeGalleryPhotos();
+  const [lightbox, setLightbox] = useState<{ index: number } | null>(null);
 
   const items =
     (data && data.length > 0)
@@ -44,6 +46,12 @@ export default function HomeGallery() {
           label: p.caption ?? "",
         }))
       : fallback.map((f, i) => ({ key: `fb-${i}`, src: f.src, uri: null, label: f.label }));
+
+  const lightboxItems: LightboxItem[] = items.map((it) => ({
+    uri: it.uri,
+    src: (it as any).src,
+    label: it.label,
+  }));
 
   return (
     <View style={{ flex: 1, backgroundColor: PALETTE.bg }}>
@@ -65,8 +73,12 @@ export default function HomeGallery() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
-          {items.map((it: any) => (
-            <View key={it.key} style={{ aspectRatio: 16 / 11, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden", position: "relative" }}>
+          {items.map((it: any, idx: number) => (
+            <Pressable
+              key={it.key}
+              onPress={() => setLightbox({ index: idx })}
+              style={{ aspectRatio: 16 / 11, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden", position: "relative" }}
+            >
               <ShimmerImage
                 source={it.uri ? { uri: it.uri } : it.src}
                 style={{ width: "100%", height: "100%" }}
@@ -77,10 +89,17 @@ export default function HomeGallery() {
                   <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 14 }}>{it.label}</Text>
                 </View>
               ) : null}
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
       )}
+
+      <GalleryLightbox
+        items={lightboxItems}
+        initialIndex={lightbox?.index ?? 0}
+        visible={!!lightbox}
+        onClose={() => setLightbox(null)}
+      />
     </View>
   );
 }
