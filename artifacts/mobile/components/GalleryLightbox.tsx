@@ -1,21 +1,20 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Dimensions,
-  FlatList,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, FlatList, Modal, Pressable, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type LightboxItem = {
-  /** Remote URL. If provided, takes priority over src. */
+  /** Remote URL – takes priority over src when present. */
   uri?: string | null;
-  /** Local require() asset or { uri } object — used when uri is absent. */
+  /** Local require() asset or { uri } object – used when uri is absent. */
   src?: any;
   /** Optional caption shown at the bottom. */
   label?: string;
@@ -23,25 +22,180 @@ export type LightboxItem = {
 
 type Props = {
   items: LightboxItem[];
-  /** Index to open at. Changes are applied whenever `visible` turns true. */
+  /** Index to open at. Applied whenever `visible` turns true. */
   initialIndex?: number;
   visible: boolean;
   onClose: () => void;
 };
 
 const { width: SW, height: SH } = Dimensions.get("window");
+const SWIPE_VX = 400; // px/s horizontal velocity to trigger navigation
+const IMG_H = SH * 0.82;
 
-export function GalleryLightbox({ items, initialIndex = 0, visible, onClose }: Props) {
+// ── Per-page zoomable photo ──────────────────────────────────────────────────
+function ZoomablePhoto({
+  item,
+  onSwipeLeft,
+  onSwipeRight,
+}: {
+  item: LightboxItem;
+  onSwipeLeft: () => void;
+  onSwipeRight: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  const savedTx = useSharedValue(0);
+  const savedTy = useSharedValue(0);
+
+  const pinch = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = Math.max(1, Math.min(5, savedScale.value * e.scale));
+    })
+    .onEnd(() => {
+      if (scale.value < 1.1) {
+        // Snap back to 1 if barely zoomed
+        scale.value = withSpring(1, { damping: 20 });
+        tx.value = withSpring(0, { damping: 20 });
+        ty.value = withSpring(0, { damping: 20 });
+        savedScale.value = 1;
+        savedTx.value = 0;
+        savedTy.value = 0;
+      } else {
+        savedScale.value = scale.value;
+      }
+    });
+
+  const pan = Gesture.Pan()
+    .onStart(() => {
+      savedTx.value = tx.value;
+      savedTy.value = ty.value;
+    })
+    .onUpdate((e) => {
+      if (scale.value > 1.05) {
+        tx.value = savedTx.value + e.translationX;
+        ty.value = savedTy.value + e.translationY;
+      }
+    })
+    .onEnd((e) => {
+      if (scale.value <= 1.05) {
+        // ── Not zoomed: detect horizontal swipe to navigate ──────────────────
+        const isHorizontal =
+          Math.abs(e.velocityX) > Math.abs(e.velocityY) * 1.2;
+        if (isHorizontal && Math.abs(e.velocityX) > SWIPE_VX) {
+          if (e.velocityX < 0) runOnJS(onSwipeLeft)();
+          else runOnJS(onSwipeRight)();
+        }
+        return;
+      }
+
+      // ── Zoomed: clamp to image bounds ────────────────────────────────────
+      const maxTx = (SW * (scale.value - 1)) / 2;
+      const maxTy = (IMG_H * (scale.value - 1)) / 2;
+      const clampedTx = Math.max(-maxTx, Math.min(maxTx, tx.value));
+      const clampedTy = Math.max(-maxTy, Math.min(maxTy, ty.value));
+
+      // Boundary swipe: at the horizontal edge with high velocity → navigate
+      const atLeft = tx.value >= maxTx - 4;
+      const atRight = tx.value <= -maxTx + 4;
+
+      if (atLeft && e.velocityX > SWIPE_VX) {
+        // Pan to left edge, swiping right → go to previous photo
+        scale.value = withSpring(1, { damping: 20 });
+        tx.value = withSpring(0, { damping: 20 });
+        ty.value = withSpring(0, { damping: 20 });
+        savedScale.value = 1;
+        savedTx.value = 0;
+        savedTy.value = 0;
+        runOnJS(onSwipeRight)();
+      } else if (atRight && e.velocityX < -SWIPE_VX) {
+        // Pan to right edge, swiping left → go to next photo
+        scale.value = withSpring(1, { damping: 20 });
+        tx.value = withSpring(0, { damping: 20 });
+        ty.value = withSpring(0, { damping: 20 });
+        savedScale.value = 1;
+        savedTx.value = 0;
+        savedTy.value = 0;
+        runOnJS(onSwipeLeft)();
+      } else {
+        tx.value = withSpring(clampedTx, { damping: 20 });
+        ty.value = withSpring(clampedTy, { damping: 20 });
+        savedTx.value = clampedTx;
+        savedTy.value = clampedTy;
+      }
+    });
+
+  // Double-tap: zoom in at 2.5× or reset
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      if (scale.value > 1.05) {
+        scale.value = withSpring(1, { damping: 20 });
+        tx.value = withSpring(0, { damping: 20 });
+        ty.value = withSpring(0, { damping: 20 });
+        savedScale.value = 1;
+        savedTx.value = 0;
+        savedTy.value = 0;
+      } else {
+        scale.value = withSpring(2.5, { damping: 20 });
+        savedScale.value = 2.5;
+      }
+    });
+
+  // doubleTap races against pinch+pan: first to activate wins
+  const composed = Gesture.Race(
+    doubleTap,
+    Gesture.Simultaneous(pinch, pan),
+  );
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: tx.value },
+      { translateY: ty.value },
+      { scale: scale.value },
+    ],
+  }));
+
+  return (
+    <GestureDetector gesture={composed}>
+      <View
+        style={{
+          width: SW,
+          height: SH,
+          justifyContent: "center",
+          alignItems: "center",
+          overflow: "hidden",
+        }}
+      >
+        <Animated.View style={animStyle}>
+          <Image
+            source={item.uri ? { uri: item.uri } : item.src}
+            style={{ width: SW, height: IMG_H }}
+            contentFit="contain"
+          />
+        </Animated.View>
+      </View>
+    </GestureDetector>
+  );
+}
+
+// ── Main lightbox modal ───────────────────────────────────────────────────────
+export function GalleryLightbox({
+  items,
+  initialIndex = 0,
+  visible,
+  onClose,
+}: Props) {
   const insets = useSafeAreaInsets();
   const [current, setCurrent] = useState(initialIndex);
   const flatRef = useRef<FlatList<LightboxItem>>(null);
 
-  // Sync to initialIndex every time the lightbox opens.
+  // Sync to initialIndex every time the lightbox opens
   useEffect(() => {
     if (!visible || items.length === 0) return;
     const target = Math.max(0, Math.min(initialIndex, items.length - 1));
     setCurrent(target);
-    // Small defer so FlatList is mounted & measured before we scroll.
     const tid = setTimeout(() => {
       flatRef.current?.scrollToIndex({ index: target, animated: false });
     }, 20);
@@ -54,28 +208,18 @@ export function GalleryLightbox({ items, initialIndex = 0, visible, onClose }: P
     flatRef.current?.scrollToIndex({ index: idx, animated: true });
   };
 
-  const renderItem = ({ item }: { item: LightboxItem }) => (
-    <ScrollView
-      style={{ width: SW, height: SH }}
-      contentContainerStyle={{
-        width: SW,
-        minHeight: SH,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-      pinchGestureEnabled
-      minimumZoomScale={1}
-      maximumZoomScale={5}
-      showsVerticalScrollIndicator={false}
-      showsHorizontalScrollIndicator={false}
-      centerContent
-    >
-      <Image
-        source={item.uri ? { uri: item.uri } : item.src}
-        style={{ width: SW, height: SH * 0.82 }}
-        contentFit="contain"
-      />
-    </ScrollView>
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: LightboxItem;
+    index: number;
+  }) => (
+    <ZoomablePhoto
+      item={item}
+      onSwipeLeft={() => goTo(index + 1)}
+      onSwipeRight={() => goTo(index - 1)}
+    />
   );
 
   const label = items[current]?.label;
@@ -89,7 +233,7 @@ export function GalleryLightbox({ items, initialIndex = 0, visible, onClose }: P
       statusBarTranslucent
     >
       <View style={{ flex: 1, backgroundColor: "#000" }}>
-        {/* ── Swipeable pages ── */}
+        {/* ── Swipeable pages (scroll driven manually via goTo) ── */}
         <FlatList
           ref={flatRef}
           data={items}
@@ -97,17 +241,21 @@ export function GalleryLightbox({ items, initialIndex = 0, visible, onClose }: P
           keyExtractor={(_, i) => String(i)}
           horizontal
           pagingEnabled
+          scrollEnabled={false}
           showsHorizontalScrollIndicator={false}
-          getItemLayout={(_, index) => ({ length: SW, offset: SW * index, index })}
-          onMomentumScrollEnd={(e) => {
-            const idx = Math.round(e.nativeEvent.contentOffset.x / SW);
-            setCurrent(idx);
-          }}
-          initialScrollIndex={Math.max(0, Math.min(initialIndex, items.length - 1))}
+          getItemLayout={(_, index) => ({
+            length: SW,
+            offset: SW * index,
+            index,
+          })}
+          initialScrollIndex={Math.max(
+            0,
+            Math.min(initialIndex, items.length - 1),
+          )}
           style={{ flex: 1 }}
         />
 
-        {/* ── Close button ── */}
+        {/* ── Close ── */}
         <Pressable
           onPress={onClose}
           hitSlop={12}

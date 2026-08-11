@@ -636,14 +636,29 @@ export default function PublicSalonDetail() {
                 onPress={() => {
                   const lat = Number(barber.latitude);
                   const lng = Number(barber.longitude);
-                  const label = encodeURIComponent(barber.salonName);
-                  const url = Platform.select({
-                    ios: `maps://?daddr=${lat},${lng}&q=${label}&dirflg=d`,
-                    android: `google.navigation:q=${lat},${lng}&mode=d`,
-                    default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+                  const encoded = encodeURIComponent(barber.salonName);
+                  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+                  const nativeUrl = Platform.select({
+                    ios: `maps://?daddr=${lat},${lng}&q=${encoded}&dirflg=d`,
+                    default: `geo:0,0?q=${lat},${lng}(${encoded})`,
                   })!;
-                  Linking.openURL(url).catch(() =>
-                    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`),
+                  Alert.alert(
+                    "Ouvrir l'itinéraire dans…",
+                    undefined,
+                    [
+                      {
+                        text: Platform.OS === "ios" ? "Plans" : "Carte native",
+                        onPress: () =>
+                          Linking.openURL(nativeUrl).catch(() =>
+                            Linking.openURL(googleUrl),
+                          ),
+                      },
+                      {
+                        text: "Google Maps",
+                        onPress: () => Linking.openURL(googleUrl),
+                      },
+                      { text: "Annuler", style: "cancel" },
+                    ],
                   );
                 }}
                 style={({ pressed }) => ({
