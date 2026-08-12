@@ -77,6 +77,7 @@ function ThemedRoot() {
       <Stack.Screen name="browse" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="salon/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="articles/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="role-select" options={{ headerShown: false }} />
       <Stack.Screen name="(client)" options={{ headerShown: false }} />
