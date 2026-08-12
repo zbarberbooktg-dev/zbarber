@@ -18,6 +18,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 
+import * as Updates from "expo-updates";
+
 import { AnimatedSplash } from "@/components/AnimatedSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import colors from "@/constants/colors";
@@ -138,6 +140,22 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  // ── OTA update check (no-op in Expo Go / dev) ────────────────────────────
+  useEffect(() => {
+    if (__DEV__ || !Updates.isEnabled) return;
+    (async () => {
+      try {
+        const check = await Updates.checkForUpdateAsync();
+        if (check.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {
+        // silent — network error or server down; user keeps current bundle
+      }
+    })();
+  }, []);
 
   const clerkLocalization = useClerkLocalization();
 

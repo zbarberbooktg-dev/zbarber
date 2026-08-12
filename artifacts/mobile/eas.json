@@ -15,6 +15,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       },
@@ -26,6 +27,7 @@
     },
     "test": {
       "autoIncrement": true,
+      "channel": "test",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "api.test.zbarber.net",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://zbarber.net/api/__clerk",
@@ -34,6 +36,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "api.zbarber.net",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://api.zbarber.net/api/__clerk",
