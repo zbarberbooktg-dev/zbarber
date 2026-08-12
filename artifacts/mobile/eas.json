@@ -42,7 +42,11 @@
     }
   },
   "submit": {
-    "test": {},
+    "test": {
+      "android": {
+        "track": "closed"
+      }
+    },
     "production": {}
   }
 }
