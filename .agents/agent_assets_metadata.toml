@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "w_dMFBwn4y8cCQN4MYk7K"
@@ -168,3 +167,24 @@ id = "3ydwQBs6cGniEvIQ47w-Z"
 uri = "file://artifacts/mockup-sandbox/public/images/client-home-urban/style-4.png"
 type = "image"
 title = "Taper fade style"
+
+[[outputs]]
+id = "EJGVfOUGs-bIoQBvTwaY4"
+uri = "file://screenshots/store_1_home.png"
+type = "image"
+title = "Screenshot 1 — Accueil"
+description = "Écran d'accueil Zbarber — recherche, édito et salons en vedette"
+
+[[outputs]]
+id = "Eh67Nm2dgMrMK8-hEw39g"
+uri = "file://screenshots/store_2_booking.png"
+type = "image"
+title = "Screenshot 2 — Fiche salon & réservation"
+description = "Détail salon, services, calendrier et créneaux"
+
+[[outputs]]
+id = "bvE_A4tuXkM5LkuFgRBRQ"
+uri = "file://screenshots/store_3_gallery.png"
+type = "image"
+title = "Screenshot 3 — Réalisations & galerie"
+description = "Portfolio Avant/Après et galerie du barber"
