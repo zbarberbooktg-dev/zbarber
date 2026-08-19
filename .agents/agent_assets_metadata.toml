@@ -188,3 +188,24 @@ uri = "file://screenshots/store_3_gallery.png"
 type = "image"
 title = "Screenshot 3 — Réalisations & galerie"
 description = "Portfolio Avant/Après et galerie du barber"
+
+[[outputs]]
+id = "y_MSXjTwdV5XzW6HsnEZ5"
+uri = "file://screenshots/store_1_final.png"
+type = "image"
+title = "Screenshot 1 — Accueil (1242×2688)"
+description = "Trouve ton salon idéal"
+
+[[outputs]]
+id = "2TbEvmsl84q1aFmagydCo"
+uri = "file://screenshots/store_2_final.png"
+type = "image"
+title = "Screenshot 2 — Réservation (1242×2688)"
+description = "Réserve en quelques clics"
+
+[[outputs]]
+id = "FRYQ0-OUVwZwSkLPHs6wz"
+uri = "file://screenshots/store_3_final.png"
+type = "image"
+title = "Screenshot 3 — Réalisations (1242×2688)"
+description = "L'art du barbier"
