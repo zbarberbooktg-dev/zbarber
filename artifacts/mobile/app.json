@@ -56,6 +56,14 @@
       "expo-updates",
       "expo-notifications",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Zbarber utilise vos photos pour vous permettre de choisir une photo de profil ou de publier une photo d'un salon ou d'un service.",
+          "cameraPermission": "Zbarber utilise l'appareil photo pour vous permettre de prendre une photo de profil ou d'ajouter directement une photo de salon ou de service.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Zbarber utilise votre position pour calculer les frais de déplacement du service à domicile."
