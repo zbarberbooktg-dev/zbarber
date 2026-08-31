@@ -215,14 +215,13 @@ export default function Home() {
               <Card className="bg-secondary border-primary/30 shadow-xl relative overflow-hidden transform md:-translate-y-4">
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50"></div>
                 <div className="absolute top-6 right-6">
-                  <Badge className="bg-primary text-primary-foreground font-bold px-3 py-1">{t.pricing.mostPopular}</Badge>
+                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold px-3 py-1">{t.pricing.comingSoon}</Badge>
                 </div>
                 <CardHeader className="pb-8 pt-10">
                   <CardTitle className="text-2xl font-display font-bold text-foreground">{t.pricing.premiumTitle}</CardTitle>
                   <CardDescription className="text-base mt-2 text-muted-foreground">{t.pricing.premiumDesc}</CardDescription>
-                  <div className="mt-6 flex items-baseline text-5xl font-extrabold text-foreground">
-                    $29
-                    <span className="ml-1 text-xl font-medium text-muted-foreground">{t.pricing.perMonth}</span>
+                  <div className="mt-6 flex items-baseline text-4xl font-extrabold text-muted-foreground">
+                    {t.pricing.premiumPrice}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -234,7 +233,7 @@ export default function Home() {
                   ))}
                 </CardContent>
                 <CardFooter className="pt-8">
-                  <Button className="w-full h-12 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90">{t.pricing.premiumCta}</Button>
+                  <Button disabled aria-disabled="true" className="w-full h-12 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60">{t.pricing.premiumCta}</Button>
                 </CardFooter>
               </Card>
             </div>
@@ -251,7 +250,7 @@ export default function Home() {
               <Button size="lg" className="w-full sm:w-auto h-14 px-10 bg-background text-foreground hover:bg-background/90 font-bold text-lg">
                 {t.ctaBarbers.become}
               </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 font-bold text-lg">
+              <Button size="lg" variant="outline" disabled aria-disabled="true" className="w-full sm:w-auto h-14 px-10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 font-bold text-lg disabled:cursor-not-allowed disabled:opacity-60">
                 {t.ctaBarbers.benefits}
               </Button>
             </div>

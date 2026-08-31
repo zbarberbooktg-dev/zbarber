@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
 import { formatApiError } from "@/lib/errors";
 
+const PREMIUM_FEATURES_AVAILABLE = false;
+
 type PlanForm = {
   id?: number;
   name: string;
@@ -189,6 +191,11 @@ export default function Subscriptions() {
     <div>
       <PageHeader title={s.title} subtitle={s.subtitle} />
 
+      <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300" role="status">
+        <strong>{s.comingSoon}</strong>
+        <span className="ml-2">{s.notice}</span>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <div className="flex gap-2">
           {(["subs", "plans"] as const).map(tabKey => (
@@ -198,12 +205,12 @@ export default function Subscriptions() {
           ))}
         </div>
         {tab === "plans" && (
-          <button onClick={openCreatePlan} className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity">
+          <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={openCreatePlan} className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-50">
             <Plus className="h-4 w-4" /> {s.newPlan}
           </button>
         )}
         {tab === "subs" && (
-          <button onClick={openAssign} className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity">
+          <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={openAssign} className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-50">
             <Plus className="h-4 w-4" /> {s.assignSub}
           </button>
         )}
@@ -215,11 +222,12 @@ export default function Subscriptions() {
             <div key={p.id} className="rounded-xl border bg-card p-5 relative">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-base">{p.name}</h3>
+                <span className="text-[10px] font-semibold uppercase tracking-wide rounded-full bg-amber-500/10 text-amber-600 px-2 py-1">{s.comingSoon}</span>
                 <div className="flex gap-1.5">
-                  <button onClick={() => openEditPlan(p)} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors" title={s.editPlan}>
+                  <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => openEditPlan(p)} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors disabled:cursor-not-allowed disabled:opacity-50" title={s.editPlan}>
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
-                  <button onClick={() => handleDeletePlan(p.id)} className="p-1.5 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors">
+                  <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => handleDeletePlan(p.id)} className="p-1.5 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -269,18 +277,18 @@ export default function Subscriptions() {
                   <td className="px-4 py-3 text-muted-foreground">{new Date(row.endDate).toLocaleDateString(locale)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5 justify-end">
-                      <button onClick={() => handleExtend30(row)} className="p-1.5 rounded bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors" title={s.extend30}>
+                      <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => handleExtend30(row)} className="p-1.5 rounded bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50" title={s.extend30}>
                         <CalendarPlus className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => openEditSub(row)} className="p-1.5 rounded bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors" title={s.changePlan}>
+                      <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => openEditSub(row)} className="p-1.5 rounded bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50" title={s.changePlan}>
                         <Repeat className="h-3.5 w-3.5" />
                       </button>
                       {row.status === "active" && (
-                        <button onClick={() => handleCancelSub(row.id)} className="p-1.5 rounded bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors" title={s.cancelSub}>
+                        <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => handleCancelSub(row.id)} className="p-1.5 rounded bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50" title={s.cancelSub}>
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
-                      <button onClick={() => handleDeleteSub(row.id)} className="p-1.5 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors" title={s.delete}>
+                      <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => handleDeleteSub(row.id)} className="p-1.5 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50" title={s.delete}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -336,7 +344,7 @@ export default function Subscriptions() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setEditingPlan(null)} className="rounded-lg border px-4 py-2 text-sm hover:bg-muted transition-colors">{s.cancel}</button>
-              <button type="submit" disabled={createPlan.isPending || updatePlan.isPending} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">{s.save}</button>
+              <button type="submit" disabled={!PREMIUM_FEATURES_AVAILABLE || createPlan.isPending || updatePlan.isPending} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">{s.save}</button>
             </div>
           </form>
         </div>
@@ -376,7 +384,7 @@ export default function Subscriptions() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setAssignForm(null)} className="rounded-lg border px-4 py-2 text-sm hover:bg-muted transition-colors">{s.cancel}</button>
-              <button type="submit" disabled={createSub.isPending} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">{s.save}</button>
+              <button type="submit" disabled={!PREMIUM_FEATURES_AVAILABLE || createSub.isPending} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">{s.save}</button>
             </div>
           </form>
         </div>
@@ -414,7 +422,7 @@ export default function Subscriptions() {
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setEditSub(null)} className="rounded-lg border px-4 py-2 text-sm hover:bg-muted transition-colors">{s.cancel}</button>
-              <button type="submit" disabled={updateSub.isPending} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">{s.save}</button>
+              <button type="submit" disabled={!PREMIUM_FEATURES_AVAILABLE || updateSub.isPending} className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">{s.save}</button>
             </div>
           </form>
         </div>

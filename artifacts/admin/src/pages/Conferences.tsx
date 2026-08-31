@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
 import { formatApiError } from "@/lib/errors";
 
+const PREMIUM_FEATURES_AVAILABLE = false;
+
 const EMPTY = { title: "", topic: "", description: "", scheduledAt: "", participationChannel: "", joinLink: "", instructions: "", isPublished: false };
 
 export default function Conferences() {
@@ -35,6 +37,7 @@ export default function Conferences() {
   }
 
   function handleSubmit() {
+    if (!PREMIUM_FEATURES_AVAILABLE) return;
     const payload = { ...form, scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : "" };
     if (editing) {
       update.mutate({ id: editing.id, data: payload }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListConferencesQueryKey() }); toast({ title: c.updated_toast }); setShowForm(false); }, onError: onErr });
@@ -44,6 +47,7 @@ export default function Conferences() {
   }
 
   function handleDelete(id: number) {
+    if (!PREMIUM_FEATURES_AVAILABLE) return;
     if (!confirm(c.confirmDelete)) return;
     del.mutate({ id }, { onSuccess: () => { qc.invalidateQueries({ queryKey: getListConferencesQueryKey() }); toast({ title: c.deleted_toast }); }, onError: onErr });
   }
@@ -63,8 +67,13 @@ export default function Conferences() {
       <PageHeader
         title={c.title}
         subtitle={c.subtitle}
-        action={<button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity"><Plus className="h-4 w-4" />{c.newOne}</button>}
+        action={<button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" />{c.newOne}</button>}
       />
+
+      <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300" role="status">
+        <strong>{c.comingSoon}</strong>
+        <span className="ml-2">{c.notice}</span>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {isLoading && <p className="text-muted-foreground col-span-2 py-8 text-center">{t.common.loading}</p>}
@@ -80,8 +89,8 @@ export default function Conferences() {
                 <p className="text-xs text-primary mt-0.5">{conf.topic}</p>
               </div>
               <div className="flex gap-1.5 shrink-0">
-                <button onClick={() => openEdit(conf)} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
-                <button onClick={() => handleDelete(conf.id)} className="p-1.5 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => openEdit(conf)} className="p-1.5 rounded bg-muted hover:bg-muted/80 transition-colors disabled:cursor-not-allowed disabled:opacity-50"><Pencil className="h-3.5 w-3.5" /></button>
+                <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => handleDelete(conf.id)} className="p-1.5 rounded bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
             {conf.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{conf.description}</p>}
@@ -114,7 +123,7 @@ export default function Conferences() {
               </label>
             </div>
             <div className="flex gap-2 mt-6">
-              <button onClick={handleSubmit} className="flex-1 rounded-lg bg-primary text-primary-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity">
+              <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={handleSubmit} className="flex-1 rounded-lg bg-primary text-primary-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-50">
                 {editing ? t.common.save : t.common.create}
               </button>
               <button onClick={() => setShowForm(false)} className="rounded-lg border px-4 py-2 text-sm hover:bg-muted transition-colors">{t.common.cancel}</button>
