@@ -27,3 +27,16 @@ On success the response shows `proxy_url` + `frontend_api_url` both = the proxy 
 4. If all 3 pass but FAPI still 400s → it's just the missing `proxy_url`. PATCH it.
 
 The proxy host must equal the domain `name` (e.g. `zbarber.net`). DKIM + `clkmail` cname_targets stay `required:true` regardless of proxy mode — they are for verification **emails** from the domain, still needed since the app uses email_code sign-in.
+
+## Common VPS checklist when signIn.password() hangs (no request reaches nginx)
+1. **SSL cert mismatch** — `echo | openssl s_client -connect <domain>:443 -servername <domain> 2>&1 | grep subject` — the cert CN must match the proxy domain. If wrong (e.g. shows a different subdomain), run `certbot --nginx -d <domain>`.
+2. **proxy_url not registered in Clerk** — `curl localhost:5001/api/__clerk/v1/environment -H "Host: <domain>" -H "X-Forwarded-Proto: https"` must return Clerk JSON, not `host_invalid`. If `host_invalid`, PATCH the domain (see above).
+3. **Metro not restarted** — `EXPO_PUBLIC_*` vars are baked into the Metro bundle at startup. After editing `.env`, always restart Metro with `expo start --clear`, not just a hot-reload. Without `--clear`, the stale bundle uses the old (possibly `undefined`) value — the SDK then tries `clerk.<domain>` CNAME instead of the proxy, and no request reaches nginx.
+
+## Mobile production hostname rule
+
+The mobile production build must use a hostname with a valid matching TLS certificate for both its API base and Clerk proxy. A previously configured API subdomain failed iOS hostname verification, while the apex domain's `/api` and Clerk proxy endpoints both returned 200.
+
+**Why:** iOS rejects the TLS connection before Clerk can authenticate, so App Review sees a generic login error even when the credentials and Clerk instance are valid.
+
+**How to apply:** before shipping a native build, verify both the API health endpoint and Clerk `/v1/environment` endpoint with normal certificate validation. Never ship a host that only works with TLS verification disabled.

@@ -24,6 +24,8 @@ import { apiUrl, useAuthedFetch, withSalon } from "@/lib/api";
 type Purpose = "renovation" | "tools" | "products" | "other";
 type Status = "pending" | "reviewing" | "approved" | "rejected";
 
+const PREMIUM_FEATURES_AVAILABLE = false;
+
 type FinancingRequest = {
   id: number;
   amount: number;
@@ -65,7 +67,7 @@ const STATUS_LABEL: Record<Status, string> = {
 export default function BarberFinancing() {
   const c = useColors();
   const fetcher = useAuthedFetch();
-  const { locale, selectedSalonId } = useApp();
+  const { t, locale, selectedSalonId } = useApp();
   const qc = useQueryClient();
   const [openForm, setOpenForm] = useState(false);
 
@@ -90,31 +92,34 @@ export default function BarberFinancing() {
         </Pressable>
 
         <Card>
-          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 16, marginBottom: 6 }}>
-            Demande de financement
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+            <Text style={{ flex: 1, color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 16 }}>
+              {t.financingTitle}
+            </Text>
+            <Pill label={t.comingSoon} tone="warning" icon="clock" />
+          </View>
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18 }}>
-            Conditions : salon approuvé, montant 50 000 – 5 000 000 FC, remboursement 3–24 mois, au moins un justificatif (pièce d'identité, RCCM, photos du salon). Une seule demande active à la fois.
+            {t.financingComingSoonDesc}
           </Text>
           <View style={{ marginTop: 12 }}>
             <Button
-              label={hasActive ? "Demande en cours" : "Nouvelle demande"}
-              icon={hasActive ? "clock" : "plus"}
+              label={t.comingSoon}
+              icon="clock"
               onPress={() => setOpenForm(true)}
-              disabled={hasActive}
+              disabled={!PREMIUM_FEATURES_AVAILABLE || hasActive}
               fullWidth
             />
           </View>
         </Card>
 
-        <SectionTitle title="Mes demandes" />
+        <SectionTitle title={t.financingHistory} />
 
         {isLoading ? (
           <View style={{ paddingVertical: 24, alignItems: "center" }}>
             <ActivityIndicator color={c.primary} />
           </View>
         ) : requests.length === 0 ? (
-          <EmptyState icon="file-text" title="Aucune demande" description="Soumettez votre première demande de financement." />
+          <EmptyState icon="file-text" title={t.financingEmpty} description={t.financingEmptyDesc} />
         ) : (
           requests.map(r => (
             <Card key={r.id}>
@@ -161,7 +166,7 @@ export default function BarberFinancing() {
       </ScrollView>
 
       <FinancingFormModal
-        visible={openForm}
+        visible={PREMIUM_FEATURES_AVAILABLE && openForm}
         salonId={selectedSalonId}
         onClose={() => setOpenForm(false)}
         onCreated={() => {
@@ -197,6 +202,7 @@ function FinancingFormModal({ visible, salonId, onClose, onCreated }: { visible:
 
   const submitMutation = useMutation({
     mutationFn: async () => {
+      if (!PREMIUM_FEATURES_AVAILABLE) throw new Error("Fonctionnalité à venir");
       const amt = Number(amount);
       const rev = Number(monthlyRevenue);
       const yrs = Number(yearsActive);
@@ -364,7 +370,7 @@ function FinancingFormModal({ visible, salonId, onClose, onCreated }: { visible:
           </Field>
 
           <View style={{ height: 8 }} />
-          <Button label={submitMutation.isPending ? "Envoi..." : "Envoyer la demande"} icon="send" onPress={() => submitMutation.mutate()} disabled={submitMutation.isPending} fullWidth />
+          <Button label="À venir" icon="clock" onPress={() => submitMutation.mutate()} disabled={!PREMIUM_FEATURES_AVAILABLE || submitMutation.isPending} fullWidth />
           <View style={{ height: 24 }} />
         </ScrollView>
       </KeyboardAvoidingView>

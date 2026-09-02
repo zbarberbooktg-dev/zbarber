@@ -264,7 +264,7 @@ export default function BarberDashboard() {
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} vertical icon="layers" label="Avant / Après" onPress={() => router.push("/(barber)/realisations")} />
         <Shortcut c={c} vertical icon="compass" label="Visite 360°" onPress={() => router.push("/(barber)/panoramas")} />
-        <Shortcut c={c} vertical icon="dollar-sign" label="Financement" onPress={() => router.push("/(barber)/financing")} />
+        <Shortcut c={c} vertical icon="dollar-sign" label={`${t.financingTitle} · ${t.comingSoon}`} onPress={() => router.push("/(barber)/financing")} />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Shortcut c={c} icon="bar-chart-2" label="Statistiques" onPress={() => router.push("/(barber)/stats")} />

@@ -30,6 +30,3 @@ real Android fix — `android.packagingOptions.exclude` of
 a duplicate-file packaging error. If Android builds from `test` break that way, re-add
 expo-build-properties + the packagingOptions exclude.
 
-**Version mismatch note:** `expo-document-picker@56.0.4` is pinned but Expo SDK 54
-expects `~14.0.8`; `expo start` warns about it. It bundles, but document-picker
-behavior may be off — revisit if file-picking misbehaves.

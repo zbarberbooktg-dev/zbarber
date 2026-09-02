@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
 import { formatApiError } from "@/lib/errors";
 
+const PREMIUM_FEATURES_AVAILABLE = false;
+
 export default function Financing() {
   const [status, setStatus] = useState("");
   const [selected, setSelected] = useState<any>(null);
@@ -24,6 +26,7 @@ export default function Financing() {
   const total = (data as any)?.total ?? 0;
 
   function handle(id: number, newStatus: string) {
+    if (!PREMIUM_FEATURES_AVAILABLE) return;
     update.mutate({ id, data: { status: newStatus as any, adminNote: note || undefined } }, {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListFinancingRequestsQueryKey() });
@@ -37,7 +40,12 @@ export default function Financing() {
 
   return (
     <div>
-      <PageHeader title={f.title} subtitle={f.countSuffix(total)} />
+      <PageHeader title={f.title} subtitle={`${f.subtitle} · ${f.countSuffix(total)}`} />
+
+      <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300" role="status">
+        <strong>{f.comingSoon}</strong>
+        <span className="ml-2">{f.notice}</span>
+      </div>
 
       <div className="flex gap-3 mb-5">
         <select
@@ -82,8 +90,9 @@ export default function Financing() {
                 <td className="px-4 py-3">
                   <div className="flex justify-end">
                     <button
+                      disabled={!PREMIUM_FEATURES_AVAILABLE}
                       onClick={() => setSelected(r)}
-                      className="rounded-md bg-primary/10 text-primary px-2.5 py-1.5 text-xs hover:bg-primary/20 transition-colors"
+                      className="rounded-md bg-primary/10 text-primary px-2.5 py-1.5 text-xs hover:bg-primary/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {f.manage}
                     </button>
@@ -196,23 +205,24 @@ export default function Financing() {
             <textarea
               value={note}
               onChange={e => setNote(e.target.value)}
+              disabled={!PREMIUM_FEATURES_AVAILABLE}
               placeholder={f.adminNotePh}
               className="w-full rounded-lg border bg-input px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring mb-4 resize-none"
               rows={3}
             />
             <div className="flex gap-2 flex-wrap">
               {selected.status !== "reviewing" && (
-                <button onClick={() => handle(selected.id, "reviewing")} className="rounded-lg bg-blue-500/10 text-blue-600 px-3 py-2 text-sm hover:bg-blue-500/20 transition-colors">
+                <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => handle(selected.id, "reviewing")} className="rounded-lg bg-blue-500/10 text-blue-600 px-3 py-2 text-sm hover:bg-blue-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
                   {f.sendReviewing}
                 </button>
               )}
               {selected.status !== "approved" && (
-                <button onClick={() => handle(selected.id, "approved")} className="rounded-lg bg-emerald-500/10 text-emerald-600 px-3 py-2 text-sm hover:bg-emerald-500/20 transition-colors">
+                <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => handle(selected.id, "approved")} className="rounded-lg bg-emerald-500/10 text-emerald-600 px-3 py-2 text-sm hover:bg-emerald-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
                   {f.approve}
                 </button>
               )}
               {selected.status !== "rejected" && (
-                <button onClick={() => handle(selected.id, "rejected")} className="rounded-lg bg-red-500/10 text-red-600 px-3 py-2 text-sm hover:bg-red-500/20 transition-colors">
+                <button disabled={!PREMIUM_FEATURES_AVAILABLE} onClick={() => handle(selected.id, "rejected")} className="rounded-lg bg-red-500/10 text-red-600 px-3 py-2 text-sm hover:bg-red-500/20 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
                   {f.reject}
                 </button>
               )}

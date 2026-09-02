@@ -42,3 +42,4 @@
 - [Clerk test-auth vs Expo domain](clerk-testauth-expo-domain.md) — runTest's Clerk session injection can't reach the Expo web dev subdomain; verify gated logic via api-server vitest instead.
 - [Calendar + digital clock time picker](date-time-picker-calendar.md) — booking/reschedule slot picker is a month calendar + HH:MM grid (DateTimePicker), not a flat dropdown list; reuse it for multi-week windows.
 - [Mobile Clerk-gating black screen](clerk-gating-black-screen.md) — never wrap the entire root in ClerkLoaded or gate ThemedRoot/home on isLoaded; public home must show from storageReady; only protected layouts block on isLoaded.
+- [Premium launch state](premium-launch-state.md) — current features stay free; Premium, financing, and conferences remain preserved but visibly unavailable until launch.

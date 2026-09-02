@@ -38,8 +38,8 @@
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "api.zbarber.net",
-        "EXPO_PUBLIC_CLERK_PROXY_URL": "https://api.zbarber.net/api/__clerk",
+        "EXPO_PUBLIC_DOMAIN": "zbarber.net",
+        "EXPO_PUBLIC_CLERK_PROXY_URL": "https://zbarber.net/api/__clerk",
         "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuemJhcmJlci5uZXQk"
       }
     }
