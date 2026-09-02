@@ -6,9 +6,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -16,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { Button, Card, EmptyState, Pill, SectionTitle } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -276,14 +275,17 @@ function FinancingFormModal({ visible, salonId, onClose, onCreated }: { visible:
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <View style={{ flex: 1, backgroundColor: c.background }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border }}>
           <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 16 }}>Nouvelle demande</Text>
           <Pressable onPress={onClose}>
             <Feather name="x" size={22} color={c.foreground} />
           </Pressable>
         </View>
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+        <KeyboardAwareScrollViewCompat
+          contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 48 }}
+          bottomOffset={32}
+        >
           <Field c={c} label="Montant souhaité (FC) *">
             <TextInput value={amount} onChangeText={setAmount} keyboardType="numeric" placeholder="50 000 – 5 000 000" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>
@@ -372,8 +374,8 @@ function FinancingFormModal({ visible, salonId, onClose, onCreated }: { visible:
           <View style={{ height: 8 }} />
           <Button label="À venir" icon="clock" onPress={() => submitMutation.mutate()} disabled={!PREMIUM_FEATURES_AVAILABLE || submitMutation.isPending} fullWidth />
           <View style={{ height: 24 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollViewCompat>
+      </View>
     </Modal>
   );
 }

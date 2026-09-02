@@ -2,16 +2,17 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { EmptyState } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -40,6 +41,7 @@ const STATUS_LABEL: Record<WalkInStatus, string> = {
 
 export default function BarberQueue() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
@@ -147,7 +149,11 @@ export default function BarberQueue() {
   const finished = (items ?? []).filter((i) => i.status === "done" || i.status === "cancelled");
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 16 }}>
+    <KeyboardAwareScrollViewCompat
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32, gap: 16 }}
+      bottomOffset={32}
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Feather name="arrow-left" size={22} color={c.foreground} />
@@ -239,7 +245,7 @@ export default function BarberQueue() {
           )}
         </>
       )}
-    </ScrollView>
+    </KeyboardAwareScrollViewCompat>
   );
 }
 

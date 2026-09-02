@@ -91,6 +91,8 @@ export default function AllSalons() {
         <FlatList
           data={list}
           keyExtractor={(b) => String(b.id)}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, gap: 12 }}
           ListEmptyComponent={
             <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 13, textAlign: "center", marginTop: 32 }}>

@@ -1,11 +1,8 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -14,6 +11,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import { useApp } from "@/contexts/AppContext";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 
@@ -54,7 +52,7 @@ export function DeleteAccountModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <View style={{ flex: 1, backgroundColor: c.background }}>
         <View style={{ flexDirection: "row", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border, alignItems: "center", justifyContent: "space-between" }}>
           <Pressable onPress={onClose} hitSlop={10} disabled={busy}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>{(t as any).cancel ?? "Annuler"}</Text>
@@ -63,7 +61,10 @@ export function DeleteAccountModal({ visible, onClose }: Props) {
           <View style={{ width: 60 }} />
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+        <KeyboardAwareScrollViewCompat
+          contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 48 }}
+          bottomOffset={32}
+        >
           <View style={{ backgroundColor: c.destructive + "15", padding: 16, borderRadius: c.radius, flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
             <Feather name="alert-triangle" size={22} color={c.destructive} />
             <Text style={{ flex: 1, color: c.foreground, fontFamily: "Inter_400Regular", lineHeight: 20 }}>
@@ -123,8 +124,8 @@ export function DeleteAccountModal({ visible, onClose }: Props) {
               </Text>
             )}
           </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollViewCompat>
+      </View>
     </Modal>
   );
 }

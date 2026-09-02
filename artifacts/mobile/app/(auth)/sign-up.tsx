@@ -1,13 +1,11 @@
 import { useSignUp, useAuth } from "@clerk/expo";
 import { Link, Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -20,6 +18,7 @@ import { useAuthedFetch } from "@/lib/api";
 import { formatApiError } from "@/lib/errors";
 import { pickImageWithSource, promptImageSource, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { PasswordInput } from "@/components/PasswordInput";
 import type * as ImagePicker from "expo-image-picker";
 
@@ -28,6 +27,7 @@ type Step = "details" | "verify";
 
 export default function SignUpScreen() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const { syncAuth, t } = useApp();
   const router = useRouter();
   const { signUp, errors, fetchStatus } = useSignUp();
@@ -191,15 +191,11 @@ export default function SignUpScreen() {
   const avatarDisplay = avatarLocalUri ?? resolveObjectUrl(avatarUrl);
 
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollViewCompat
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 56, paddingBottom: insets.bottom + 48 }}
+      bottomOffset={32}
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, padding: 24, paddingTop: 56, paddingBottom: 96 }}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-      >
         <Pressable
           onPress={() => router.replace("/")}
           hitSlop={10}
@@ -366,8 +362,7 @@ export default function SignUpScreen() {
             </Pressable>
           </>
         )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollViewCompat>
   );
 }
 

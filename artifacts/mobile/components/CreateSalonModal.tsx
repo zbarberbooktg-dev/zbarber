@@ -4,16 +4,14 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { formatApiError } from "@/lib/errors";
@@ -99,7 +97,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <View style={{ flex: 1, backgroundColor: c.background }}>
         <View style={{ flexDirection: "row", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border, alignItems: "center", justifyContent: "space-between" }}>
           <Pressable onPress={onClose} hitSlop={10} disabled={saving}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>Annuler</Text>
@@ -112,7 +110,10 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+        <KeyboardAwareScrollViewCompat
+          contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}
+          bottomOffset={32}
+        >
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
             Renseignez les informations de base de votre salon. Vous pourrez tout modifier ensuite. Votre salon sera vérifié par l'équipe avant publication.
           </Text>
@@ -182,8 +183,8 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
           </Field>
 
           {err && <Text style={{ color: c.destructive, fontFamily: "Inter_400Regular", fontSize: 13 }}>{err}</Text>}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollViewCompat>
+      </View>
     </Modal>
   );
 }

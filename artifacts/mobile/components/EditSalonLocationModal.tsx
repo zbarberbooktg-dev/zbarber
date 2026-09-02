@@ -2,16 +2,14 @@ import { useAuth } from "@clerk/expo";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useColors } from "@/hooks/useColors";
 import { CountryCityFields } from "@/components/CountryCityFields";
 
@@ -98,10 +96,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: c.background }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={{ flex: 1, backgroundColor: c.background }}>
         <View style={{ flexDirection: "row", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border, alignItems: "center", justifyContent: "space-between" }}>
           <Pressable onPress={onClose} hitSlop={10}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>Annuler</Text>
@@ -116,7 +111,10 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+        <KeyboardAwareScrollViewCompat
+          contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}
+          bottomOffset={32}
+        >
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
             Mettez à jour l'adresse de votre salon si vous avez déménagé. Vos clients verront immédiatement la nouvelle localisation.
           </Text>
@@ -174,8 +172,8 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
           {err && (
             <Text style={{ color: c.destructive, fontFamily: "Inter_400Regular", fontSize: 13 }}>{err}</Text>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollViewCompat>
+      </View>
     </Modal>
   );
 }

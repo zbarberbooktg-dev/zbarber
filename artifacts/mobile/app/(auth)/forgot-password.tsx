@@ -1,17 +1,16 @@
 import { useSignIn, useAuth } from "@clerk/expo";
 import { Link, Redirect, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useColors } from "@/hooks/useColors";
 import { PasswordInput } from "@/components/PasswordInput";
 
@@ -33,6 +32,7 @@ type Step = "request" | "reset";
  */
 export default function ForgotPasswordScreen() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { signIn, fetchStatus } = useSignIn();
   const { isSignedIn } = useAuth();
@@ -169,15 +169,11 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollViewCompat
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24, paddingBottom: insets.bottom + 48 }}
+      bottomOffset={32}
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24, paddingBottom: 96 }}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-      >
         <View style={{ marginBottom: 28 }}>
           <Text style={{ fontFamily: "Inter_700Bold", fontSize: 28, color: c.foreground, marginBottom: 8 }}>
             {step === "request" ? "Mot de passe oublié" : "Nouveau mot de passe"}
@@ -290,8 +286,7 @@ export default function ForgotPasswordScreen() {
             <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold" }}>Se connecter</Text>
           </Link>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardAwareScrollViewCompat>
   );
 }
 

@@ -2,17 +2,18 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
   Image,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { EmptyState } from "@/components/UI";
 import { PanoramaViewer } from "@/components/PanoramaViewer";
 import { useColors } from "@/hooks/useColors";
@@ -24,6 +25,7 @@ type Panorama = { id: number; title: string; imageUrl: string; sortOrder: number
 
 export default function BarberPanoramas() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
@@ -127,9 +129,10 @@ export default function BarberPanoramas() {
   const sceneList = (items ?? []).map((p) => ({ id: p.id, title: p.title, imageUrl: p.imageUrl }));
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollViewCompat
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 16 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32, gap: 16 }}
+      bottomOffset={32}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
@@ -228,6 +231,6 @@ export default function BarberPanoramas() {
       )}
 
       <PanoramaViewer scenes={sceneList} visible={previewOpen} onClose={() => setPreviewOpen(false)} />
-    </ScrollView>
+    </KeyboardAwareScrollViewCompat>
   );
 }

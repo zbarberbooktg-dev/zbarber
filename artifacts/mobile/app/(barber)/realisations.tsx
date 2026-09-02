@@ -3,16 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { EmptyState } from "@/components/UI";
 import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { useColors } from "@/hooks/useColors";
@@ -31,6 +32,7 @@ type Realisation = {
 
 export default function BarberRealisations() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
@@ -147,9 +149,10 @@ export default function BarberRealisations() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollViewCompat
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 16 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32, gap: 16 }}
+      bottomOffset={32}
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
@@ -267,7 +270,7 @@ export default function BarberRealisations() {
         visible={!!realisationLb}
         onClose={() => setRealisationLb(null)}
       />
-    </ScrollView>
+    </KeyboardAwareScrollViewCompat>
   );
 }
 

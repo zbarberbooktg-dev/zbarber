@@ -3,17 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { Button, Card } from "@/components/UI";
 import { LocationPickerMap } from "@/components/LocationPickerMap";
 import { useApp } from "@/contexts/AppContext";
@@ -58,6 +57,7 @@ const DEFAULT_HOURS: HoursRow[] = DAYS.map((d) => ({
 
 export default function BarberHomeService() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const fetcher = useAuthedFetch();
   const { selectedSalonId, t, locale } = useApp();
@@ -161,11 +161,10 @@ export default function BarberHomeService() {
   return (
     <>
       <Stack.Screen options={{ title: t.hsTitle, headerBackTitle: "Retour" }} />
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 160 }}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+      <KeyboardAwareScrollViewCompat
+          style={{ flex: 1, backgroundColor: c.background }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 24 }}
+          bottomOffset={32}
         >
           {/* Enable toggle */}
           <Card>
@@ -282,12 +281,10 @@ export default function BarberHomeService() {
 
           {err && <Text style={{ color: c.destructive, fontFamily: "Inter_400Regular", fontSize: 13 }}>{err}</Text>}
           {ok && <Text style={{ color: c.primary, fontFamily: "Inter_500Medium", fontSize: 13 }}>{ok}</Text>}
-        </ScrollView>
-
-        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: c.background, borderTopWidth: 1, borderTopColor: c.border }}>
-          <Button label={t.hsSave} icon="save" onPress={handleSave} loading={saving} fullWidth />
-        </View>
-      </KeyboardAvoidingView>
+          <View style={{ paddingTop: 4 }}>
+            <Button label={t.hsSave} icon="save" onPress={handleSave} loading={saving} fullWidth />
+          </View>
+      </KeyboardAwareScrollViewCompat>
     </>
   );
 }

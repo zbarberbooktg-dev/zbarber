@@ -4,17 +4,15 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { Button, Card, EmptyState, Pill } from "@/components/UI";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
@@ -197,7 +195,7 @@ function ServiceModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.background }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <View style={{ flex: 1, backgroundColor: c.background }}>
         <View style={{ flexDirection: "row", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border, alignItems: "center", justifyContent: "space-between" }}>
           <Pressable onPress={onClose} hitSlop={10}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>Annuler</Text>
@@ -209,7 +207,10 @@ function ServiceModal({
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+        <KeyboardAwareScrollViewCompat
+          contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}
+          bottomOffset={32}
+        >
           <Field label="Nom *">
             <TextInput value={name} onChangeText={setName} placeholder="Coupe homme" placeholderTextColor={c.mutedForeground} style={inputStyle(c)} />
           </Field>
@@ -252,8 +253,8 @@ function ServiceModal({
               <Button label="Supprimer ce service" variant="destructive" icon="trash-2" onPress={handleDelete} />
             </View>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollViewCompat>
+      </View>
     </Modal>
   );
 }

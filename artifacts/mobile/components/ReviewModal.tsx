@@ -1,17 +1,17 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   Text,
   TextInput,
   View,
 } from "react-native";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
@@ -26,6 +26,7 @@ type Props = {
 
 export function ReviewModal({ visible, onClose, barberId, salonName, onSubmitted }: Props) {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const { t } = useApp();
   const fetcher = useAuthedFetch();
   const [rating, setRating] = useState(0);
@@ -61,10 +62,10 @@ export function ReviewModal({ visible, onClose, barberId, salonName, onSubmitted
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}
+      <KeyboardAwareScrollViewCompat
+        style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
+        bottomOffset={16}
       >
         <View
           style={{
@@ -72,7 +73,7 @@ export function ReviewModal({ visible, onClose, barberId, salonName, onSubmitted
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 24,
-            paddingBottom: 36,
+            paddingBottom: insets.bottom + 20,
             gap: 18,
           }}
         >
@@ -143,7 +144,7 @@ export function ReviewModal({ visible, onClose, barberId, salonName, onSubmitted
             )}
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollViewCompat>
     </Modal>
   );
 }
