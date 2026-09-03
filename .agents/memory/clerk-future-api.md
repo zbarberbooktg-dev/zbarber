@@ -21,6 +21,14 @@ description: Mobile uses Clerk's "future" SignIn/SignUp API (the only one expose
 - All methods return `{ error: ClerkError | null }` — branch on `error`, don't try/catch alone.
 - Disable submit while `fetchStatus === "fetching"` (analog to classic `isLoaded`).
 
+## New-device client trust
+
+`signIn.password()` can return `needs_client_trust` on a new iOS device even when the same account signs in normally on Android. This is a normal Clerk security flow, not an invalid-password error.
+
+**Why:** Clerk requires proof that the user controls the account before trusting some new native clients.
+
+**How to apply:** when status is `needs_client_trust`, send an email code with `signIn.mfa.sendEmailCode()`, collect and verify it with `signIn.mfa.verifyEmailCode({ code })`, then call `signIn.finalize()` once status becomes `complete`.
+
 ## Forgot-password specifics
 
 Sequence: `create({identifier})` → `resetPasswordEmailCode.sendCode()` → `verifyCode({code})` (status → `needs_new_password`) → `submitPassword({password})` (status → `complete` or `needs_second_factor`) → `finalize({navigate})`.

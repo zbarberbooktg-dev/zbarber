@@ -45,6 +45,7 @@ export default function SignInScreen() {
   }, []);
 
   const [step, setStep] = useState<"credentials" | "mfa">("credentials");
+  const [verificationKind, setVerificationKind] = useState<"mfa" | "client_trust">("mfa");
   const [mfaStrategy, setMfaStrategy] = useState<MfaStrategy | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [availableStrategies, setAvailableStrategies] = useState<MfaStrategy[]>([]);
@@ -59,6 +60,7 @@ export default function SignInScreen() {
   }
 
   const enterMfa = async () => {
+    setVerificationKind("mfa");
     const factors = (signIn.supportedSecondFactors ?? []) as Array<{ strategy: string }>;
     const strategies = factors
       .map((f) => f.strategy)
@@ -90,6 +92,31 @@ export default function SignInScreen() {
       if (error) setSubmitError(error.message ?? "Impossible d'envoyer le code par email");
       else setInfo("Code envoyé par email");
     }
+  };
+
+  const enterClientTrust = async () => {
+    const factors = (signIn.supportedSecondFactors ?? []) as Array<{ strategy: string }>;
+    const supportsEmailCode = factors.some((factor) => factor.strategy === "email_code");
+    if (!supportsEmailCode) {
+      showError(
+        "Cet appareil doit être vérifié, mais aucune vérification par email n'est disponible. Réessayez plus tard ou contactez l'assistance.",
+      );
+      return;
+    }
+
+    setVerificationKind("client_trust");
+    setAvailableStrategies(["email_code"]);
+    setMfaStrategy("email_code");
+    setStep("mfa");
+    setMfaCode("");
+    setInfo(null);
+
+    const { error } = await signIn.mfa.sendEmailCode();
+    if (error) {
+      showError(error.message ?? "Impossible d'envoyer le code de vérification par email");
+      return;
+    }
+    setInfo("Un code de vérification a été envoyé par email.");
   };
 
   const switchStrategy = async (next: MfaStrategy) => {
@@ -148,6 +175,10 @@ export default function SignInScreen() {
       }
       if (signIn.status === "needs_second_factor") {
         await enterMfa();
+        return;
+      }
+      if (signIn.status === "needs_client_trust") {
+        await enterClientTrust();
         return;
       }
       const fieldErr =
@@ -286,10 +317,14 @@ export default function SignInScreen() {
           <>
             <View style={{ marginBottom: 24 }}>
               <Text style={{ fontFamily: "Inter_700Bold", fontSize: 24, color: c.foreground, marginBottom: 8 }}>
-                Vérification en deux étapes
+                {verificationKind === "client_trust"
+                  ? "Vérifiez ce nouvel appareil"
+                  : "Vérification en deux étapes"}
               </Text>
               <Text style={{ fontFamily: "Inter_400Regular", color: c.mutedForeground }}>
-                {mfaStrategy === "totp"
+                {verificationKind === "client_trust"
+                  ? "Pour sécuriser votre compte, saisissez le code reçu par email."
+                  : mfaStrategy === "totp"
                   ? "Saisissez le code généré par votre application d'authentification."
                   : mfaStrategy === "phone_code"
                     ? "Saisissez le code reçu par SMS."
@@ -365,7 +400,7 @@ export default function SignInScreen() {
           )}
         </Pressable>
 
-        {step === "mfa" && availableStrategies.length > 1 && (
+        {step === "mfa" && verificationKind === "mfa" && availableStrategies.length > 1 && (
           <View style={{ marginTop: 20 }}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", marginBottom: 8 }}>
               Utiliser une autre méthode :
@@ -399,6 +434,7 @@ export default function SignInScreen() {
           <Pressable
             onPress={() => {
               setStep("credentials");
+              setVerificationKind("mfa");
               setSubmitError(null);
               setInfo(null);
               setMfaCode("");

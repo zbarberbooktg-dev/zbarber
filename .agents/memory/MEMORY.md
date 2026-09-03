@@ -1,5 +1,5 @@
 - [Clerk auth architecture](clerk-auth-arch.md) — Clerk JIT provisioning via /auth/sync; mobile uses useAuthedFetch (not generated hooks) for barber self-service routes.
-- [Clerk Future API on mobile](clerk-future-api.md) — @clerk/expo 3.x exposes only the future SignIn API (no isLoaded/setActive; methods namespaced; returns {error}); also covers enumeration-safe reset flow.
+- [Clerk Future API on mobile](clerk-future-api.md) — @clerk/expo 3.x uses future SignIn methods and requires an email-code flow for needs_client_trust on new devices.
 - [Clerk finalize() nav race](clerk-finalize-nav-race.md) — don't pass imperative router.replace to finalize when screen has an isSignedIn <Redirect> guard; the double REPLACE throws "REPLACE {name:index} not handled by any navigator".
 - [Admin Clerk Bearer](admin-clerk-bearer.md) — browser SPAs on Replit shared proxy must send Clerk JWT via Authorization header; cookie auth silently 401s in dev.
 - [Multi-salon barber model](multi-salon.md) — /barbers/me returns array; no unique constraint on barbersTable.userId; consumers must extract [0] for primary salon.
