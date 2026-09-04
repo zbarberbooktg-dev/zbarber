@@ -284,7 +284,19 @@ export default function PublicHome() {
           </Text>
         </View>
 
-        {isSignedIn ? (
+        {!isLoaded ? (
+          <View
+            style={{
+              width: 80,
+              height: 36,
+              alignItems: "flex-end",
+              justifyContent: "center",
+            }}
+            accessibilityLabel={lang === "fr" ? "Vérification de la session" : "Checking session"}
+          >
+            <ActivityIndicator size="small" color={PALETTE.gold} />
+          </View>
+        ) : isSignedIn ? (
           <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
             <Pressable
               onPress={handleRefreshLocation}
