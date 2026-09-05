@@ -9,6 +9,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useListBarbers, useListHomeGalleryPhotos, useListPublicArticles } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
+import { reloadAppAsync } from "expo";
 import * as Location from "expo-location";
 import { Redirect, useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -182,6 +183,7 @@ export default function PublicHome() {
   // expo-router may reuse this screen instance instead of remounting it.
   const browsing = useBrowsing();
   const [locationRefreshing, setLocationRefreshing] = useState(false);
+  const [authWaitTimedOut, setAuthWaitTimedOut] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const featuredYRef = useRef(0);
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
@@ -199,6 +201,15 @@ export default function PublicHome() {
   useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_KEY).then((val) => setOnboardingDone(!!val));
   }, []);
+
+  useEffect(() => {
+    if (isLoaded) {
+      setAuthWaitTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setAuthWaitTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isLoaded]);
 
   const list = useMemo(() => {
     const items = data?.data ?? [];
@@ -284,7 +295,28 @@ export default function PublicHome() {
           </Text>
         </View>
 
-        {!isLoaded ? (
+        {!isLoaded && authWaitTimedOut ? (
+          <Pressable
+            onPress={() => { void reloadAppAsync(); }}
+            style={{
+              height: 36,
+              paddingHorizontal: 12,
+              borderWidth: 1,
+              borderColor: buttonBorder,
+              flexDirection: "row",
+              gap: 6,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={lang === "fr" ? "Réessayer la connexion" : "Retry connection"}
+          >
+            <Feather name="refresh-cw" size={13} color={PALETTE.gold} />
+            <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+              {lang === "fr" ? "Réessayer" : "Retry"}
+            </Text>
+          </Pressable>
+        ) : !isLoaded ? (
           <View
             style={{
               width: 80,
