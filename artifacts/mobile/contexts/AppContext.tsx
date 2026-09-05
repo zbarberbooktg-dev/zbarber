@@ -45,6 +45,7 @@ type AppState = {
   user: SyncedUser | null;
   barberProfile: SyncedBarber | null;
   syncing: boolean;
+  authSyncError: boolean;
   themePref: ThemePref;
   lang: Lang;
   ready: boolean;
@@ -126,6 +127,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SyncedUser | null>(null);
   const [barberProfile, setBarberProfile] = useState<SyncedBarber | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [authSyncError, setAuthSyncError] = useState(false);
   const [initialSyncDone, setInitialSyncDone] = useState(false);
   const [selectedSalonId, setSelectedSalonIdState] = useState<number | null>(null);
   // The Expo push token registered for this session, kept so we can unregister
@@ -184,18 +186,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (!isSignedIn) { setUser(null); setBarberProfile(null); setInitialSyncDone(true); return; }
+    if (!isSignedIn) {
+      setUser(null);
+      setBarberProfile(null);
+      setAuthSyncError(false);
+      setInitialSyncDone(true);
+      return;
+    }
     let cancel = false;
     (async () => {
       setSyncing(true);
+      setAuthSyncError(false);
       try {
         const token = await getToken();
-        const result = await callSync(token);
+        const result = await callSync(token, undefined, { throwOnError: true });
         if (!cancel) {
           setUser(result?.user ?? null);
           setBarberProfile(result?.barber ?? null);
           if (result?.user) ensurePushRegistered();
         }
+      } catch {
+        if (!cancel) setAuthSyncError(true);
       } finally {
         if (!cancel) { setSyncing(false); setInitialSyncDone(true); }
       }
@@ -207,12 +218,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const syncAuth = async (opts?: SyncAuthOpts) => {
     setSyncing(true);
+    setAuthSyncError(false);
     try {
       const token = await getToken();
       const result = await callSync(token, opts, { throwOnError: true });
       setUser(result?.user ?? null);
       setBarberProfile(result?.barber ?? null);
       return result?.user ?? null;
+    } catch (error) {
+      setAuthSyncError(true);
+      throw error;
     } finally {
       setSyncing(false);
     }
@@ -282,6 +297,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       user,
       barberProfile,
       syncing,
+      authSyncError,
       themePref,
       lang,
       ready: storageReady,
@@ -297,7 +313,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       t: translations[lang],
       locale: localeMap[lang],
     }),
-    [user, barberProfile, syncing, themePref, lang, storageReady, isLoaded, initialSyncDone, selectedSalonId, suspendedNotice],
+    [user, barberProfile, syncing, authSyncError, themePref, lang, storageReady, isLoaded, initialSyncDone, selectedSalonId, suspendedNotice],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

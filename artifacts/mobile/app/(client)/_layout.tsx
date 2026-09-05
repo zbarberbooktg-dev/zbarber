@@ -1,8 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { Redirect, Tabs, useRouter } from "expo-router";
 import { useAuth } from "@clerk/expo";
-import React from "react";
-import { Platform, Pressable } from "react-native";
+import { reloadAppAsync } from "expo";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -12,9 +13,29 @@ import { setBrowsing } from "@/lib/browseIntent";
 export default function ClientTabs() {
   const c = useColors();
   const router = useRouter();
-  const { role, ready, syncing, user, t } = useApp();
+  const { role, ready, syncing, authSyncError, syncAuth, user, t, lang } = useApp();
   const { isSignedIn, isLoaded } = useAuth();
   const isWeb = Platform.OS === "web";
+  const [authWaitTimedOut, setAuthWaitTimedOut] = useState(false);
+  const waitingForAuth = !isLoaded || !ready || !!(isSignedIn && !user && (syncing || authSyncError));
+
+  useEffect(() => {
+    if (!waitingForAuth) {
+      setAuthWaitTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setAuthWaitTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [waitingForAuth]);
+
+  const retryAuth = () => {
+    setAuthWaitTimedOut(false);
+    if (!isLoaded) {
+      void reloadAppAsync();
+      return;
+    }
+    void syncAuth().catch(() => {});
+  };
 
   const HomeHeaderButton = () => (
     <Pressable
@@ -40,7 +61,34 @@ export default function ClientTabs() {
     </Pressable>
   );
 
-  if (!isLoaded || !ready || (isSignedIn && syncing && !user)) return null;
+  if (waitingForAuth) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.background, alignItems: "center", justifyContent: "center", padding: 28 }}>
+        {!authWaitTimedOut ? (
+          <ActivityIndicator color={c.primary} />
+        ) : (
+          <>
+            <Feather name="wifi-off" size={30} color={c.primary} />
+            <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 18, textAlign: "center", marginTop: 16 }}>
+              {lang === "fr" ? "Vérification de la session impossible" : "Unable to check your session"}
+            </Text>
+            <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, textAlign: "center", marginTop: 8 }}>
+              {lang === "fr" ? "Vérifiez votre connexion réseau, puis réessayez." : "Check your network connection, then try again."}
+            </Text>
+            <Pressable
+              onPress={retryAuth}
+              accessibilityRole="button"
+              style={{ marginTop: 20, backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 }}
+            >
+              <Text style={{ color: c.primaryForeground, fontFamily: "Inter_600SemiBold" }}>
+                {lang === "fr" ? "Réessayer" : "Retry"}
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+    );
+  }
   if (!isSignedIn) {
     const intent = consumeAuthIntent();
     if (intent === "signup") return <Redirect href="/(auth)/sign-up" />;
