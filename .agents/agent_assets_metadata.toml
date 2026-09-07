@@ -257,3 +257,17 @@ mtime_ms = 1788806607592
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/22a9b693-dd5b-41a1-be0f-18e1a53ec002/69dfd06d-48e0-41cc-b648-df1926fad4a6"
 storage_version_token = "1788806691553492"
 content_type = "image/png"
+
+[[outputs]]
+id = "X0L6Winuldn6wc4eGHU9v"
+uri = "file://screenshots/appstore_android_reference_before_after.png"
+type = "image"
+title = "Comparaison App Store — avant / après"
+description = "Les anciennes captures avec la référence Android sont comparées aux nouvelles versions iOS corrigées."
+logical_id = "7e95d1ce-35bb-48e1-84f2-2758fc0a5139"
+content_hash = "sha256:835916bd8210150b9bfbe43c6354d9891e15aa3bb8a73bbffa61976ab05b42bc"
+size = 1819003
+mtime_ms = 1788807245056
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/7e95d1ce-35bb-48e1-84f2-2758fc0a5139/6ba55ab0-2292-4af6-9417-2f7d14ca7b9f"
+storage_version_token = "1788807258835506"
+content_type = "image/png"
