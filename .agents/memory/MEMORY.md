@@ -44,3 +44,4 @@
 - [Mobile Clerk-gating black screen](clerk-gating-black-screen.md) — never wrap the entire root in ClerkLoaded or gate ThemedRoot/home on isLoaded; public home must show from storageReady; only protected layouts block on isLoaded.
 - [Premium launch state](premium-launch-state.md) — current features stay free; Premium, financing, and conferences remain preserved but visibly unavailable until launch.
 - [Mobile keyboard-safe forms](mobile-keyboard-safe-forms.md) — native forms use the shared keyboard-aware scroll; never pin submit bars absolutely over editable content.
+- [iOS location purpose strings](ios-location-purpose-strings.md) — set all location Info.plist descriptions explicitly; the Expo plugin can leave generic strings that fail App Review.
