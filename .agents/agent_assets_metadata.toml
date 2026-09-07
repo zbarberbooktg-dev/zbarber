@@ -174,6 +174,7 @@ uri = "file://screenshots/store_1_home.png"
 type = "image"
 title = "Screenshot 1 — Accueil"
 description = "Écran d'accueil Zbarber — recherche, édito et salons en vedette"
+logical_id = "735f4a2c-35a4-4508-9d7d-2d729be091bd"
 
 [[outputs]]
 id = "Eh67Nm2dgMrMK8-hEw39g"
@@ -181,6 +182,7 @@ uri = "file://screenshots/store_2_booking.png"
 type = "image"
 title = "Screenshot 2 — Fiche salon & réservation"
 description = "Détail salon, services, calendrier et créneaux"
+logical_id = "75622c5b-851e-4726-9a59-5b922296f7a7"
 
 [[outputs]]
 id = "bvE_A4tuXkM5LkuFgRBRQ"
@@ -188,6 +190,7 @@ uri = "file://screenshots/store_3_gallery.png"
 type = "image"
 title = "Screenshot 3 — Réalisations & galerie"
 description = "Portfolio Avant/Après et galerie du barber"
+logical_id = "8fca2a68-ce35-4294-82e1-cfa003b4b2dd"
 
 [[outputs]]
 id = "y_MSXjTwdV5XzW6HsnEZ5"
@@ -195,6 +198,7 @@ uri = "file://screenshots/store_1_final.png"
 type = "image"
 title = "Screenshot 1 — Accueil (1242×2688)"
 description = "Trouve ton salon idéal"
+logical_id = "5eca161c-0173-419b-842a-8bd26d1b507d"
 
 [[outputs]]
 id = "2TbEvmsl84q1aFmagydCo"
@@ -202,6 +206,7 @@ uri = "file://screenshots/store_2_final.png"
 type = "image"
 title = "Screenshot 2 — Réservation (1242×2688)"
 description = "Réserve en quelques clics"
+logical_id = "adb5093e-2051-41fe-a64e-1b076be1d58e"
 
 [[outputs]]
 id = "FRYQ0-OUVwZwSkLPHs6wz"
@@ -209,3 +214,46 @@ uri = "file://screenshots/store_3_final.png"
 type = "image"
 title = "Screenshot 3 — Réalisations (1242×2688)"
 description = "L'art du barbier"
+logical_id = "d2d44de1-dd4b-4a9d-b01b-daa4179a4f65"
+
+[[outputs]]
+id = "5kYLXrbcuzqGaOkJdn4o3"
+uri = "file://screenshots/store_1_ios.png"
+type = "image"
+title = "App Store Screenshot 1 — iOS"
+description = "Salon discovery screenshot with all Android references removed."
+logical_id = "d1dd2f6e-b240-4a73-869a-4124daab9515"
+content_hash = "sha256:4a5521f03c1f3b23fe1fbfc4b8a0cf412b7a7458873c2d161db5cc65e8d3dee9"
+size = 5912261
+mtime_ms = 1788806603060
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/d1dd2f6e-b240-4a73-869a-4124daab9515/014f091b-c37f-4b96-8719-1d81150009b2"
+storage_version_token = "1788806690119846"
+content_type = "image/png"
+
+[[outputs]]
+id = "Xndxi76UFAIZGRJg2kZuo"
+uri = "file://screenshots/store_2_ios.png"
+type = "image"
+title = "App Store Screenshot 2 — iOS"
+description = "Booking screenshot with all Android references removed."
+logical_id = "7735199f-1484-4f5f-911b-6e4e860bc0f8"
+content_hash = "sha256:cfc485e8ed840e230ad9a2a0b869da130ae577f66b8cf927bd452d527f3b4821"
+size = 5726901
+mtime_ms = 1788806605820
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/7735199f-1484-4f5f-911b-6e4e860bc0f8/5ed476d4-80ab-427e-af3c-3265fd06fd83"
+storage_version_token = "1788806690922668"
+content_type = "image/png"
+
+[[outputs]]
+id = "T2fDlg6B4_cgZ8rYmORhm"
+uri = "file://screenshots/store_3_ios.png"
+type = "image"
+title = "App Store Screenshot 3 — iOS"
+description = "Portfolio screenshot with all Android references removed."
+logical_id = "22a9b693-dd5b-41a1-be0f-18e1a53ec002"
+content_hash = "sha256:73fc72257663fcc05ca8738dd1a18648779590352b717a4869f01c88fcc005b7"
+size = 4570498
+mtime_ms = 1788806607592
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/22a9b693-dd5b-41a1-be0f-18e1a53ec002/69dfd06d-48e0-41cc-b648-df1926fad4a6"
+storage_version_token = "1788806691553492"
+content_type = "image/png"
