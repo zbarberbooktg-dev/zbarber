@@ -12,9 +12,9 @@
       "bundleIdentifier": "net.zbarber.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "Zbarber utilise votre position pendant l'utilisation de l'app pour afficher les salons proches, enregistrer l'emplacement exact de votre salon et calculer, par exemple, les frais de déplacement d'un service à domicile.",
-        "NSLocationAlwaysUsageDescription": "Zbarber utilise votre position pour afficher les salons proches, enregistrer l'emplacement exact de votre salon et calculer, par exemple, les frais de déplacement d'un service à domicile.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Zbarber utilise votre position pour afficher les salons proches, enregistrer l'emplacement exact de votre salon et calculer, par exemple, les frais de déplacement d'un service à domicile."
+        "NSLocationWhenInUseUsageDescription": "Zbarber utilise votre position pendant l'utilisation de l'app pour afficher les salons proches, permettre aux professionnels de définir l'emplacement de leur salon et calculer, par exemple, les frais de déplacement d'un service à domicile.",
+        "NSLocationAlwaysUsageDescription": "Zbarber utilise votre position pour afficher les salons proches, permettre aux professionnels de définir l'emplacement de leur salon et calculer, par exemple, les frais de déplacement d'un service à domicile.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Zbarber utilise votre position pour afficher les salons proches, permettre aux professionnels de définir l'emplacement de leur salon et calculer, par exemple, les frais de déplacement d'un service à domicile."
       }
     },
     "android": {
@@ -69,8 +69,8 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Zbarber utilise votre position pendant l'utilisation de l'app pour afficher les salons proches, enregistrer l'emplacement exact de votre salon et calculer, par exemple, les frais de déplacement d'un service à domicile.",
-          "locationAlwaysAndWhenInUsePermission": "Zbarber utilise votre position pour afficher les salons proches, enregistrer l'emplacement exact de votre salon et calculer, par exemple, les frais de déplacement d'un service à domicile."
+          "locationWhenInUsePermission": "Zbarber utilise votre position pendant l'utilisation de l'app pour afficher les salons proches, permettre aux professionnels de définir l'emplacement de leur salon et calculer, par exemple, les frais de déplacement d'un service à domicile.",
+          "locationAlwaysAndWhenInUsePermission": "Zbarber utilise votre position pour afficher les salons proches, permettre aux professionnels de définir l'emplacement de leur salon et calculer, par exemple, les frais de déplacement d'un service à domicile."
         }
       ],
       [
