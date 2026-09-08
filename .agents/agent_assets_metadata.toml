@@ -271,3 +271,45 @@ mtime_ms = 1788807245056
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/7e95d1ce-35bb-48e1-84f2-2758fc0a5139/6ba55ab0-2292-4af6-9417-2f7d14ca7b9f"
 storage_version_token = "1788807258835506"
 content_type = "image/png"
+
+[[outputs]]
+id = "HRsE6ReISGXkDLDs6w1VX"
+uri = "file://screenshots/zbarber_iphone_6.5_01_salon.png"
+type = "image"
+title = "iPhone 6.5 — 01 Salon"
+description = "Corrected 1242 × 2688 PNG without Android references."
+logical_id = "139b0780-22ff-4419-8326-3350481db6e8"
+content_hash = "sha256:4a5521f03c1f3b23fe1fbfc4b8a0cf412b7a7458873c2d161db5cc65e8d3dee9"
+size = 5912261
+mtime_ms = 1788830479191
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/139b0780-22ff-4419-8326-3350481db6e8/f27c71df-16af-4ff4-9950-2da07b094611"
+storage_version_token = "1788830486876954"
+content_type = "image/png"
+
+[[outputs]]
+id = "tZozYdnxDDG50NVxE9EFr"
+uri = "file://screenshots/zbarber_iphone_6.5_02_booking.png"
+type = "image"
+title = "iPhone 6.5 — 02 Booking"
+description = "Corrected 1242 × 2688 PNG without Android references."
+logical_id = "4ab9920b-b40e-415a-b8d4-c534b4dbf748"
+content_hash = "sha256:cfc485e8ed840e230ad9a2a0b869da130ae577f66b8cf927bd452d527f3b4821"
+size = 5726901
+mtime_ms = 1788830479195
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/4ab9920b-b40e-415a-b8d4-c534b4dbf748/128a8b82-b12e-41a5-a977-c03ecaf46c06"
+storage_version_token = "1788830487655811"
+content_type = "image/png"
+
+[[outputs]]
+id = "QNoVlbhP2JKxGDjFgpThx"
+uri = "file://screenshots/zbarber_iphone_6.5_03_gallery.png"
+type = "image"
+title = "iPhone 6.5 — 03 Gallery"
+description = "Corrected 1242 × 2688 PNG without Android references."
+logical_id = "ac3b08d6-a277-4004-94cf-f5920dd12b7b"
+content_hash = "sha256:73fc72257663fcc05ca8738dd1a18648779590352b717a4869f01c88fcc005b7"
+size = 4570498
+mtime_ms = 1788830479195
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/ac3b08d6-a277-4004-94cf-f5920dd12b7b/cd2062fe-7789-4c8f-9b66-5a7fb1b7ec30"
+storage_version_token = "1788830488427518"
+content_type = "image/png"
