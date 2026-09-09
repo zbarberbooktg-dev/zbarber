@@ -355,3 +355,45 @@ mtime_ms = 1788953646465
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/6a242ed4-82fa-4092-bcba-16a105a4553e/d44b261a-41b7-40de-a811-f03b3f797665"
 storage_version_token = "1788953664620777"
 content_type = "image/png"
+
+[[outputs]]
+id = "8NGNv3WwFy8oo_nnkhonJ"
+uri = "file://screenshots/appstore-live-iphone-6.5/01-salon-discovery.png"
+type = "image"
+title = "Live App — Salon Discovery"
+description = "Genuine Zbarber app screen at 1242 × 2688 showing search, editorial content, and featured salons."
+logical_id = "d375034d-0afa-4b56-be1f-68e771bc50af"
+content_hash = "sha256:b468fcaca235273b295a644a73ee3713d9db74831b1202c29f867709daf0f7bf"
+size = 1835912
+mtime_ms = 1788966542889
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/d375034d-0afa-4b56-be1f-68e771bc50af/6fbb7613-11fc-4a9b-a1f5-307c0cecbb4e"
+storage_version_token = "1788966566777911"
+content_type = "image/png"
+
+[[outputs]]
+id = "0KRv_WiMjEkJX0dwTudNx"
+uri = "file://screenshots/appstore-live-iphone-6.5/02-salon-services.png"
+type = "image"
+title = "Live App — Salon Services"
+description = "Genuine Zbarber app screen at 1242 × 2688 showing a salon profile, ratings, services, prices, and booking entry point."
+logical_id = "377da070-cd4c-4b7e-bd24-8e6237f2e416"
+content_hash = "sha256:7eb8bc313c16937f3a233554c4da28ad607a9757e450479d790939233239b71e"
+size = 1506216
+mtime_ms = 1788966544133
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/377da070-cd4c-4b7e-bd24-8e6237f2e416/826a59e6-29a9-4e86-a5ec-47495185e577"
+storage_version_token = "1788966567541708"
+content_type = "image/png"
+
+[[outputs]]
+id = "ayYQeULpqSS4G2fmVVX22"
+uri = "file://screenshots/appstore-live-iphone-6.5/03-inspiration-gallery.png"
+type = "image"
+title = "Live App — Inspiration Gallery"
+description = "Genuine Zbarber app screen at 1242 × 2688 showing the public inspiration gallery."
+logical_id = "45ce093a-bfee-4626-a8d6-6de6a2f8b574"
+content_hash = "sha256:3fd792db0e6328d67d7394c5b5f86ddda08293e7129ff6ce595d7c15407be311"
+size = 812426
+mtime_ms = 1788966544909
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/45ce093a-bfee-4626-a8d6-6de6a2f8b574/a6b032db-8bf0-47b8-a76a-a187162a7157"
+storage_version_token = "1788966568099945"
+content_type = "image/png"
