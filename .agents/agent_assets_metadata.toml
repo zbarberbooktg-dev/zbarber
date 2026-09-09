@@ -397,3 +397,101 @@ mtime_ms = 1788966544909
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/45ce093a-bfee-4626-a8d6-6de6a2f8b574/a6b032db-8bf0-47b8-a76a-a187162a7157"
 storage_version_token = "1788966568099945"
 content_type = "image/png"
+
+[[outputs]]
+id = "Y72_QEHuQ-hIlP38BkmP0"
+uri = "file://screenshots/appstore-live-iphone-6.5/04-all-salons.png"
+type = "image"
+title = "Live App — All Salons"
+description = "Real salon directory showing multiple cities, ratings, and search. Exported at 1242 × 2688 for the 6.5-inch iPhone slot."
+logical_id = "355d2cc5-e466-4f81-b58b-e41943124440"
+content_hash = "sha256:628840baa55bc72517713c520356642893c818208d715ffb6fc05fef5bfccffb"
+size = 1076860
+mtime_ms = 1788967387756
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/355d2cc5-e466-4f81-b58b-e41943124440/90901fee-727c-40c6-92af-40dda1554966"
+storage_version_token = "1788967410550506"
+content_type = "image/png"
+
+[[outputs]]
+id = "HSzWTJ5sEYjZMyfOPTBb5"
+uri = "file://screenshots/appstore-live-iphone-6.5/05-salon-map.png"
+type = "image"
+title = "Live App — Nearby Salon Map"
+description = "Real map screen with distance filters and location display. Exported at 1242 × 2688 for the 6.5-inch iPhone slot."
+logical_id = "e5b1df64-df45-406e-8695-bc6651c0f598"
+content_hash = "sha256:bc4194602aaaf804070794ab6f14f8fe139e56440afa4495cd9a10a8496a3343"
+size = 3177433
+mtime_ms = 1788967389164
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/e5b1df64-df45-406e-8695-bc6651c0f598/f1fde704-5703-4c4e-9044-94971a1898dd"
+storage_version_token = "1788967411170592"
+content_type = "image/png"
+
+[[outputs]]
+id = "_1uav_dnVR8nRxl3xio1F"
+uri = "file://screenshots/appstore-live-iphone-6.5/06-onboarding.png"
+type = "image"
+title = "Live App — Onboarding"
+description = "Real Zbarber discovery onboarding with language and theme controls. Exported at 1242 × 2688 for the 6.5-inch iPhone slot."
+logical_id = "4e42b25c-68bf-4704-8267-a72a7cf7da68"
+content_hash = "sha256:f7ddc9f8acaf964cc96f9e6a04be0cc1fec256490689a6fc6abae3ca69b9dd01"
+size = 647182
+mtime_ms = 1788967389776
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/4e42b25c-68bf-4704-8267-a72a7cf7da68/9e1c90c2-a004-4182-a85c-ae65ea834305"
+storage_version_token = "1788967411737714"
+content_type = "image/png"
+
+[[outputs]]
+id = "tnxntPuua04C8Un37ZsQS"
+uri = "file://screenshots/appstore-live-iphone-6.5/07-sign-in.png"
+type = "image"
+title = "Live App — Sign In"
+description = "Real Zbarber account sign-in screen. Exported at 1242 × 2688 for the 6.5-inch iPhone slot."
+logical_id = "71b78232-1d90-48b1-8b6c-cd67703379cf"
+content_hash = "sha256:b783a83b7f77b254f7efc7a1eeff351d8c94dc160bffe9e9b8edd03134b4302b"
+size = 434862
+mtime_ms = 1788967390260
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/71b78232-1d90-48b1-8b6c-cd67703379cf/d2211b33-64fc-4936-b3d7-09ddcc5ee721"
+storage_version_token = "1788967412271464"
+content_type = "image/png"
+
+[[outputs]]
+id = "iC8cGwq6gXIjx0L210o1b"
+uri = "file://screenshots/appstore-live-iphone-6.5/08-sign-up.png"
+type = "image"
+title = "Live App — Create Account"
+description = "Real account creation screen with client and barber roles. Exported at 1242 × 2688 for the 6.5-inch iPhone slot."
+logical_id = "3ff48636-72a8-4b86-956b-f94691babd9a"
+content_hash = "sha256:3fdda5c5c6532c8386480c3bc2823b7af3127a2efe43433fc6107135de2e9448"
+size = 812101
+mtime_ms = 1788967390820
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/3ff48636-72a8-4b86-956b-f94691babd9a/aa47bc32-5ce7-4da0-8f5a-a0482e5507f6"
+storage_version_token = "1788967413072248"
+content_type = "image/png"
+
+[[outputs]]
+id = "N1BDl-soS4nzkhsZ3vbrs"
+uri = "file://screenshots/appstore-live-iphone-6.5/09-editorial-article.png"
+type = "image"
+title = "Live App — Editorial Article"
+description = "Real published editorial article screen. Exported at 1242 × 2688 for the 6.5-inch iPhone slot."
+logical_id = "ecc1479e-c9db-4d34-a6b7-11373043f760"
+content_hash = "sha256:f61f4768a8950aab1f32b92464bc788964bbfc0e6613d01b05e3a70064afa019"
+size = 875788
+mtime_ms = 1788967391752
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/ecc1479e-c9db-4d34-a6b7-11373043f760/232f6e58-610e-4887-97a9-fdd2c4a28fae"
+storage_version_token = "1788967413662461"
+content_type = "image/png"
+
+[[outputs]]
+id = "XSuWyo_jKxW9ZH3wLGSsN"
+uri = "file://screenshots/appstore-live-iphone-6.5/10-privacy.png"
+type = "image"
+title = "Live App — Privacy Information"
+description = "Real in-app privacy policy screen. Exported at 1242 × 2688 for the 6.5-inch iPhone slot."
+logical_id = "db247111-6a72-49f6-9b10-513ea810ec31"
+content_hash = "sha256:d89307a22138b3a89b252adbef8a1aa54688ed117d8856d61d2961178e129dc4"
+size = 2462393
+mtime_ms = 1788967392792
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/db247111-6a72-49f6-9b10-513ea810ec31/f454ec4e-8e27-4264-9023-1c275a29c1a2"
+storage_version_token = "1788967414348036"
+content_type = "image/png"
