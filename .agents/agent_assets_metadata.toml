@@ -313,3 +313,45 @@ mtime_ms = 1788830479195
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/ac3b08d6-a277-4004-94cf-f5920dd12b7b/cd2062fe-7789-4c8f-9b66-5a7fb1b7ec30"
 storage_version_token = "1788830488427518"
 content_type = "image/png"
+
+[[outputs]]
+id = "97qzx2EJtzlXEKX6Olt0N"
+uri = "file://screenshots/appstore-iphone-6.5-features/01-decouvrir-les-salons.png"
+type = "image"
+title = "App Store 6.5 — Découvrir les salons"
+description = "Capture marketing 1242 × 2688 mettant en avant la découverte de salons, sans référence de plateforme."
+logical_id = "bc961c41-5053-4c6e-a20b-28e49adc589c"
+content_hash = "sha256:23bd7af92b483dc39849c071f94a59c323b633ee58b7071f9036d528d148579c"
+size = 1850465
+mtime_ms = 1788953643513
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/bc961c41-5053-4c6e-a20b-28e49adc589c/ed0dae41-894c-45ce-9224-0b9b5f9f17b8"
+storage_version_token = "1788953663314721"
+content_type = "image/png"
+
+[[outputs]]
+id = "SHs-gKIrnpmIEca7x3dNe"
+uri = "file://screenshots/appstore-iphone-6.5-features/02-reserver-un-rendez-vous.png"
+type = "image"
+title = "App Store 6.5 — Réserver un rendez-vous"
+description = "Capture marketing 1242 × 2688 présentant le choix du service, de la date et du créneau."
+logical_id = "658f0c17-ea4f-49e8-b00d-d1008510a34a"
+content_hash = "sha256:0a8b6333b4284955080955d070b4a87c2c418673120deedac81e586c5a846107"
+size = 1641636
+mtime_ms = 1788953645145
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/658f0c17-ea4f-49e8-b00d-d1008510a34a/cf915c06-8a1a-4904-a395-9ab42e99ed79"
+storage_version_token = "1788953663888908"
+content_type = "image/png"
+
+[[outputs]]
+id = "GStm1U0ZmwNizG_9xVDSS"
+uri = "file://screenshots/appstore-iphone-6.5-features/03-explorer-les-realisations.png"
+type = "image"
+title = "App Store 6.5 — Explorer les réalisations"
+description = "Capture marketing 1242 × 2688 présentant les réalisations avant/après, sans référence de plateforme."
+logical_id = "6a242ed4-82fa-4092-bcba-16a105a4553e"
+content_hash = "sha256:f85dd0b39fb1d4eefe0f5e42ba96427af3164293c51c473668b633e7e729cb3e"
+size = 1572567
+mtime_ms = 1788953646465
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/6a242ed4-82fa-4092-bcba-16a105a4553e/d44b261a-41b7-40de-a811-f03b3f797665"
+storage_version_token = "1788953664620777"
+content_type = "image/png"
