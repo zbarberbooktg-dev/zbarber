@@ -71,15 +71,10 @@ export default function BarberTabs() {
   }
   if (role === "client") return <Redirect href="/(client)" />;
   if (role !== "barber" && role !== "admin") return <Redirect href="/(auth)/sign-in" />;
-  // Stage gating (use barber profile status, not user account status):
-  // - awaiting_document barbers keep access to the Profile tab (where they
-  //   upload/track their authorization document) but all other barber feature
-  //   tabs are hidden until final approval.
-  // - any other non-approved status (pending/rejected/suspended) is sent to the
-  //   pending screen.
-  const awaitingDocument = role === "barber" && barberProfile?.status === "awaiting_document";
+  // Gate only on human salon approval, never on document presence or review.
+  // Legacy awaiting_document salons still need admin approval (not a document).
   const blocked =
-    role === "barber" && !!barberProfile && barberProfile.status !== "approved" && !awaitingDocument;
+    role === "barber" && !!barberProfile && barberProfile.status !== "approved";
   // `pending` lives inside THIS layout, so redirecting to it unconditionally
   // re-fires the redirect on every render → "Maximum update depth exceeded".
   // Only redirect when we're not already on the pending screen; once there, fall
@@ -88,9 +83,8 @@ export default function BarberTabs() {
   if (blocked && !onPending) {
     return <Redirect href="/(barber)/pending" />;
   }
-  // Hide every feature tab while awaiting a document or otherwise not approved,
-  // so a blocked barber only ever sees the pending / profile surfaces.
-  const featureTabHref = awaitingDocument || blocked ? null : undefined;
+  // Pending surfaces also offer the optional document upload.
+  const featureTabHref = blocked ? null : undefined;
   const profileTabHref = blocked ? null : undefined;
 
   return (

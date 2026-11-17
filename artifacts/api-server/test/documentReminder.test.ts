@@ -32,11 +32,7 @@ const { runDocumentReminderSweep } = await import("../src/lib/reminderScheduler"
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
-// Seeded fixtures. Four barbers exercise every branch of the sweep:
-//  - fiveDay:    deadline 5d out → stage-1 ("7 jours") reminder
-//  - twelveHour: deadline 12h out → stage-2 ("1 jour") reminder
-//  - submitted:  document already uploaded → never reminded
-//  - overdue:    deadline in the past → never reminded, never auto-rejected
+// Historical deadline states must no longer cause reminders or status changes.
 type Fixture = { userId: number; barberId: number; email: string };
 let fiveDay: Fixture;
 let twelveHour: Fixture;
@@ -130,62 +126,39 @@ async function stageOf(barberId: number): Promise<number> {
 }
 
 describe("runDocumentReminderSweep", () => {
-  it("first sweep: stage-1 to the 5-day barber, stage-2 to the 12-hour barber, nothing else", async () => {
-    await runDocumentReminderSweep();
-
-    const ours = emailsToOurFixtures();
-
-    // The 5-day barber gets exactly one stage-1 ("7 jours") reminder.
-    const fiveDayEmails = ours.filter((e) => e.to === fiveDay.email);
-    expect(fiveDayEmails).toHaveLength(1);
-    expect(fiveDayEmails[0]!.subject).toContain("7 jours");
-
-    // The 12-hour barber gets exactly one stage-2 ("1 jour") reminder.
-    const twelveHourEmails = ours.filter((e) => e.to === twelveHour.email);
-    expect(twelveHourEmails).toHaveLength(1);
-    expect(twelveHourEmails[0]!.subject).toContain("1 jour");
-
-    // The barber who already submitted a document is never reminded.
-    expect(ours.filter((e) => e.to === submitted.email)).toHaveLength(0);
-    // The overdue barber is never reminded.
-    expect(ours.filter((e) => e.to === overdue.email)).toHaveLength(0);
-
-    // Stage markers reflect the claim-then-send dedup state.
-    expect(await stageOf(fiveDay.barberId)).toBe(1);
-    expect(await stageOf(twelveHour.barberId)).toBe(2);
-    expect(await stageOf(submitted.barberId)).toBe(0);
-    expect(await stageOf(overdue.barberId)).toBe(0);
-
-    // Push notifications mirror the emails for the two reminded barbers only.
-    const pushedUsers = new Set(sentPushes.map((p) => p.userId));
-    expect(pushedUsers.has(fiveDay.userId)).toBe(true);
-    expect(pushedUsers.has(twelveHour.userId)).toBe(true);
-    expect(pushedUsers.has(submitted.userId)).toBe(false);
-    expect(pushedUsers.has(overdue.userId)).toBe(false);
+  it("sends no document email or push regardless of historical deadline or upload", async () => {
+    expect(await runDocumentReminderSweep()).toBe(0);
+    expect(sentEmails).toHaveLength(0);
+    expect(sentPushes).toHaveLength(0);
+    for (const f of [fiveDay, twelveHour, submitted, overdue]) {
+      expect(await stageOf(f.barberId)).toBe(0);
+    }
   });
 
-  it("second sweep: no barber is reminded again (claim-then-send dedup)", async () => {
+  it("repeated sweeps preserve all legacy statuses, documents and deadlines", async () => {
+    const ids = [fiveDay, twelveHour, submitted, overdue].map((f) => f.barberId);
+    const before = await db.select().from(barbersTable).where(inArray(barbersTable.id, ids)).orderBy(barbersTable.id);
     await runDocumentReminderSweep();
-
-    // None of our fixtures receive a second notification.
-    expect(emailsToOurFixtures()).toHaveLength(0);
-    const pushedUsers = new Set(sentPushes.map((p) => p.userId));
-    expect(pushedUsers.has(fiveDay.userId)).toBe(false);
-    expect(pushedUsers.has(twelveHour.userId)).toBe(false);
-
-    // Stage markers are unchanged from the first sweep.
-    expect(await stageOf(fiveDay.barberId)).toBe(1);
-    expect(await stageOf(twelveHour.barberId)).toBe(2);
+    await runDocumentReminderSweep();
+    const after = await db.select().from(barbersTable).where(inArray(barbersTable.id, ids)).orderBy(barbersTable.id);
+    expect(after).toEqual(before);
+    expect(after.every((b) => b.status === "awaiting_document")).toBe(true);
+    expect(sentEmails).toHaveLength(0);
+    expect(sentPushes).toHaveLength(0);
   });
 
-  it("the overdue barber is never reminded and never auto-rejected (soft deadline)", async () => {
+  it("an approved salon with no document and an expired historical deadline is never downgraded", async () => {
+    await db.update(barbersTable).set({ status: "approved" }).where(eq(barbersTable.id, overdue.barberId));
+    await runDocumentReminderSweep();
     const [b] = await db
       .select({ status: barbersTable.status, stage: barbersTable.documentReminderStage })
       .from(barbersTable)
       .where(eq(barbersTable.id, overdue.barberId))
       .limit(1);
-    expect(b!.status).toBe("awaiting_document");
+    expect(b!.status).toBe("approved");
     expect(b!.stage).toBe(0);
     expect(emailsToOurFixtures().filter((e) => e.to === overdue.email)).toHaveLength(0);
+    const [owner] = await db.select().from(usersTable).where(eq(usersTable.id, overdue.userId));
+    expect(owner!.role).toBe("barber");
   });
 });

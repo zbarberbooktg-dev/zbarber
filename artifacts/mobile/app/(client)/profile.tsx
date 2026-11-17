@@ -1,12 +1,13 @@
 import { Feather } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 
 import { CreateSalonModal } from "@/components/CreateSalonModal";
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { EditProfileModal } from "@/components/EditProfileModal";
+import { DocumentUploadCard } from "@/components/DocumentUploadCard";
 import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
@@ -27,15 +28,20 @@ export default function ClientProfile() {
 
   // Becoming a barber is an admin-validated request: the user submits a salon,
   // and only an admin approval activates barber mode. There is no self-promotion.
-  const hasPendingBarberRequest = barberProfile?.status === "pending";
+  const hasPendingBarberRequest = barberProfile?.status === "pending" || barberProfile?.status === "awaiting_document";
+  useFocusEffect(useCallback(() => {
+    void syncAuth().catch(() => {});
+    // Refresh admin approval on return without depending on the unstable token getter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]));
 
   // Auto-open the salon request form when navigated here with ?becomeBarber=1
   // (e.g. right after choosing "barber" at sign-up).
   useEffect(() => {
-    if (params.becomeBarber === "1" && !hasPendingBarberRequest) {
+    if (params.becomeBarber === "1" && !barberProfile?.id) {
       setCreateSalonOpen(true);
     }
-  }, [params.becomeBarber, hasPendingBarberRequest]);
+  }, [params.becomeBarber, barberProfile?.id]);
 
   const handleRefreshLocation = async () => {
     setLocating(true);
@@ -122,6 +128,7 @@ export default function ClientProfile() {
         initialName={user?.name ?? ""}
         initialPhone={user?.phone ?? ""}
       />
+      {hasPendingBarberRequest && <DocumentUploadCard />}
 
       <View>
         <SectionLabel label={t.appearance} />
@@ -243,6 +250,9 @@ export default function ClientProfile() {
               onPress={() => {}}
             />
           ) : null}
+          {user?.role === "barber" && (
+            <Button label={lang === "fr" ? "Espace barbier" : "Barber workspace"} variant="secondary" icon="scissors" onPress={() => router.push("/(barber)")} />
+          )}
           <Button
             label={(t as any).legalTerms ?? "Conditions d'utilisation"}
             variant="ghost"

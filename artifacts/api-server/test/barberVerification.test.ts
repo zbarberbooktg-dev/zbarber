@@ -41,9 +41,12 @@ vi.mock("../src/lib/push", () => ({ sendPush: vi.fn(async () => {}) }));
 
 // ── Imports that depend on the mocks above ───────────────────────────────
 const { db, barbersTable, usersTable, adminAccountsTable, objectUploadsTable, pool } = await import("@workspace/db");
-const { eq } = await import("drizzle-orm");
+const { eq, inArray } = await import("drizzle-orm");
 const barbersRouter = (await import("../src/routes/barbers")).default;
 const storageRouter = (await import("../src/routes/storage")).default;
+const authRouter = (await import("../src/routes/auth")).default;
+const { renderEmail } = await import("../src/lib/email");
+const { sendPush } = await import("../src/lib/push");
 const { signAdminToken, ADMIN_COOKIE_NAME } = await import("../src/lib/adminAuth");
 
 function buildApp(): Express {
@@ -59,6 +62,7 @@ function buildApp(): Express {
   app.use(express.json());
   app.use("/api", barbersRouter);
   app.use("/api", storageRouter);
+  app.use("/api", authRouter);
   return app;
 }
 
@@ -76,6 +80,8 @@ let barberBId: number;
 
 const DOC_A = `/objects/uploads/${randomUUID()}.pdf`;
 const DOC_B = `/objects/uploads/${randomUUID()}.pdf`;
+const DOC_A2 = `/objects/uploads/${randomUUID()}.pdf`;
+const extraFixtures: { userId: number; barberId: number; clerkId: string }[] = [];
 
 const asAdmin = (r: request.Test) => r.set("Cookie", adminCookie);
 const asClerk = (r: request.Test, clerkId: string) => r.set("x-test-clerk-user", clerkId);
@@ -115,12 +121,28 @@ beforeAll(async () => {
   await db.insert(objectUploadsTable).values([
     { objectPath: DOC_A, userId: userAId },
     { objectPath: DOC_B, userId: userBId },
+    { objectPath: DOC_A2, userId: userAId },
   ]);
+  for (const status of ["awaiting_document", "awaiting_document", "rejected", "suspended"] as const) {
+    const clerkId = `test_clerk_${randomUUID()}`;
+    const [u] = await db.insert(usersTable).values({
+      clerkUserId: clerkId, name: "Legacy salon owner", email: `optional-${randomUUID()}@example.com`,
+      role: extraFixtures.length === 0 ? "client" : "barber", status: "active",
+    }).returning();
+    const [b] = await db.insert(barbersTable).values({
+      userId: u!.id, salonName: `Legacy ${randomUUID()}`, city: "Kinshasa", status,
+      documentDeadline: new Date(Date.now() - 60 * 86400000), documentReminderStage: 1,
+    }).returning();
+    extraFixtures.push({ userId: u!.id, barberId: b!.id, clerkId });
+  }
 });
 
 afterAll(async () => {
   await db.delete(objectUploadsTable).where(eq(objectUploadsTable.objectPath, DOC_A));
   await db.delete(objectUploadsTable).where(eq(objectUploadsTable.objectPath, DOC_B));
+  await db.delete(objectUploadsTable).where(eq(objectUploadsTable.objectPath, DOC_A2));
+  await db.delete(barbersTable).where(inArray(barbersTable.id, extraFixtures.map((f) => f.barberId)));
+  await db.delete(usersTable).where(inArray(usersTable.id, extraFixtures.map((f) => f.userId)));
   await db.delete(barbersTable).where(eq(barbersTable.id, barberAId));
   await db.delete(barbersTable).where(eq(barbersTable.id, barberBId));
   await db.delete(usersTable).where(eq(usersTable.id, userAId));
@@ -129,48 +151,85 @@ afterAll(async () => {
   await pool.end();
 });
 
-describe("Two-step barber verification flow", () => {
-  it("rejects a non-admin first-validate attempt (401)", async () => {
-    const res = await asClerk(request(app).patch(`/api/barbers/${barberAId}/first-validate`), clerkA);
-    expect(res.status).toBe(401);
+describe("Human salon approval with optional professional documents", () => {
+  it("does not auto-approve existing salons or give pending owners barber access", async () => {
+    const me = await asClerk(request(app).get("/api/auth/me"), clerkA).expect(200);
+    expect(me.body.user.role).toBe("client");
+    expect(me.body.barber.status).toBe("pending");
+    await asClerk(request(app).get("/api/barbers/me/schedule"), clerkA).expect(403);
+    const visible = await request(app).get("/api/barbers").query({ search: "Salon A", status: "approved" }).expect(200);
+    expect(visible.body.data.some((b: { id: number }) => b.id === barberAId)).toBe(false);
   });
 
-  it("admin first-validate: pending → awaiting_document with 30d deadline + role flip", async () => {
-    const res = await asAdmin(request(app).patch(`/api/barbers/${barberAId}/first-validate`));
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe("awaiting_document");
-    expect(res.body.firstValidatedAt).toBeTruthy();
-    expect(res.body.documentDeadline).toBeTruthy();
-
-    const deltaMs = new Date(res.body.documentDeadline).getTime() - new Date(res.body.firstValidatedAt).getTime();
-    const dayMs = 24 * 60 * 60 * 1000;
-    expect(deltaMs / dayMs).toBeGreaterThan(29.5);
-    expect(deltaMs / dayMs).toBeLessThan(30.5);
-
-    // Role flips to barber at FIRST validation (so the owner can reach upload).
-    const [owner] = await db.select().from(usersTable).where(eq(usersTable.id, userAId)).limit(1);
-    expect(owner!.role).toBe("barber");
+  it("requires an administrator for approval and document review", async () => {
+    for (const action of ["approve", "first-validate", "document/reject"]) {
+      await asClerk(request(app).patch(`/api/barbers/${barberAId}/${action}`), clerkA).expect(401);
+    }
   });
 
-  it("first-validate again on a non-pending barber returns 409", async () => {
-    const res = await asAdmin(request(app).patch(`/api/barbers/${barberAId}/first-validate`));
-    expect(res.status).toBe(409);
+  it("allows a pending client owner to supply an optional document without promotion", async () => {
+    const r = await asClerk(request(app).post("/api/barbers/me/document").send({ documentUrl: DOC_B }), clerkB).expect(200);
+    expect(r.body.status).toBe("pending");
+    const me = await asClerk(request(app).get("/api/auth/me"), clerkB).expect(200);
+    expect(me.body.user.role).toBe("client");
+    await asClerk(request(app).get("/api/barbers/me/schedule"), clerkB).expect(403);
+    const reviewed = await asAdmin(request(app).patch(`/api/barbers/${barberBId}/document/reject`).send({ reason: "À remplacer si souhaité" })).expect(200);
+    expect(reviewed.body.status).toBe("pending");
+    expect(reviewed.body.documentUrl).toBe(DOC_B);
   });
 
-  it("cannot final-approve before a document is submitted (409)", async () => {
-    const res = await asAdmin(request(app).patch(`/api/barbers/${barberAId}/approve`));
-    expect(res.status).toBe(409);
+  it("approves pending directly without a document and grants visibility and access", async () => {
+    const r = await asAdmin(request(app).patch(`/api/barbers/${barberAId}/approve`)).expect(200);
+    expect(r.body.status).toBe("approved");
+    expect(r.body.documentUrl).toBeNull();
+    expect(r.body.documentDeadline).toBeNull();
+    expect(r.body.firstValidatedAt).toBeTruthy();
+    const me = await asClerk(request(app).post("/api/auth/sync").send({}), clerkA).expect(200);
+    expect(me.body.user.role).toBe("barber");
+    expect(me.body.barber.status).toBe("approved");
+    await asClerk(request(app).get("/api/barbers/me/schedule"), clerkA).expect(200);
+    const visible = await request(app).get("/api/barbers").query({ search: "Salon A", status: "approved" }).expect(200);
+    expect(visible.body.data.some((b: { id: number }) => b.id === barberAId)).toBe(true);
   });
 
-  it("barber uploads the authorization document", async () => {
-    const res = await asClerk(
-      request(app).post(`/api/barbers/me/document`).send({ documentUrl: DOC_A }),
-      clerkA,
-    );
-    expect(res.status).toBe(200);
-    expect(res.body.documentUrl).toBe(DOC_A);
-    expect(res.body.documentSubmittedAt).toBeTruthy();
-    expect(res.body.status).toBe("awaiting_document");
+  it("legacy first-validate is a full human approval without creating a deadline", async () => {
+    const r = await asAdmin(request(app).patch(`/api/barbers/${barberBId}/first-validate`)).expect(200);
+    expect(r.body.status).toBe("approved");
+    expect(r.body.documentDeadline).toBeNull();
+    expect(r.body.documentUrl).toBe(DOC_B);
+    expect(r.body.documentReviewNote).toBe("À remplacer si souhaité");
+    for (const action of ["first-validate", "approve"]) {
+      await asAdmin(request(app).patch(`/api/barbers/${barberBId}/${action}`)).expect(409);
+    }
+  });
+
+  it("approves legacy awaiting_document salons even when their deadline expired, without a document", async () => {
+    for (const f of extraFixtures.slice(0, 2)) {
+      const r = await asAdmin(request(app).patch(`/api/barbers/${f.barberId}/approve`)).expect(200);
+      expect(r.body.status).toBe("approved");
+      expect(r.body.documentUrl).toBeNull();
+      const me = await asClerk(request(app).get("/api/auth/me"), f.clerkId).expect(200);
+      expect(me.body.user.role).toBe("barber");
+      await asClerk(request(app).get("/api/barbers/me/schedule"), f.clerkId).expect(200);
+    }
+  });
+
+  it("does not bypass legitimate rejected or suspended states", async () => {
+    for (const f of extraFixtures.slice(2)) {
+      for (const action of ["first-validate", "approve"]) {
+        await asAdmin(request(app).patch(`/api/barbers/${f.barberId}/${action}`)).expect(409);
+      }
+      await asClerk(request(app).get("/api/barbers/me/schedule"), f.clerkId).expect(403);
+      const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, f.barberId));
+      expect(["rejected", "suspended"]).toContain(b!.status);
+    }
+  });
+
+  it("uploads a private document after approval without changing status", async () => {
+    const r = await asClerk(request(app).post("/api/barbers/me/document").send({ documentUrl: DOC_A }), clerkA).expect(200);
+    expect(r.body.documentUrl).toBe(DOC_A);
+    expect(r.body.documentSubmittedAt).toBeTruthy();
+    expect(r.body.status).toBe("approved");
   });
 
   it("the owning barber can view their own document (ACL)", async () => {
@@ -193,32 +252,46 @@ describe("Two-step barber verification flow", () => {
     expect(res.status).toBe(401);
   });
 
-  it("admin final-approve: awaiting_document → approved", async () => {
-    const res = await asAdmin(request(app).patch(`/api/barbers/${barberAId}/approve`));
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe("approved");
-
-    const [b] = await db.select().from(barbersTable).where(eq(barbersTable.id, barberAId)).limit(1);
-    expect(b!.status).toBe("approved");
+  it("rejects a path uploaded by another user or an unregistered path", async () => {
+    for (const documentUrl of [DOC_B, `/objects/uploads/${randomUUID()}.pdf`, "https://example.com/id.pdf"]) {
+      await asClerk(request(app).post("/api/barbers/me/document").send({ documentUrl }), clerkA).expect(400);
+    }
+    await asClerk(request(app).post("/api/barbers/me/document").query({ salonId: barberBId }).send({ documentUrl: DOC_A }), clerkA).expect(403);
   });
 
-  it("document-reject records a note and keeps awaiting_document", async () => {
-    // Set up barberB through first-validate + upload.
-    await asAdmin(request(app).patch(`/api/barbers/${barberBId}/first-validate`)).expect(200);
-    await asClerk(request(app).post(`/api/barbers/me/document`).send({ documentUrl: DOC_B }), clerkB).expect(200);
-
+  it("rejecting an optional document preserves approval, role, visibility and the private file", async () => {
     const reason = "Document illisible";
     const res = await asAdmin(
       request(app).patch(`/api/barbers/${barberBId}/document/reject`).send({ reason }),
     );
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe("awaiting_document");
+    expect(res.body.status).toBe("approved");
     expect(res.body.documentReviewNote).toBe(reason);
-    expect(res.body.documentUrl).toBeNull();
+    expect(res.body.documentUrl).toBe(DOC_B);
+    expect(res.body.documentSubmittedAt).toBeTruthy();
+    await asClerk(request(app).get("/api/barbers/me/schedule"), clerkB).expect(200);
+    const me = await asClerk(request(app).get("/api/auth/me"), clerkB).expect(200);
+    expect(me.body.user.role).toBe("barber");
+    const publicRows = await request(app).get("/api/barbers").query({ search: "Salon B", status: "approved" }).expect(200);
+    expect(publicRows.body.data.some((b: { id: number }) => b.id === barberBId)).toBe(true);
+    await asAdmin(request(app).get(`/api/storage${DOC_B}`)).expect(200);
+    await asClerk(request(app).get(`/api/storage${DOC_B}`), clerkA).expect(403);
+    await request(app).get(`/api/storage${DOC_B}`).expect(401);
+  });
 
-    // The rejected document path is no longer referenced → ACL refuses it (404,
-    // not a leak): the row's documentUrl was cleared.
-    const ghost = await asAdmin(request(app).get(`/api${DOC_B}`.replace("/objects/", "/storage/objects/")));
-    expect(ghost.status).toBe(404);
+  it("allows replacement after approval and clears only the document review note", async () => {
+    await asAdmin(request(app).patch(`/api/barbers/${barberAId}/document/reject`).send({ reason: "Photo floue" })).expect(200);
+    const r = await asClerk(request(app).post("/api/barbers/me/document").send({ documentUrl: DOC_A2 }), clerkA).expect(200);
+    expect(r.body.documentUrl).toBe(DOC_A2);
+    expect(r.body.documentReviewNote).toBeNull();
+    expect(r.body.status).toBe("approved");
+    await asClerk(request(app).get("/api/barbers/me/schedule"), clerkA).expect(200);
+  });
+
+  it("notifications do not present a document as mandatory", () => {
+    const rendered = JSON.stringify(vi.mocked(renderEmail).mock.calls);
+    const pushed = JSON.stringify(vi.mocked(sendPush).mock.calls);
+    expect(rendered).toContain("facultatif");
+    expect(rendered + pushed).not.toMatch(/30 jours|date limite|finaliser la vérification|document a été accepté|Sans document conforme/);
   });
 });

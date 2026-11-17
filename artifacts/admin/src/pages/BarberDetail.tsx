@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Check, X, Star, Eye, Calendar, Image, Pause, Play, CreditCard, Banknote, FileText, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, X, Star, Eye, Calendar, Image, Pause, Play, CreditCard, Banknote, FileText } from "lucide-react";
 import {
   useGetBarber, useGetBarberStats, useGetBarberGallery, useListBarberServices,
   useApproveBarber, useRejectBarber, useSuspendBarber, useReactivateBarber,
-  useFirstValidateBarber, useRejectBarberDocument,
+  useRejectBarberDocument,
   useListReservations, useListSubscriptions, useListFinancingRequests,
   getListBarbersQueryKey, getGetBarberQueryKey,
 } from "@workspace/api-client-react";
@@ -35,7 +35,6 @@ export default function BarberDetail({ params }: Props) {
   const reject = useRejectBarber();
   const suspend = useSuspendBarber();
   const reactivate = useReactivateBarber();
-  const firstValidate = useFirstValidateBarber();
   const rejectDocument = useRejectBarberDocument();
 
   const [modal, setModal] = useState<ModalState>(null);
@@ -95,39 +94,20 @@ export default function BarberDetail({ params }: Props) {
           </div>
         </div>
         <div className="flex gap-2">
-          {b.status === "pending" && (
+          {(b.status === "pending" || b.status === "awaiting_document") && (
             <>
               <button
-                onClick={() => firstValidate.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: d.firstValidated_toast }); }, onError: onErr })}
-                disabled={firstValidate.isPending}
+                onClick={() => approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.approved }); }, onError: onErr })}
+                disabled={approve.isPending}
                 className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50"
               >
-                <Check className="h-4 w-4" /> {d.firstValidate}
+                <Check className="h-4 w-4" /> {d.approve}
               </button>
               <button
                 onClick={() => openModal("reject")}
                 className="flex items-center gap-2 rounded-lg border border-destructive text-destructive px-4 py-2 text-sm font-medium hover:bg-destructive/5 transition-colors"
               >
                 <X className="h-4 w-4" /> {d.reject}
-              </button>
-            </>
-          )}
-          {b.status === "awaiting_document" && (
-            <>
-              <button
-                onClick={() => approve.mutate({ id }, { onSuccess: () => { invalidate(); toast({ title: t.statuses.approved }); }, onError: onErr })}
-                disabled={approve.isPending || !b.documentUrl}
-                title={!b.documentUrl ? d.documentMissing : undefined}
-                className="flex items-center gap-2 rounded-lg bg-emerald-500 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50"
-              >
-                <ShieldCheck className="h-4 w-4" /> {d.finalValidate}
-              </button>
-              <button
-                onClick={() => openModal("documentReject")}
-                disabled={!b.documentUrl}
-                className="flex items-center gap-2 rounded-lg border border-amber-500 text-amber-600 px-4 py-2 text-sm font-medium hover:bg-amber-500/5 transition-colors disabled:opacity-50"
-              >
-                <X className="h-4 w-4" /> {d.documentReject}
               </button>
             </>
           )}
@@ -150,12 +130,9 @@ export default function BarberDetail({ params }: Props) {
         </div>
       </div>
 
-      {(b.status === "awaiting_document" || b.documentUrl) && (
+      {(
         <div className="mb-6 rounded-xl border bg-card p-5">
           <h2 className="text-sm font-semibold mb-4 flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> {d.documentSection}</h2>
-          {b.documentDeadline && (
-            <p className="text-xs text-muted-foreground mb-2">{d.documentDeadline}: {new Date(b.documentDeadline).toLocaleDateString(locale)}</p>
-          )}
           {b.documentReviewNote && (
             <p className="text-xs text-amber-600 mb-2">{d.documentReviewNote}: {b.documentReviewNote}</p>
           )}
@@ -170,6 +147,9 @@ export default function BarberDetail({ params }: Props) {
               <div className="rounded-lg border bg-muted/40 overflow-hidden max-w-md">
                 <img src={`/api/storage${b.documentUrl}`} alt={d.documentSection} className="w-full max-h-96 object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
               </div>
+              <button type="button" onClick={() => openModal("documentReject")} disabled={rejectDocument.isPending} className="rounded-lg border border-amber-500 px-4 py-2 text-sm text-amber-600 disabled:opacity-50">
+                {d.documentReject}
+              </button>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">{d.documentPending}</p>
@@ -303,13 +283,13 @@ export default function BarberDetail({ params }: Props) {
       {modal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={closeModal}>
           <form onSubmit={submitModal} onClick={e => e.stopPropagation()} className="bg-card rounded-xl border w-full max-w-md p-6 space-y-4">
-            <h2 className="text-lg font-bold">{modal.type === "reject" ? t.barbers.rejectModalTitle : t.barbers.suspendModalTitle}</h2>
+            <h2 className="text-lg font-bold">{modal.type === "documentReject" ? d.documentReject : modal.type === "reject" ? t.barbers.rejectModalTitle : t.barbers.suspendModalTitle}</h2>
             <p className="text-sm text-muted-foreground">{b.salonName}</p>
             <label className="text-sm space-y-1 block">
-              <span className="text-muted-foreground">{modal.type === "reject" ? t.barbers.rejectReasonLabel : t.barbers.suspendReasonLabel}</span>
+              <span className="text-muted-foreground">{modal.type === "suspend" ? t.barbers.suspendReasonLabel : t.barbers.rejectReasonLabel}</span>
               <textarea
                 rows={4}
-                required={modal.type === "reject"}
+                required={modal.type !== "suspend"}
                 value={reason}
                 onChange={e => setReason(e.target.value)}
                 placeholder={modal.type === "reject" ? t.barbers.rejectReasonPh : t.barbers.suspendReasonPh}
@@ -320,7 +300,7 @@ export default function BarberDetail({ params }: Props) {
               <button type="button" onClick={closeModal} className="rounded-lg border px-4 py-2 text-sm hover:bg-muted transition-colors">{t.common.cancel}</button>
               <button
                 type="submit"
-                disabled={reject.isPending || suspend.isPending}
+                disabled={reject.isPending || suspend.isPending || rejectDocument.isPending}
                 className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${modal.type === "reject" ? "bg-red-500" : "bg-amber-500"}`}
               >
                 {t.barbers.confirmAction}

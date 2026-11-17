@@ -102,6 +102,7 @@ export * from './serviceCategoryInput';
 export * from './serviceInput';
 export * from './serviceStat';
 export * from './serviceUpdate';
+export * from './submitBarberDocumentParams';
 export * from './submitDocumentInput';
 export * from './subscription';
 export * from './subscriptionInput';

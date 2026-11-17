@@ -37,6 +37,7 @@ export type SyncedBarber = {
   documentSubmittedAt?: string | null;
   documentDeadline?: string | null;
   documentReviewNote?: string | null;
+  rejectionReason?: string | null;
 };
 
 type AppState = {

@@ -69,10 +69,9 @@ export default function BarberDashboard() {
     queryFn: () => fetcher<{ data: Reservation[]; total: number }>(withSalon("/api/reservations?limit=50", salonId)),
   });
 
-  // Barbers still awaiting document validation land on their Profile, where the
-  // document upload card lives; the dashboard stays gated until final approval.
+  // Legacy pending salons need human approval, not a document.
   if (barberProfile?.status === "awaiting_document") {
-    return <Redirect href="/(barber)/profile" />;
+    return <Redirect href="/(barber)/pending" />;
   }
 
   if (barberLoading) {

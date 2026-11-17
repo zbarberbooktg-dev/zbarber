@@ -1,6 +1,8 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { Alert, Image, Pressable, Text, View } from "react-native";
+import { useAuth } from "@clerk/expo";
+import { useSubmitBarberDocument } from "@workspace/api-client-react";
+import React, { useEffect, useState } from "react";
+import { Alert, Image, Platform, Pressable, Text, View, type ImageSourcePropType } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -9,55 +11,38 @@ import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 
 export function DocumentUploadCard() {
   const c = useColors();
-  const { barberProfile, syncAuth, t, locale } = useApp();
+  const { barberProfile, syncAuth, t } = useApp();
   const fetcher = useAuthedFetch();
+  const submitDocument = useSubmitBarberDocument();
   const [uploading, setUploading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (barberProfile?.status !== "awaiting_document") return null;
+  if (!barberProfile || !["pending", "awaiting_document", "approved"].includes(barberProfile.status)) return null;
 
   const hasSubmitted = !!barberProfile.documentUrl;
-  const parsedDeadline = barberProfile.documentDeadline
-    ? new Date(barberProfile.documentDeadline)
-    : null;
-  const deadlineDate =
-    parsedDeadline && !Number.isNaN(parsedDeadline.getTime()) ? parsedDeadline : null;
-  const deadline = deadlineDate ? deadlineDate.toLocaleDateString(locale) : null;
   const previewUri = resolveObjectUrl(barberProfile.documentUrl);
 
-  let countdown: { label: string; color: string } | null = null;
-  if (deadlineDate && !hasSubmitted) {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const startOfDeadline = new Date(deadlineDate);
-    startOfDeadline.setHours(0, 0, 0, 0);
-    const daysLeft = Math.round(
-      (startOfDeadline.getTime() - startOfToday.getTime()) / 86400000,
-    );
-    if (daysLeft < 0) {
-      countdown = { label: t.docOverdue, color: c.destructive };
-    } else if (daysLeft === 0) {
-      countdown = { label: t.docDueToday, color: c.destructive };
-    } else {
-      countdown = {
-        label: t.docDaysLeft(daysLeft),
-        color: daysLeft <= 7 ? c.warning : c.primary,
-      };
-    }
+  async function refreshStatus() {
+    setRefreshing(true);
+    setError(null);
+    try { await syncAuth(); }
+    catch { setError(t.docStatusError); }
+    finally { setRefreshing(false); }
   }
 
   async function handleUpload() {
     if (uploading) return;
     setUploading(true);
+    setError(null);
     try {
       const uploaded = await pickAndUploadImage(fetcher);
       if (!uploaded) return;
-      await fetcher("/api/barbers/me/document", {
-        method: "POST",
-        body: JSON.stringify({ documentUrl: uploaded.objectPath }),
-      });
+      await submitDocument.mutateAsync({ data: { documentUrl: uploaded.objectPath }, params: { salonId: barberProfile!.id } });
       await syncAuth();
       Alert.alert(t.docUploadSuccess);
     } catch {
+      setError(t.docUploadError);
       Alert.alert(t.docUploadError);
     } finally {
       setUploading(false);
@@ -85,35 +70,6 @@ export function DocumentUploadCard() {
         {hasSubmitted ? t.docSubmittedDesc : t.docAwaitingDesc}
       </Text>
 
-      {deadline && (
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: countdown ? 8 : 12 }}>
-          <Feather name="calendar" size={16} color={c.primary} style={{ marginRight: 8 }} />
-          <Text style={{ fontFamily: "Inter_600SemiBold", color: c.foreground }}>
-            {t.docDeadline(deadline)}
-          </Text>
-        </View>
-      )}
-
-      {countdown && (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            alignSelf: "flex-start",
-            backgroundColor: countdown.color + "1A",
-            borderRadius: c.radius,
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            marginBottom: 12,
-          }}
-        >
-          <Feather name="clock" size={16} color={countdown.color} style={{ marginRight: 8 }} />
-          <Text style={{ fontFamily: "Inter_700Bold", color: countdown.color }}>
-            {countdown.label}
-          </Text>
-        </View>
-      )}
-
       {!!barberProfile.documentReviewNote && (
         <View
           style={{
@@ -133,16 +89,13 @@ export function DocumentUploadCard() {
       )}
 
       {hasSubmitted && previewUri && (
-        <Image
-          source={{ uri: previewUri }}
-          style={{ width: "100%", height: 180, borderRadius: c.radius, marginBottom: 12, backgroundColor: c.muted }}
-          resizeMode="contain"
-        />
+        <PrivateDocumentPreview uri={previewUri} />
       )}
 
       <Pressable
         onPress={handleUpload}
-        disabled={uploading}
+        testID="optional-salon-document-upload"
+        disabled={uploading || refreshing}
         style={({ pressed }) => ({
           backgroundColor: c.primary,
           padding: 14,
@@ -158,6 +111,58 @@ export function DocumentUploadCard() {
           {uploading ? t.docUploading : hasSubmitted ? t.docReplaceBtn : t.docUploadBtn}
         </Text>
       </Pressable>
+      {barberProfile.status !== "approved" && (
+        <Pressable onPress={refreshStatus} disabled={refreshing || uploading} testID="refresh-salon-approval" style={{ paddingVertical: 14, alignItems: "center" }}>
+          <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold" }}>
+            {refreshing ? "…" : t.docRefreshStatus}
+          </Text>
+        </Pressable>
+      )}
+      {error && <Text accessibilityRole="alert" style={{ color: c.destructive, marginTop: 10 }}>{error}</Text>}
     </View>
   );
+}
+
+// Private documents require the owner's token, unlike public gallery images.
+// Browser Image cannot send Authorization, so use a short-lived in-memory blob.
+function PrivateDocumentPreview({ uri }: { uri: string }) {
+  const c = useColors();
+  const { t } = useApp();
+  const { getToken } = useAuth();
+  const [source, setSource] = useState<ImageSourcePropType | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    let blobUrl: string | undefined;
+    setSource(null);
+    setFailed(false);
+    void (async () => {
+      try {
+        const token = await getToken();
+        if (controller.signal.aborted) return;
+        if (!token) throw new Error("Auth required");
+        const headers = { Authorization: `Bearer ${token}` };
+        if (Platform.OS !== "web") {
+          setSource({ uri, headers });
+          return;
+        }
+        const response = await fetch(uri, { headers, signal: controller.signal });
+        if (!response.ok) throw new Error("Preview unavailable");
+        const blob = await response.blob();
+        if (controller.signal.aborted) return;
+        blobUrl = URL.createObjectURL(blob);
+        setSource({ uri: blobUrl });
+      } catch {
+        if (!controller.signal.aborted) setFailed(true);
+      }
+    })();
+    return () => {
+      controller.abort();
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+    // Clerk's getToken identity is unstable; refresh only when the file changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uri]);
+  if (failed) return <Text style={{ color: c.mutedForeground, marginBottom: 12 }}>{t.docPreviewError}</Text>;
+  return source ? <Image source={source} onError={() => setFailed(true)} style={{ width: "100%", height: 180, borderRadius: c.radius, marginBottom: 12, backgroundColor: c.muted }} resizeMode="contain" /> : null;
 }

@@ -1218,6 +1218,13 @@ export type GetMyClientsParams = {
 salonId?: number;
 };
 
+export type SubmitBarberDocumentParams = {
+/**
+ * @minimum 1
+ */
+salonId?: number;
+};
+
 export type ListReservationsParams = {
 status?: ListReservationsStatus;
 barberId?: number;

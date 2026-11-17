@@ -1,28 +1,22 @@
 ---
-name: Two-step barber verification
-description: Durable design decisions for the two-stage barber approval (first-validate → document upload → final approve).
+name: Optional salon professional documents
+description: Documents never condition salon approval, visibility or barber access; human approval and document privacy remain mandatory.
 ---
 
-# Two-step barber verification
+# Salon document policy
 
-## Superseded product rule
+Professional salon documents and their review are optional, never prerequisites to approval or continued barber access. A missing, late or rejected document must not downgrade, hide or block an approved salon.
 
-The user now requires salon professional documents and their validation to be optional, never prerequisites to admin approval. Human salon approval remains required; do not auto-approve existing accounts.
+**Why:** the user explicitly replaced the mandatory two-stage document process on 2026-11-17.
 
-**Why:** the user explicitly changed the product requirement on 2026-11-17.
+**How to apply:** require a human administrator to approve pending salons, including legacy salons marked as awaiting a document. Never auto-approve existing salons. Keep legitimate salon refusals and suspensions independent of optional document review.
 
-**How to apply:** treat the two-step requirements below as historical, not as the target behavior. Preserve document privacy and financing-specific document requirements. Until the requested change is implemented, the code may still enforce the old rules.
+Documents may be provided before or after approval and remain private to their owner and authorized administrators. An unfavorable review is an informational note, not a salon-status transition. Preserve the submitted file and existing historical metadata; do not delete documents as part of this policy change.
 
-Barber accounts go through two admin validations, not one: `pending` → first-validate → `awaiting_document` (barber uploads an official authorization document within ~30 days) → final approve → `approved`. Admin can also reject a submitted document, keeping the account in `awaiting_document`.
+**Why:** optional supporting documents must not create a second approval condition or cause loss of the owner's existing records.
 
-**Key decisions (the non-obvious parts):**
+**How to apply:** do not restore countdowns, deadline reminders or document-based access gates. Historical deadlines are not enforceable.
 
-- **Role flips at FIRST validation, not final.** First-validate promotes the user client→barber so they can reach the upload surface; full barber features stay gated until `approved`. (Earlier single-step model flipped role only at approve.)
-- **The 30-day deadline is soft, never a hard lock.** The upload endpoint must keep accepting (re)submissions while status is `awaiting_document`, even past the deadline. **Why:** the spec keeps the account `awaiting_document` until a *conforming* document is validated; rejecting late uploads creates a permanent dead-end (can't submit, can't approve without a document, can't re-run first-validate since status ≠ pending). The deadline only drives reminders/UI emphasis.
-- **Enforce the transitions server-side, not just in the UI.** first-validate only from `pending`; approve only from `awaiting_document` AND with a submitted document; document/reject only from `awaiting_document` with a submitted document. Invalid transitions return 409. **Why:** a stale/rogue admin client could otherwise single-step approve straight from `pending`, bypassing document review.
-- **Upload must be reachable from the barber profile during the window, not only a standalone pending screen.** `awaiting_document` barbers keep the Profile tab (with the upload card) while all other feature tabs are hidden; the dashboard redirects them to Profile. **Why:** explicit acceptance criterion — the upload has to live in the profile, not be buried behind a redirect-only screen.
+Financing-specific supporting documents are outside this change and retain their own requirements.
 
-**Mechanics worth knowing (not code-derivable):**
-
-- `/auth/sync` and `/auth/me` return the **full barber row**, so any new barber column reaches mobile automatically — widen the mobile `SyncedBarber` type and consume it; no per-field server mapping needed.
-- The document is a **private** storage object; admins view it because the optional-user middleware also attaches an admin identity from the admin cookie JWT, and the storage ACL allows admin.
+**Why:** the user expressly excluded financing from the salon document-policy change.

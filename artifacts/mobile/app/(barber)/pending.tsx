@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import React from "react";
+import { Redirect, useFocusEffect } from "expo-router";
+import React, { useCallback } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,23 +11,29 @@ import { useColors } from "@/hooks/useColors";
 export default function BarberPending() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { user, barberProfile, signOut } = useApp();
+  const { user, barberProfile, signOut, syncAuth } = useApp();
+  useFocusEffect(useCallback(() => {
+    void syncAuth().catch(() => {});
+    // syncAuth closes over Clerk's unstable getToken; key by account, not function.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]));
 
-  const isSuspended = user?.status === "suspended";
-  const isAwaitingDocument = barberProfile?.status === "awaiting_document";
+  const isSuspended = user?.status === "suspended" || barberProfile?.status === "suspended";
+  const isRejected = barberProfile?.status === "rejected";
+  if (barberProfile?.status === "approved" && !isSuspended) return <Redirect href="/(barber)" />;
 
   const headerColor = isSuspended ? c.destructive : c.primary;
-  const headerIcon = isSuspended ? "alert-circle" : isAwaitingDocument ? "file-text" : "clock";
+  const headerIcon = isSuspended || isRejected ? "alert-circle" : "clock";
   const headerTitle = isSuspended
     ? "Compte suspendu"
-    : isAwaitingDocument
-      ? "Vérification en cours"
+    : isRejected
+      ? "Salon non approuvé"
       : "En attente de validation";
   const headerDesc = isSuspended
     ? "Votre compte barbier a été suspendu. Contactez l'administration pour plus d'informations."
-    : isAwaitingDocument
-      ? "Votre salon a passé la première validation. Téléversez votre document officiel ci-dessous pour finaliser la vérification de votre compte."
-      : "Votre demande d'inscription en tant que barbier est en cours d'examen par l'équipe Zbarber. Vous recevrez une notification dès la validation de votre compte.";
+    : isRejected
+      ? barberProfile?.rejectionReason || "Votre demande n'a pas été approuvée. Contactez l'administration pour plus d'informations."
+      : "Votre salon est en cours d'examen par l'équipe Zbarber. Un administrateur doit l'approuver. Les documents professionnels sont facultatifs et ne conditionnent pas cette décision.";
 
   return (
     <ScrollView

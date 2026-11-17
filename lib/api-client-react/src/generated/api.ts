@@ -89,6 +89,7 @@ import type {
   ServiceCategoryInput,
   ServiceInput,
   ServiceUpdate,
+  SubmitBarberDocumentParams,
   SubmitDocumentInput,
   Subscription,
   SubscriptionInput,
@@ -2077,9 +2078,10 @@ export const getFirstValidateBarberUrl = (id: number,) => {
 }
 
 /**
- * Step 1 of the two-step verification. Moves a pending barber to "awaiting_document", starts the 30-day window to upload an official authorization document, and activates barber capabilities so the owner can reach the upload entry. The account stays gated until the document is reviewed and the barber is finally approved.
+ * Backward-compatible alias of approve. Human approval is still required, but professional documents are optional and no deadline is created.
 
- * @summary First validation of a barber account (admin)
+ * @deprecated
+ * @summary Approve a salon (legacy admin action)
  */
 export const firstValidateBarber = async (id: number, options?: RequestInit): Promise<Barber> => {
 
@@ -2127,7 +2129,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type FirstValidateBarberMutationError = ErrorType<unknown>
 
     /**
- * @summary First validation of a barber account (admin)
+ * @deprecated
+ * @summary Approve a salon (legacy admin action)
  */
 export const useFirstValidateBarber = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof firstValidateBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -2149,9 +2152,9 @@ export const getApproveBarberUrl = (id: number,) => {
 }
 
 /**
- * Step 2 of the two-step verification. Grants full verification after the admin has reviewed the uploaded authorization document.
+ * Approves a pending or legacy awaiting_document salon and activates barber access. No document is required. Rejected and suspended salons must use the separate administrative reactivation action.
 
- * @summary Final validation of a barber account (admin)
+ * @summary Approve a salon without requiring a document (admin)
  */
 export const approveBarber = async (id: number, options?: RequestInit): Promise<Barber> => {
 
@@ -2199,7 +2202,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ApproveBarberMutationError = ErrorType<unknown>
 
     /**
- * @summary Final validation of a barber account (admin)
+ * @summary Approve a salon without requiring a document (admin)
  */
 export const useApproveBarber = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveBarber>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -2221,7 +2224,7 @@ export const getRejectBarberDocumentUrl = (id: number,) => {
 }
 
 /**
- * Keeps the barber in "awaiting_document" and clears the previously submitted document so the barber can upload a new one.
+ * Records a review note on the optional document without changing salon approval, access, visibility, or the stored document reference.
 
  * @summary Mark a submitted barber document non-conforming (admin)
  */
@@ -2286,22 +2289,30 @@ export const useRejectBarberDocument = <TError = ErrorType<unknown>,
       return useMutation(getRejectBarberDocumentMutationOptions(options));
     }
 
-export const getSubmitBarberDocumentUrl = () => {
+export const getSubmitBarberDocumentUrl = (params?: SubmitBarberDocumentParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/barbers/me/document`
+  return stringifiedParams.length > 0 ? `/api/barbers/me/document?${stringifiedParams}` : `/api/barbers/me/document`
 }
 
 /**
- * Available while the salon is in "awaiting_document". Records the uploaded document and notifies admins to review it for final validation.
+ * Available to the owner while a salon is pending, awaiting_document or approved, including after approval. Requires an upload owned by the caller. Documents remain private and never determine salon approval.
 
- * @summary Submit the professional authorization document (barber)
+ * @summary Submit an optional professional document (salon owner)
  */
-export const submitBarberDocument = async (submitDocumentInput: SubmitDocumentInput, options?: RequestInit): Promise<Barber> => {
+export const submitBarberDocument = async (submitDocumentInput: SubmitDocumentInput,
+    params?: SubmitBarberDocumentParams, options?: RequestInit): Promise<Barber> => {
 
-  return customFetch<Barber>(getSubmitBarberDocumentUrl(),
+  return customFetch<Barber>(getSubmitBarberDocumentUrl(params),
   {
     ...options,
     method: 'POST',
@@ -2315,8 +2326,8 @@ export const submitBarberDocument = async (submitDocumentInput: SubmitDocumentIn
 
 
 export const getSubmitBarberDocumentMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>;params?: SubmitBarberDocumentParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>;params?: SubmitBarberDocumentParams}, TContext> => {
 
 const mutationKey = ['submitBarberDocument'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -2328,10 +2339,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitBarberDocument>>, {data: BodyType<SubmitDocumentInput>}> = (props) => {
-          const {data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitBarberDocument>>, {data: BodyType<SubmitDocumentInput>;params?: SubmitBarberDocumentParams}> = (props) => {
+          const {data,params} = props ?? {};
 
-          return  submitBarberDocument(data,requestOptions)
+          return  submitBarberDocument(data,params,requestOptions)
         }
 
 
@@ -2346,14 +2357,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SubmitBarberDocumentMutationError = ErrorType<unknown>
 
     /**
- * @summary Submit the professional authorization document (barber)
+ * @summary Submit an optional professional document (salon owner)
  */
 export const useSubmitBarberDocument = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitBarberDocument>>, TError,{data: BodyType<SubmitDocumentInput>;params?: SubmitBarberDocumentParams}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof submitBarberDocument>>,
         TError,
-        {data: BodyType<SubmitDocumentInput>},
+        {data: BodyType<SubmitDocumentInput>;params?: SubmitBarberDocumentParams},
         TContext
       > => {
       return useMutation(getSubmitBarberDocumentMutationOptions(options));
