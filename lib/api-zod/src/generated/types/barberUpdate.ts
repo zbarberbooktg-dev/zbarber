@@ -12,6 +12,7 @@ export interface BarberUpdate {
   bio?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  country?: string;
   city?: string;
   /** @nullable */
   neighborhood?: string | null;

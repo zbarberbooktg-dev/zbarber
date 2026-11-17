@@ -152,6 +152,13 @@ export interface Barber {
   bio?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  /**
+     * Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null
+     * @nullable
+     */
+  cardImageUrl?: string | null;
+  /** @nullable */
+  country?: string | null;
   city: string;
   /** @nullable */
   neighborhood?: string | null;
@@ -195,6 +202,7 @@ export interface BarberInput {
   bio?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  country?: string;
   city: string;
   /** @nullable */
   neighborhood?: string | null;
@@ -216,6 +224,7 @@ export interface BarberUpdate {
   bio?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  country?: string;
   city?: string;
   /** @nullable */
   neighborhood?: string | null;
@@ -229,6 +238,18 @@ export interface BarberUpdate {
   latitude?: number | null;
   /** @nullable */
   longitude?: number | null;
+}
+
+export interface BarberMapPoint {
+  id: number;
+  salonName: string;
+  /** @nullable */
+  city?: string | null;
+  /** @nullable */
+  neighborhood?: string | null;
+  latitude: number;
+  longitude: number;
+  rating: number;
 }
 
 export interface BarberListResponse {
@@ -1144,21 +1165,47 @@ export const ListUsersStatus = {
 } as const;
 
 export type ListBarbersParams = {
+/**
+ * Search all approved salons by name, city or neighborhood before pagination
+ */
+search?: string;
+sort?: ListBarbersSort;
+categoryId?: number;
+service?: string;
 status?: ListBarbersStatus;
 city?: string;
+/**
+ * @minimum 1
+ */
 page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
 limit?: number;
 };
+
+export type ListBarbersSort = typeof ListBarbersSort[keyof typeof ListBarbersSort];
+
+
+export const ListBarbersSort = {
+  newest: 'newest',
+} as const;
 
 export type ListBarbersStatus = typeof ListBarbersStatus[keyof typeof ListBarbersStatus];
 
 
 export const ListBarbersStatus = {
   pending: 'pending',
+  awaiting_document: 'awaiting_document',
   approved: 'approved',
   rejected: 'rejected',
   suspended: 'suspended',
 } as const;
+
+export type ListBarberMapPointsParams = {
+categoryId?: number;
+};
 
 export type GetMyRevenueParams = {
 /**

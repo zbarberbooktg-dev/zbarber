@@ -57,6 +57,12 @@ function buildHtml(lat: number, lng: number, tint: string, bg: string) {
     marker.setLatLng([lat, lng]);
     map.setView([lat, lng], map.getZoom());
   };
+  window.addEventListener('message', function(e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== 'recenter') return;
+    var lat = e.data.lat, lng = e.data.lng;
+    if (typeof lat === 'number' && isFinite(lat) && Math.abs(lat) <= 90 &&
+        typeof lng === 'number' && isFinite(lng) && Math.abs(lng) <= 180) window.__setMarker(lat, lng);
+  });
 })();
 </script>
 </body>
@@ -98,6 +104,10 @@ export function LocationPickerMap({
   // Recenter the marker when the caller signals a fresh external position.
   useEffect(() => {
     if (recenterKey === undefined) return;
+    if (Platform.OS === "web") {
+      iframeRef.current?.contentWindow?.postMessage({ type: "recenter", lat: latitude, lng: longitude }, "*");
+      return;
+    }
     ref.current?.injectJavaScript(`window.__setMarker && window.__setMarker(${Number(latitude)}, ${Number(longitude)}); true;`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterKey]);
@@ -105,7 +115,8 @@ export function LocationPickerMap({
   const emit = (raw: string) => {
     try {
       const d = JSON.parse(raw);
-      if (typeof d?.lat === "number" && typeof d?.lng === "number") onChange(d.lat, d.lng);
+      if (typeof d?.lat === "number" && Number.isFinite(d.lat) && Math.abs(d.lat) <= 90
+        && typeof d?.lng === "number" && Number.isFinite(d.lng) && Math.abs(d.lng) <= 180) onChange(d.lat, d.lng);
     } catch {}
   };
 
@@ -116,9 +127,10 @@ export function LocationPickerMap({
   useEffect(() => {
     if (Platform.OS !== "web") return;
     const handler = (ev: MessageEvent) => {
-      if (iframeRef.current && ev.source !== iframeRef.current.contentWindow) return;
+      if (!iframeRef.current || ev.source !== iframeRef.current.contentWindow) return;
       const data = ev?.data as { lat?: unknown; lng?: unknown } | null;
-      if (data && typeof data.lat === "number" && typeof data.lng === "number") {
+      if (data && typeof data.lat === "number" && Number.isFinite(data.lat) && Math.abs(data.lat) <= 90
+        && typeof data.lng === "number" && Number.isFinite(data.lng) && Math.abs(data.lng) <= 180) {
         onChange(data.lat, data.lng);
       }
     };

@@ -1,7 +1,9 @@
 import { Feather } from "@expo/vector-icons";
-import { useListBarbers } from "@workspace/api-client-react";
-import { Stack, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { listBarbers } from "@workspace/api-client-react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { salonImageSource } from "@/lib/salonDiscovery";
 import {
   ActivityIndicator,
   FlatList,
@@ -33,20 +35,22 @@ const salonFallbacks: ImageSourcePropType[] = [
 export default function AllSalons() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [query, setQuery] = useState("");
-  const { data, isLoading } = useListBarbers({ status: "approved" });
-
-  const list = useMemo(() => {
-    const items = data?.data ?? [];
-    if (!query.trim()) return items;
-    const q = query.trim().toLowerCase();
-    return items.filter(
-      (b) =>
-        b.salonName.toLowerCase().includes(q) ||
-        (b.city ?? "").toLowerCase().includes(q) ||
-        (b.neighborhood ?? "").toLowerCase().includes(q),
-    );
-  }, [data, query]);
+  const params = useLocalSearchParams<{ search?: string }>();
+  const [query, setQuery] = useState(params.search ?? "");
+  const [search, setSearch] = useState(query.trim());
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(query.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
+  const { data, isLoading, isError, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } = useInfiniteQuery({
+    queryKey: ["/api/barbers", "directory", search],
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) => listBarbers({ status: "approved", search: search || undefined, limit: 20, page: pageParam }, { signal }),
+    getNextPageParam: (page) => page.page * page.limit < page.total ? page.page + 1 : undefined,
+    staleTime: 30000, refetchOnMount: "always",
+  });
+  useFocusEffect(React.useCallback(() => { void refetch(); }, [refetch]));
+  const list = data?.pages.flatMap((page) => page.data) ?? [];
 
   return (
     <View style={{ flex: 1, backgroundColor: PALETTE.bg }}>
@@ -69,6 +73,7 @@ export default function AllSalons() {
         <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, paddingHorizontal: 14 }}>
           <Feather name="search" size={16} color={PALETTE.gold} />
           <TextInput
+            testID="directory-salon-search"
             value={query}
             onChangeText={setQuery}
             placeholder="Salon, ville, quartier..."
@@ -83,13 +88,24 @@ export default function AllSalons() {
         </View>
       </View>
 
-      {isLoading ? (
+      {isLoading || search !== query.trim() ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color={PALETTE.gold} />
         </View>
+      ) : isError ? (
+        <Pressable onPress={() => refetch()} style={{ padding: 20 }}>
+          <Text style={{ color: PALETTE.text }}>Impossible de charger les salons. Réessayer</Text>
+        </Pressable>
       ) : (
         <FlatList
           data={list}
+          onEndReached={() => { if (hasNextPage && !isFetchingNextPage) void fetchNextPage(); }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={PALETTE.gold} /> : hasNextPage ? (
+            <Pressable onPress={() => fetchNextPage()} style={{ padding: 16 }}>
+              <Text style={{ color: PALETTE.gold }}>Voir plus de salons</Text>
+            </Pressable>
+          ) : null}
           keyExtractor={(b) => String(b.id)}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -104,7 +120,7 @@ export default function AllSalons() {
               onPress={() => router.push(`/salon/${b.id}` as never)}
               style={{ flexDirection: "row", gap: 14, padding: 14, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, alignItems: "center" }}
             >
-              <Image source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: 72, height: 72 }} resizeMode="cover" />
+              <Image source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])} style={{ width: 72, height: 72 }} resizeMode="cover" />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 16, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>

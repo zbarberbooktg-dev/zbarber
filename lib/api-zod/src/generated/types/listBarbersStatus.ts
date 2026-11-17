@@ -11,6 +11,7 @@ export type ListBarbersStatus = typeof ListBarbersStatus[keyof typeof ListBarber
 
 export const ListBarbersStatus = {
   pending: 'pending',
+  awaiting_document: 'awaiting_document',
   approved: 'approved',
   rejected: 'rejected',
   suspended: 'suspended',

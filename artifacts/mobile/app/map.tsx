@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
-import { useListServiceCategories } from "@workspace/api-client-react";
+import { getListBarberMapPointsQueryKey, useListBarberMapPoints, useListServiceCategories } from "@workspace/api-client-react";
 import * as Location from "expo-location";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 
 import { useApp } from "@/contexts/AppContext";
-import { useAuthedFetch } from "@/lib/api";
 
 const PALETTE = {
   bg: "#0A0A0A",
@@ -32,17 +31,6 @@ const PALETTE = {
 const KINSHASA = { lat: -4.4419, lng: 15.2663 };
 const RADII = [2, 5, 10, 25, 50] as const;
 type Radius = (typeof RADII)[number];
-
-type Barber = {
-  id: number;
-  salonName: string;
-  city: string | null;
-  neighborhood: string | null;
-  latitude: number | string | null;
-  longitude: number | string | null;
-  rating?: number;
-  reviewCount?: number;
-};
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371;
@@ -68,10 +56,14 @@ function buildLeafletHtml(
   center: { lat: number; lng: number },
   radiusKm: number,
   markers: Array<{ id: number; lat: number; lng: number; name: string; sub: string; rating: number }>,
+  userPosition: { lat: number; lng: number } | null,
+  showRadius: boolean,
 ) {
   const payload = safeJson({
     center: [Number(center.lat) || 0, Number(center.lng) || 0],
     radiusM: Number(radiusKm) * 1000,
+    userPosition: userPosition ? [userPosition.lat, userPosition.lng] : null,
+    showRadius,
     markers: markers.map((m) => ({
       id: Number(m.id),
       lat: Number(m.lat),
@@ -117,8 +109,10 @@ function buildLeafletHtml(
   }).addTo(map);
 
   var userIcon = L.divIcon({ className: '', html: '<div class="gbc-user"></div>', iconSize: [14,14], iconAnchor: [7,7] });
-  L.marker(center, { icon: userIcon }).addTo(map);
-  L.circle(center, { radius: data.radiusM, color: '#D4AF37', weight: 1, fillColor: '#D4AF37', fillOpacity: 0.08 }).addTo(map);
+  if (data.userPosition) {
+    L.marker(data.userPosition, { icon: userIcon }).addTo(map);
+    if (data.showRadius) L.circle(data.userPosition, { radius: data.radiusM, color: '#D4AF37', weight: 1, fillColor: '#D4AF37', fillOpacity: 0.08 }).addTo(map);
+  }
 
   function send(msg) {
     try {
@@ -160,7 +154,7 @@ function buildLeafletHtml(
     return L.divIcon({ className: '', html: el.outerHTML, iconAnchor: [20, 14] });
   }
 
-  var bounds = L.latLngBounds([center]);
+  var bounds = L.latLngBounds(data.userPosition ? [data.userPosition] : []);
   data.markers.forEach(function(m) {
     var marker = L.marker([m.lat, m.lng], { icon: buildPinIcon(m) }).addTo(map);
     marker.bindPopup(buildPopup(m));
@@ -180,45 +174,30 @@ export default function MapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, t } = useApp();
-  const fetcher = useAuthedFetch();
   const webRef = useRef<WebView>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const [radius, setRadius] = useState<Radius>(5);
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [showAll, setShowAll] = useState(true);
   const [locating, setLocating] = useState(false);
-  const [center, setCenter] = useState<{ lat: number; lng: number }>(() => {
-    if (user?.latitude && user?.longitude) {
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(() => {
+    if (user?.latitude != null && user?.longitude != null
+      && Number.isFinite(Number(user.latitude)) && Number.isFinite(Number(user.longitude))
+      && Math.abs(Number(user.latitude)) <= 90 && Math.abs(Number(user.longitude)) <= 180) {
       return { lat: Number(user.latitude), lng: Number(user.longitude) };
     }
-    return KINSHASA;
+    return null;
   });
 
   const { data: categories } = useListServiceCategories();
-
-  const fetchBarbers = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const qs = new URLSearchParams({ status: "approved", limit: "100" });
-      if (categoryId) qs.set("categoryId", String(categoryId));
-      const json = await fetcher(`/api/barbers?${qs.toString()}`);
-      setBarbers((json as any)?.data ?? []);
-    } catch (e: any) {
-      Alert.alert("Erreur", e?.message ?? "Impossible de charger les salons.");
-    } finally {
-      setLoading(false);
-    }
-    // `fetcher` (useAuthedFetch) has an unstable identity on every render because
-    // @clerk/expo's getToken is fresh each render; including it here would make
-    // fetchBarbers — and the effect below that depends on it — loop forever
-    // ("Maximum update depth exceeded"). We read the latest fetcher via closure.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId]);
-
-  useEffect(() => {
-    fetchBarbers();
-  }, [fetchBarbers]);
+  const { data: barbers = [], isLoading: loading, isError, refetch } = useListBarberMapPoints(
+    { categoryId: categoryId ?? undefined }, { query: {
+      queryKey: getListBarberMapPointsQueryKey({ categoryId: categoryId ?? undefined }),
+      staleTime: 30000, refetchOnMount: "always",
+    } },
+  );
+  useFocusEffect(React.useCallback(() => { void refetch(); }, [refetch]));
 
   const requestLocation = async () => {
     setLocating(true);
@@ -230,6 +209,7 @@ export default function MapScreen() {
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      setShowAll(false);
     } catch (e: any) {
       Alert.alert("Erreur", e?.message ?? "Impossible d'obtenir la position.");
     } finally {
@@ -242,27 +222,29 @@ export default function MapScreen() {
       .filter((b) => b.latitude != null && b.longitude != null)
       .map((b) => ({
         ...b,
-        _km: haversineKm(center, { lat: Number(b.latitude), lng: Number(b.longitude) }),
+        _km: center ? haversineKm(center, { lat: Number(b.latitude), lng: Number(b.longitude) }) : null,
       }))
-      .filter((b) => b._km <= radius)
-      .sort((a, b) => a._km - b._km);
-  }, [barbers, center, radius]);
+      .filter((b) => showAll || b._km === null || b._km <= radius)
+      .sort((a, b) => (a._km ?? 0) - (b._km ?? 0));
+  }, [barbers, center, radius, showAll]);
 
   const html = useMemo(
     () =>
       buildLeafletHtml(
-        center,
+        center ?? (barbers[0] ? { lat: barbers[0].latitude, lng: barbers[0].longitude } : KINSHASA),
         radius,
         withDistance.map((b) => ({
           id: b.id,
           lat: Number(b.latitude),
           lng: Number(b.longitude),
           name: b.salonName,
-          sub: `${b.neighborhood ? b.neighborhood + " • " : ""}${b.city ?? ""} · ${b._km.toFixed(1)} km`,
+          sub: `${b.neighborhood ? b.neighborhood + " • " : ""}${b.city ?? ""}${b._km === null ? "" : ` · ${b._km.toFixed(1)} km`}`,
           rating: b.rating ?? 0,
         })),
+        center,
+        !showAll,
       ),
-    [center, radius, withDistance],
+    [center, radius, withDistance, barbers, showAll],
   );
 
   const openSalon = React.useCallback(
@@ -284,6 +266,7 @@ export default function MapScreen() {
   useEffect(() => {
     if (Platform.OS !== "web") return;
     const handler = (ev: MessageEvent) => {
+      if (!iframeRef.current || ev.source !== iframeRef.current.contentWindow) return;
       const data = ev?.data;
       if (data && typeof data === "object" && (data as any).type === "open") {
         openSalon((data as any).id);
@@ -332,12 +315,16 @@ export default function MapScreen() {
           {t.mapRadius ?? "Rayon de recherche"}
         </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          <Pressable testID="map-show-all" onPress={() => setShowAll(true)}
+            style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: showAll ? PALETTE.gold : PALETTE.surface }}>
+            <Text style={{ color: showAll ? PALETTE.bg : PALETTE.text }}>Tous les salons</Text>
+          </Pressable>
           {RADII.map((r) => {
-            const active = radius === r;
+            const active = !showAll && radius === r;
             return (
               <Pressable
                 key={r}
-                onPress={() => setRadius(r)}
+                onPress={() => { setRadius(r); if (!center) void requestLocation(); else setShowAll(false); }}
                 style={{
                   paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
                   backgroundColor: active ? PALETTE.gold : PALETTE.surface,
@@ -399,6 +386,7 @@ export default function MapScreen() {
           // On web, render the leaflet HTML inside an iframe (WebView is limited)
           // @ts-ignore — react-native-web renders div for View; we use raw iframe
           <iframe
+            ref={iframeRef}
             srcDoc={html}
             sandbox="allow-scripts"
             style={{ border: 0, width: "100%", height: "100%" }}
@@ -427,9 +415,10 @@ export default function MapScreen() {
               : `${withDistance.length} ${withDistance.length > 1 ? (t.salonsFound ?? "salons trouvés") : (t.salonFound ?? "salon trouvé")}`}
           </Text>
           <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 11 }}>
-            {radius} km
+            {showAll ? "Tous" : `${radius} km`}
           </Text>
         </View>
+        {isError && <Pressable onPress={() => refetch()}><Text style={{ color: PALETTE.textMuted }}>Impossible de charger les salons. Réessayer</Text></Pressable>}
         <FlatList
           data={withDistance}
           horizontal
@@ -439,7 +428,7 @@ export default function MapScreen() {
           ListEmptyComponent={
             !loading ? (
               <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12 }}>
-                {t.noSalonsInRadius ?? "Aucun salon dans ce rayon. Élargissez la zone."}
+                  {showAll ? "Aucun salon avec une position enregistrée." : (t.noSalonsInRadius ?? "Aucun salon dans ce rayon. Élargissez la zone.")}
               </Text>
             ) : null
           }
@@ -462,7 +451,7 @@ export default function MapScreen() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                   <Feather name="navigation" size={10} color={PALETTE.gold} />
                   <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
-                    {item._km.toFixed(1)} km
+                    {item._km === null ? "Position du salon" : `${item._km.toFixed(1)} km`}
                   </Text>
                 </View>
                 {item.rating && item.rating > 0 ? (

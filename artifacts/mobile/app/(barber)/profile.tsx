@@ -1,6 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useAuth } from "@clerk/expo";
-import { useQuery } from "@tanstack/react-query";
+import { getGetMyBarbersQueryKey, useGetMyBarbers } from "@workspace/api-client-react";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -15,34 +14,13 @@ import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
 import { setBrowsing } from "@/lib/browseIntent";
 
-type MyBarber = {
-  id: number;
-  salonName: string;
-  city: string | null;
-  neighborhood: string | null;
-  address: string | null;
-  phone: string | null;
-  whatsapp: string | null;
-};
-
 export default function BarberProfile() {
   const c = useColors();
   const router = useRouter();
-  const { getToken } = useAuth();
   const { themePref, setThemePref, lang, setLang, signOut, t, user } = useApp();
-  const { data: myBarbers, refetch } = useQuery<MyBarber[]>({
-    queryKey: ["barbersMe"],
-    queryFn: async () => {
-      const token = await getToken();
-      const domain = process.env.EXPO_PUBLIC_DOMAIN;
-      const base = domain ? `https://${domain}` : "";
-      const res = await fetch(`${base}/api/barbers/me`, {
-        headers: token ? { authorization: `Bearer ${token}` } : undefined,
-      });
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
+  const { data: myBarbers, refetch, isLoading, isError } = useGetMyBarbers({ query: {
+    queryKey: getGetMyBarbersQueryKey(), staleTime: 0, refetchOnMount: "always",
+  } });
   const barber = myBarbers?.[0] ?? null;
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [editLocationOpen, setEditLocationOpen] = useState(false);
@@ -109,7 +87,8 @@ export default function BarberProfile() {
 
       <View>
         <SectionLabel label="Mon salon" />
-        <Pressable onPress={() => setEditLocationOpen(true)}>
+        {isError && <Pressable onPress={() => refetch()}><Text style={{ color: c.destructive }}>Impossible de charger le salon. Réessayer</Text></Pressable>}
+        <Pressable testID="edit-salon" disabled={isLoading || !barber} onPress={() => setEditLocationOpen(true)}>
           {({ pressed }) => (
             <Card style={{ opacity: pressed ? 0.85 : 1 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -131,6 +110,9 @@ export default function BarberProfile() {
                       {barber.address}
                     </Text>
                   )}
+                  <Text style={{ color: c.primary, fontSize: 12, marginTop: 4 }}>
+                    {barber?.latitude != null && barber?.longitude != null ? "Position GPS enregistrée · Modifier" : "Définir la position GPS et le logo"}
+                  </Text>
                 </View>
                 <Feather name="chevron-right" size={18} color={c.mutedForeground} />
               </View>
@@ -146,21 +128,24 @@ export default function BarberProfile() {
         initialPhone={user?.phone ?? ""}
       />
 
-      <EditSalonLocationModal
+      {editLocationOpen && <EditSalonLocationModal
         visible={editLocationOpen}
         onClose={() => setEditLocationOpen(false)}
         initial={{
-          country: (barber as any)?.country ?? null,
+          country: barber?.country ?? null,
           city: barber?.city,
           neighborhood: barber?.neighborhood,
           address: barber?.address,
           phone: barber?.phone,
           whatsapp: barber?.whatsapp,
+          latitude: barber?.latitude,
+          longitude: barber?.longitude,
+          logoUrl: barber?.logoUrl,
         }}
         onSaved={() => {
           refetch();
         }}
-      />
+      />}
 
       <View>
         <SectionLabel label={t.appearance} />

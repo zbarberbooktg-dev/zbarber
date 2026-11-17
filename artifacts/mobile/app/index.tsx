@@ -7,11 +7,11 @@ import {
   useFonts,
 } from "@expo-google-fonts/playfair-display";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useListBarbers, useListHomeGalleryPhotos, useListPublicArticles } from "@workspace/api-client-react";
+import { getListBarbersQueryKey, useListBarbers, useListHomeGalleryPhotos, useListPublicArticles } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
 import { reloadAppAsync } from "expo";
 import * as Location from "expo-location";
-import { Redirect, useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import { Redirect, useFocusEffect, useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Image } from "expo-image";
 import {
@@ -41,6 +41,7 @@ import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ShimmerImage } from "@/components/ShimmerImage";
 import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { ONBOARDING_KEY } from "./onboarding";
+import { salonImageSource } from "@/lib/salonDiscovery";
 
 const heroImage = require("../assets/images/client-home/hero.png");
 const salonFallbacks: ImageSourcePropType[] = [
@@ -177,6 +178,7 @@ export default function PublicHome() {
   const buttonBorder = effective === "dark" ? PALETTE.border : "#000";
   const fetcher = useAuthedFetch();
   const [query, setQuery] = useState("");
+  const [search, setSearch] = useState("");
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
   // Reactive: a barber/admin who tapped "Accueil"/home reaches the public home
   // instead of being redirected to /(barber). Reactive (not mount-once) because
@@ -188,7 +190,21 @@ export default function PublicHome() {
   const featuredYRef = useRef(0);
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
 
-  const { data, isLoading, refetch, isRefetching } = useListBarbers({ status: "approved" });
+  const { data, isLoading, isFetching, isError, refetch, isRefetching } = useListBarbers(
+    { status: "approved", search: search || undefined, limit: 20 },
+    { query: { queryKey: getListBarbersQueryKey({ status: "approved", search: search || undefined, limit: 20 }), staleTime: 30000, refetchOnMount: "always" } },
+  );
+  const { data: newest, isLoading: newestLoading, isError: newestError, refetch: refetchNewest } = useListBarbers(
+    { status: "approved", sort: "newest", limit: 20 },
+    { query: { queryKey: getListBarbersQueryKey({ status: "approved", sort: "newest", limit: 20 }), staleTime: 30000, refetchOnMount: "always" } },
+  );
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(query.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [query]);
+  useFocusEffect(React.useCallback(() => {
+    void refetch(); void refetchNewest();
+  }, [refetch, refetchNewest]));
   const { data: homeGallery } = useListHomeGalleryPhotos();
   const { data: articles } = useListPublicArticles();
   const [fontsLoaded] = useFonts({
@@ -211,17 +227,8 @@ export default function PublicHome() {
     return () => clearTimeout(timer);
   }, [isLoaded]);
 
-  const list = useMemo(() => {
-    const items = data?.data ?? [];
-    if (!query.trim()) return items;
-    const q = query.trim().toLowerCase();
-    return items.filter(
-      (b) =>
-        b.salonName.toLowerCase().includes(q) ||
-        (b.city ?? "").toLowerCase().includes(q) ||
-        (b.neighborhood ?? "").toLowerCase().includes(q),
-    );
-  }, [data, query]);
+  const list = data?.data ?? [];
+  const searching = isLoading || (query.trim() !== search) || (!!query.trim() && isFetching);
 
   // While onboarding state unknown, or signed-in user still syncing — show spinner.
   // Do NOT gate on !isLoaded: the home screen is public and must show immediately
@@ -246,7 +253,7 @@ export default function PublicHome() {
     return <Redirect href="/(barber)" />;
   }
 
-  const featured = list.slice(0, 6);
+  const featured = query.trim() ? list : list.slice(0, 6);
   const nearby = list.slice(0, 4);
 
   const handleRefreshLocation = async () => {
@@ -387,7 +394,7 @@ export default function PublicHome() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={PALETTE.gold} />}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => { void refetch(); void refetchNewest(); }} tintColor={PALETTE.gold} />}
       >
         {/* Hero + search */}
         <View style={{ paddingHorizontal: 20, marginTop: 8, marginBottom: 24 }}>
@@ -400,6 +407,8 @@ export default function PublicHome() {
           <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, paddingHorizontal: 14 }}>
             <Feather name="search" size={16} color={PALETTE.gold} />
             <TextInput
+              testID="home-salon-search"
+              accessibilityLabel="Rechercher un salon par nom, ville ou quartier"
               value={query}
               onChangeText={setQuery}
               placeholder="Salon, ville, quartier..."
@@ -494,10 +503,38 @@ export default function PublicHome() {
           </View>
         )}
 
-        {/* Featured salons */}
+        {!query.trim() && (
+          <View testID="new-salons-section" style={{ marginBottom: 28 }}>
+            <SectionHeader title={lang === "fr" ? "Nouveaux salons" : "New salons"}
+              action="" serifFont={serif} textColor={PALETTE.text} accentColor={PALETTE.gold} />
+            {newestLoading ? <ActivityIndicator color={PALETTE.gold} /> : newestError ? (
+              <Pressable onPress={() => refetchNewest()} style={{ paddingHorizontal: 20 }}>
+                <Text style={{ color: PALETTE.textMuted }}>Impossible de charger les nouveaux salons. Réessayer</Text>
+              </Pressable>
+            ) : !newest?.data.length ? (
+              <Text style={{ paddingHorizontal: 20, color: PALETTE.textMuted }}>Les nouveaux salons validés apparaîtront ici.</Text>
+            ) : (
+              <ScrollView horizontal testID="new-salons-carousel" showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
+                {newest.data.map((b, idx) => (
+                  <Pressable key={b.id} accessibilityLabel={`Ouvrir ${b.salonName}`}
+                    onPress={() => router.push(`/salon/${b.id}` as never)} style={{ width: 190 }}>
+                    <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"}
+                      source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])}
+                      style={{ width: 190, height: 150, borderWidth: 1, borderColor: PALETTE.border }} contentFit="cover" />
+                    <Text numberOfLines={1} style={{ color: PALETTE.text, fontFamily: serif, fontSize: 17, marginTop: 8 }}>{b.salonName}</Text>
+                    <Text numberOfLines={1} style={{ color: PALETTE.textMuted, fontSize: 12, marginTop: 4 }}>{[b.neighborhood, b.city].filter(Boolean).join(" • ")}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        )}
+
+        {/* Featured salons / server-side search results */}
         <View onLayout={(e) => { featuredYRef.current = e.nativeEvent.layout.y; }}>
         <SectionHeader
-          title={query ? `${list.length} résultat${list.length !== 1 ? "s" : ""}` : "Salons en Vedette"}
+          title={query.trim() ? `${data?.total ?? 0} résultat${data?.total !== 1 ? "s" : ""}` : "Salons en Vedette"}
           action={query ? "" : "Tout voir"}
           serifFont={serif}
           onPressAction={() => router.push("/salons" as never)}
@@ -505,10 +542,14 @@ export default function PublicHome() {
           accentColor={PALETTE.gold}
         />
         </View>
-        {isLoading ? (
+        {searching ? (
           <View style={{ paddingVertical: 40, alignItems: "center" }}>
             <ActivityIndicator color={PALETTE.gold} />
           </View>
+        ) : isError ? (
+          <Pressable onPress={() => refetch()} style={{ paddingHorizontal: 20, marginBottom: 28 }}>
+            <Text style={{ color: PALETTE.textMuted }}>Impossible de charger les salons. Réessayer</Text>
+          </Pressable>
         ) : featured.length === 0 ? (
           <Text style={{ paddingHorizontal: 20, color: PALETTE.textMuted, fontFamily: serifItalic, fontSize: 14, marginBottom: 32 }}>
             {query ? "Aucun salon ne correspond." : "Bientôt — nos premiers salons partenaires."}
@@ -521,7 +562,7 @@ export default function PublicHome() {
             {featured.map((b, idx) => (
               <Pressable key={b.id} onPress={() => router.push(`/salon/${b.id}` as never)} style={{ width: 240 }}>
                 <View style={{ aspectRatio: 3 / 4, borderWidth: 1, borderColor: PALETTE.border, marginBottom: 12, overflow: "hidden" }}>
-                  <ShimmerImage source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                  <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"} source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                   {b.rating && Number(b.rating) > 0 ? (
                     <View style={{ position: "absolute", bottom: 12, left: 12, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 8, paddingVertical: 4 }}>
                       <Feather name="star" size={11} color={PALETTE.gold} />
@@ -543,6 +584,13 @@ export default function PublicHome() {
               </Pressable>
             ))}
           </ScrollView>
+        )}
+
+        {!!query.trim() && !searching && !isError && (data?.total ?? 0) > list.length && (
+          <Pressable onPress={() => router.push({ pathname: "/salons", params: { search: query.trim() } })}
+            style={{ paddingHorizontal: 20, paddingBottom: 24 }}>
+            <Text style={{ color: PALETTE.gold }}>Voir tous les {data?.total} résultats →</Text>
+          </Pressable>
         )}
 
         {/* Style inspiration */}
@@ -586,7 +634,7 @@ export default function PublicHome() {
                       onPress={() => router.push(`/salon/${b.id}` as never)}
                       style={{ flexDirection: "row", gap: 14, padding: 14, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, alignItems: "center" }}
                     >
-                      <ShimmerImage source={salonFallbacks[idx % salonFallbacks.length]} style={{ width: 72, height: 72 }} contentFit="cover" />
+                      <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"} source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])} style={{ width: 72, height: 72 }} contentFit="cover" />
                       <View style={{ flex: 1 }}>
                         <Text style={{ color: PALETTE.text, fontFamily: serif, fontSize: 16, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>

@@ -15,6 +15,13 @@ export interface Barber {
   bio?: string | null;
   /** @nullable */
   logoUrl?: string | null;
+  /**
+     * Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null
+     * @nullable
+     */
+  cardImageUrl?: string | null;
+  /** @nullable */
+  country?: string | null;
   city: string;
   /** @nullable */
   neighborhood?: string | null;

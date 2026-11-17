@@ -116,6 +116,8 @@ export const SyncAuthResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -340,11 +342,20 @@ export const ActivateUserResponse = zod.object({
 /**
  * @summary List barbers
  */
+
+export const listBarbersQueryLimitMax = 100;
+
+
+
 export const ListBarbersQueryParams = zod.object({
-  "status": zod.enum(['pending', 'approved', 'rejected', 'suspended']).optional(),
+  "search": zod.coerce.string().optional().describe('Search all approved salons by name, city or neighborhood before pagination'),
+  "sort": zod.enum(['newest']).optional(),
+  "categoryId": zod.coerce.number().optional(),
+  "service": zod.coerce.string().optional(),
+  "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']).optional(),
   "city": zod.coerce.string().optional(),
-  "page": zod.coerce.number().optional(),
-  "limit": zod.coerce.number().optional()
+  "page": zod.coerce.number().min(1).optional(),
+  "limit": zod.coerce.number().min(1).max(listBarbersQueryLimitMax).optional()
 })
 
 export const ListBarbersResponse = zod.object({
@@ -354,6 +365,8 @@ export const ListBarbersResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -388,6 +401,7 @@ export const CreateBarberBody = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "country": zod.string().optional(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -399,6 +413,25 @@ export const CreateBarberBody = zod.object({
 
 
 /**
+ * @summary All approved salons with valid persisted coordinates, without pagination
+ */
+export const ListBarberMapPointsQueryParams = zod.object({
+  "categoryId": zod.coerce.number().optional()
+})
+
+export const ListBarberMapPointsResponseItem = zod.object({
+  "id": zod.number(),
+  "salonName": zod.string(),
+  "city": zod.string().nullish(),
+  "neighborhood": zod.string().nullish(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "rating": zod.number()
+})
+export const ListBarberMapPointsResponse = zod.array(ListBarberMapPointsResponseItem)
+
+
+/**
  * @summary Get all salons owned by the authenticated barber (array)
  */
 export const GetMyBarbersResponseItem = zod.object({
@@ -407,6 +440,8 @@ export const GetMyBarbersResponseItem = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -438,6 +473,7 @@ export const CreateMySalonBody = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "country": zod.string().optional(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -455,6 +491,7 @@ export const UpdateMySalonBody = zod.object({
   "salonName": zod.string().optional(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "country": zod.string().optional(),
   "city": zod.string().optional(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -470,6 +507,8 @@ export const UpdateMySalonResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -614,6 +653,8 @@ export const GetBarberResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -648,6 +689,7 @@ export const UpdateBarberBody = zod.object({
   "salonName": zod.string().optional(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "country": zod.string().optional(),
   "city": zod.string().optional(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -663,6 +705,8 @@ export const UpdateBarberResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -709,6 +753,8 @@ export const FirstValidateBarberResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -747,6 +793,8 @@ export const ApproveBarberResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -789,6 +837,8 @@ export const RejectBarberDocumentResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -827,6 +877,8 @@ export const SubmitBarberDocumentResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -867,6 +919,8 @@ export const RejectBarberResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -907,6 +961,8 @@ export const SuspendBarberResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -943,6 +999,8 @@ export const ReactivateBarberResponse = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),
@@ -1248,6 +1306,8 @@ export const ListFavoritesResponseItem = zod.object({
   "salonName": zod.string(),
   "bio": zod.string().nullish(),
   "logoUrl": zod.string().nullish(),
+  "cardImageUrl": zod.string().nullish().describe('Logo, otherwise the oldest gallery photo by createdAt then id, otherwise null'),
+  "country": zod.string().nullish(),
   "city": zod.string(),
   "neighborhood": zod.string().nullish(),
   "address": zod.string().nullish(),

@@ -25,7 +25,6 @@
 - [Articles (L'édito)](articles-edito.md) — server-side sanitize-html on contentHtml is the only XSS defense (mobile RenderHTML trusts API); sortOrder = max+1 server-side; visibility window = published + startsAt≤now + (endsAt null or future).
 - [Reminder scheduler](reminder-scheduler.md) — 24h email reminders must claim-then-send (atomic UPDATE...RETURNING on reminderSentAt) to avoid double-emails; window is upper-bound (now..now+24h) to survive downtime.
 - [GitHub push auth failures from Replit](vps-deploy-ops.md) — OAuth token via GIT_ASKPASS can lack `workflow` scope OR be flat-out invalid even when Connectors shows "Active"; PAT-in-URL push bypasses both + the destructive-git-op sandbox guard.
-- [Barber /me routes are primary-salon only](multi-salon.md) — all `/barbers/me/*` self-service routes resolve via getMyBarberOr404 = salons[0]; mobile must NOT show a salon selector on /me-backed screens (queue, realisations) or it falsely implies per-salon scoping.
 - [Expo splash on iOS](expo-splash-ios.md) — white bands = backgroundColor not applied via legacy expo.splash; use expo-splash-screen plugin + transparent logo + imageWidth; native-rebuild only.
 - [Push notifications](push-notifications.md) — Expo push via deviceTokensTable + fire-and-forget sendPush; re-engagement marker must reset on booking; thank-you email claim-then-send on completed.
 - [expo-build-properties plugin](expo-build-properties.md) — app.json plugins must be installed deps or expo start fails with PluginError; this one carries the Android META-INF packaging-exclude fix (test branch dropped it — Android EAS build risk).
@@ -45,3 +44,4 @@
 - [Premium launch state](premium-launch-state.md) — current features stay free; Premium, financing, and conferences remain preserved but visibly unavailable until launch.
 - [Mobile keyboard-safe forms](mobile-keyboard-safe-forms.md) — native forms use the shared keyboard-aware scroll; never pin submit bars absolutely over editable content.
 - [iOS location purpose strings](ios-location-purpose-strings.md) — set all location Info.plist descriptions explicitly; the Expo plugin can leave generic strings that fail App Review.
+- [Salon discovery rules](salon-discovery-rules.md) — home images prefer logo then first gallery photo; show 20 new approved salons; search the whole catalog and map real coordinates.

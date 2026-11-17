@@ -32,6 +32,7 @@ import type {
   BarberClientsResponse,
   BarberInput,
   BarberListResponse,
+  BarberMapPoint,
   BarberStats,
   BarberUpdate,
   Conference,
@@ -53,6 +54,7 @@ import type {
   HomeGalleryPhoto,
   HomeGalleryPhotoInput,
   HomeGalleryPhotoUpdate,
+  ListBarberMapPointsParams,
   ListBarbersParams,
   ListConferencesParams,
   ListFinancingRequestsParams,
@@ -1227,6 +1229,90 @@ export const useCreateBarber = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreateBarberMutationOptions(options));
     }
+
+export const getListBarberMapPointsUrl = (params?: ListBarberMapPointsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/barbers/map-points?${stringifiedParams}` : `/api/barbers/map-points`
+}
+
+/**
+ * @summary All approved salons with valid persisted coordinates, without pagination
+ */
+export const listBarberMapPoints = async (params?: ListBarberMapPointsParams, options?: RequestInit): Promise<BarberMapPoint[]> => {
+
+  return customFetch<BarberMapPoint[]>(getListBarberMapPointsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBarberMapPointsQueryKey = (params?: ListBarberMapPointsParams,) => {
+    return [
+    `/api/barbers/map-points`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListBarberMapPointsQueryOptions = <TData = Awaited<ReturnType<typeof listBarberMapPoints>>, TError = ErrorType<unknown>>(params?: ListBarberMapPointsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBarberMapPoints>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBarberMapPointsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBarberMapPoints>>> = ({ signal }) => listBarberMapPoints(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBarberMapPoints>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBarberMapPointsQueryResult = NonNullable<Awaited<ReturnType<typeof listBarberMapPoints>>>
+export type ListBarberMapPointsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary All approved salons with valid persisted coordinates, without pagination
+ */
+
+export function useListBarberMapPoints<TData = Awaited<ReturnType<typeof listBarberMapPoints>>, TError = ErrorType<unknown>>(
+ params?: ListBarberMapPointsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBarberMapPoints>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBarberMapPointsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetMyBarbersUrl = () => {
 

@@ -18,6 +18,8 @@ import { formatApiError } from "@/lib/errors";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 import { CountryCityFields } from "@/components/CountryCityFields";
 import { useApp } from "@/contexts/AppContext";
+import { SalonLocationFields, type SalonCoordinates } from "./SalonLocationFields";
+import { refreshSalonDiscovery } from "@/lib/salonDiscovery";
 
 type Props = {
   visible: boolean;
@@ -40,6 +42,8 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
   const [whatsapp, setWhatsapp] = useState("+228 ");
   const [bio, setBio] = useState("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [coordinates, setCoordinates] = useState<SalonCoordinates | null>(null);
+  const [locating, setLocating] = useState(false);
   const [logoLocalUri, setLogoLocalUri] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -49,6 +53,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
     if (visible) {
       setSalonName(""); setCountry("Togo"); setCity("Lomé"); setNeighborhood(""); setAddress("");
       setPhone("+228 "); setWhatsapp("+228 "); setBio(""); setLogoUrl(null); setLogoLocalUri(null); setErr(null);
+      setCoordinates(null);
     }
   }, [visible]);
 
@@ -83,9 +88,11 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
           whatsapp: whatsapp.trim() || undefined,
           bio: bio.trim() || undefined,
           logoUrl: logoUrl || undefined,
+          ...(coordinates ?? {}),
         }),
       });
       await qc.invalidateQueries({ queryKey: ["barbersMe"] });
+      await refreshSalonDiscovery(qc);
       onCreated?.(created.id);
       onClose();
     } catch (e: unknown) {
@@ -103,7 +110,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>Annuler</Text>
           </Pressable>
           <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>Nouveau salon</Text>
-          <Pressable onPress={handleSave} disabled={saving} hitSlop={10}>
+          <Pressable onPress={handleSave} disabled={saving || uploadingLogo || locating} hitSlop={10}>
             {saving
               ? <ActivityIndicator color={c.primary} size="small" />
               : <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>Créer</Text>}
@@ -137,7 +144,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
               )}
             </Pressable>
             <Text style={{ marginTop: 8, color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
-              {logoUrl ? "Changer la photo du salon" : "Photo du salon (optionnel)"}
+              {logoUrl ? "Changer le logo du salon" : "Logo du salon (facultatif)"}
             </Text>
           </View>
 
@@ -164,6 +171,7 @@ export function CreateSalonModal({ visible, onClose, onCreated }: Props) {
           <Field label="Adresse complète">
             <TextInput value={address} onChangeText={setAddress} placeholder="Bd du 13 Janvier, Lomé" placeholderTextColor={c.mutedForeground} multiline style={[inputStyle(c), { minHeight: 60, textAlignVertical: "top" }]} />
           </Field>
+          {visible && <SalonLocationFields value={coordinates} onChange={setCoordinates} disabled={saving} onLocatingChange={setLocating} />}
 
           <View style={{ flexDirection: "row", gap: 12 }}>
             <View style={{ flex: 1 }}>

@@ -5,11 +5,26 @@
  * Zbarber API
  * OpenAPI spec version: 0.1.0
  */
+import type { ListBarbersSort } from './listBarbersSort';
 import type { ListBarbersStatus } from './listBarbersStatus';
 
 export type ListBarbersParams = {
+/**
+ * Search all approved salons by name, city or neighborhood before pagination
+ */
+search?: string;
+sort?: ListBarbersSort;
+categoryId?: number;
+service?: string;
 status?: ListBarbersStatus;
 city?: string;
+/**
+ * @minimum 1
+ */
 page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
 limit?: number;
 };

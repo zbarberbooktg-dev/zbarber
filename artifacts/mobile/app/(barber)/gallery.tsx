@@ -17,6 +17,7 @@ import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
+import { refreshSalonDiscovery } from "@/lib/salonDiscovery";
 
 type MyBarber = { id: number; salonName: string };
 type Photo = { id: number; photoUrl: string; caption: string | null };
@@ -48,6 +49,7 @@ export default function BarberGallery() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["barberGallery", barber?.id] });
+      void refreshSalonDiscovery(qc);
     },
   });
 
@@ -62,6 +64,7 @@ export default function BarberGallery() {
         body: JSON.stringify({ photoUrl: result.objectPath }),
       });
       qc.invalidateQueries({ queryKey: ["barberGallery", barber.id] });
+      await refreshSalonDiscovery(qc);
     } catch (e: any) {
       Alert.alert("Erreur", e?.message ?? "Impossible d'ajouter la photo.");
     } finally {

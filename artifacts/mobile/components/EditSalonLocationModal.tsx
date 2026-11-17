@@ -1,7 +1,13 @@
-import { useAuth } from "@clerk/expo";
+import { useUpdateMySalon } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuthedFetch } from "@/lib/api";
+import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
+import { refreshSalonDiscovery } from "@/lib/salonDiscovery";
+import { SalonLocationFields, type SalonCoordinates, validCoordinates } from "./SalonLocationFields";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   Text,
@@ -23,13 +29,24 @@ type Props = {
     address?: string | null;
     phone?: string | null;
     whatsapp?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    logoUrl?: string | null;
   };
   onSaved?: () => void;
 };
 
 export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: Props) {
   const c = useColors();
-  const { getToken } = useAuth();
+  const fetcher = useAuthedFetch();
+  const qc = useQueryClient();
+  const update = useUpdateMySalon();
+  const [coordinates, setCoordinates] = useState<SalonCoordinates | null>(() =>
+    validCoordinates(initial.latitude, initial.longitude) ? { latitude: initial.latitude!, longitude: initial.longitude! } : null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(initial.logoUrl ?? null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [country, setCountry] = useState(initial.country ?? "Togo");
   const [city, setCity] = useState(initial.city ?? "Lomé");
   const [neighborhood, setNeighborhood] = useState(initial.neighborhood ?? "");
@@ -39,17 +56,16 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (visible) {
-      setCountry(initial.country ?? "Togo");
-      setCity(initial.city ?? "Lomé");
-      setNeighborhood(initial.neighborhood ?? "");
-      setAddress(initial.address ?? "");
-      setPhone(initial.phone ?? "+228 ");
-      setWhatsapp(initial.whatsapp ?? "+228 ");
-      setErr(null);
-    }
-  }, [visible, initial.country, initial.city, initial.neighborhood, initial.address, initial.phone, initial.whatsapp]);
+  // Mounted only while open by the profile: each opening uses the latest
+  // persisted values, without a background refetch clobbering edits.
+  const chooseLogo = async () => {
+    setUploading(true); setErr(null);
+    try {
+      const result = await pickAndUploadImage(fetcher);
+      if (result) { setLogoUrl(result.objectPath); setLogoPreview(result.uri); }
+    } catch (e: any) { setErr(e?.message ?? "Impossible d'ajouter le logo."); }
+    finally { setUploading(false); }
+  };
 
   const handleSave = async () => {
     setErr(null);
@@ -63,28 +79,17 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
     }
     setSaving(true);
     try {
-      const token = await getToken();
-      const domain = process.env.EXPO_PUBLIC_DOMAIN;
-      const base = domain ? `https://${domain}` : "";
-      const res = await fetch(`${base}/api/barbers/me`, {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json",
-          ...(token ? { authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
+      await update.mutateAsync({ data: {
           country: country.trim(),
           city: city.trim(),
-          neighborhood: neighborhood.trim() || undefined,
-          address: address.trim() || undefined,
-          phone: phone.trim() || undefined,
-          whatsapp: whatsapp.trim() || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Erreur lors de la mise à jour");
-      }
+          neighborhood: neighborhood.trim(),
+          address: address.trim(),
+          phone: phone.trim(),
+          whatsapp: whatsapp.trim(),
+          logoUrl,
+          ...(coordinates ?? {}),
+      } });
+      await refreshSalonDiscovery(qc);
       onSaved?.();
       onClose();
     } catch (e: any) {
@@ -98,11 +103,11 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: c.background }}>
         <View style={{ flexDirection: "row", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border, alignItems: "center", justifyContent: "space-between" }}>
-          <Pressable onPress={onClose} hitSlop={10}>
+          <Pressable onPress={onClose} disabled={saving || uploading || locating} hitSlop={10}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>Annuler</Text>
           </Pressable>
-          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>Localisation du salon</Text>
-          <Pressable onPress={handleSave} disabled={saving} hitSlop={10}>
+          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>Mon salon</Text>
+          <Pressable testID="salon-save" onPress={handleSave} disabled={saving || uploading || locating} hitSlop={10}>
             {saving ? (
               <ActivityIndicator color={c.primary} size="small" />
             ) : (
@@ -125,6 +130,21 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
             cityName={city}
             onChange={({ country: nc, city: nci }) => { setCountry(nc); setCity(nci); }}
           />
+
+          <View style={{ gap: 10 }}>
+            <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold" }}>Logo du salon (facultatif)</Text>
+            {(logoPreview || resolveObjectUrl(logoUrl)) && (
+              <Image source={{ uri: logoPreview || resolveObjectUrl(logoUrl)! }} style={{ width: 96, height: 96, borderRadius: c.radius }} />
+            )}
+            <Pressable testID="salon-pick-logo" onPress={chooseLogo} disabled={uploading || saving}>
+              {uploading ? <ActivityIndicator color={c.primary} /> : <Text style={{ color: c.primary }}>{logoUrl ? "Remplacer le logo" : "Ajouter un logo"}</Text>}
+            </Pressable>
+            {logoUrl && <Pressable testID="salon-remove-logo" disabled={uploading || saving} onPress={() => { setLogoUrl(null); setLogoPreview(null); }}>
+              <Text style={{ color: c.destructive }}>Retirer le logo</Text>
+            </Pressable>}
+            <Text style={{ color: c.mutedForeground, fontSize: 12 }}>Sans logo, la première photo de votre galerie représente le salon.</Text>
+          </View>
+          <SalonLocationFields value={coordinates} onChange={setCoordinates} disabled={saving} onLocatingChange={setLocating} />
 
           <Field label="Quartier">
             <TextInput

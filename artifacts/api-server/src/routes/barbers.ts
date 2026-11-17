@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { db, barbersTable, usersTable, reviewsTable, reservationsTable, galleryPhotosTable, servicesTable, schedulesTable, daysOffTable, financingRequestsTable, loyaltyRedemptionsTable, serviceRealisationsTable, walkInQueueTable, panoramasTable, objectUploadsTable, homeServiceHoursTable, homeServiceZonesTable } from "@workspace/db";
-import { eq, avg, count, and, lt, lte, gte, inArray, sql, desc } from "drizzle-orm";
+import { eq, avg, count, and, or, ilike, lt, lte, gte, inArray, sql, desc, asc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
-import { requireAdminAuth } from "../lib/adminAuth";
+import { requireAdminAuth, resolveAdminFromCookie } from "../lib/adminAuth";
 import { anonymizeUserAccount } from "../lib/accountAnonymize";
 import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
 import { notifyAdmin, renderEmail, sendEmail } from "../lib/email";
@@ -164,34 +164,89 @@ async function barberWithDetails(id: number) {
   return { ...barber, ownerName: user?.name, rating: ratingRes[0]?.avg ? parseFloat(ratingRes[0].avg) : 0, reviewCount: ratingRes[0]?.count ?? 0 };
 }
 
+// Enrich only the requested page. Gallery selection is stable and batched, not
+// one extra request (or database query) for every card on the home screen.
+async function withCardDetails(rows: Array<typeof barbersTable.$inferSelect>) {
+  if (!rows.length) return [];
+  const ids = rows.map((b) => b.id);
+  const [photos, ratings, owners] = await Promise.all([
+    db.select().from(galleryPhotosTable).where(inArray(galleryPhotosTable.barberId, ids))
+      .orderBy(asc(galleryPhotosTable.createdAt), asc(galleryPhotosTable.id)),
+    db.select({ barberId: reviewsTable.barberId, rating: avg(reviewsTable.rating), count: count() })
+      .from(reviewsTable).where(inArray(reviewsTable.barberId, ids)).groupBy(reviewsTable.barberId),
+    db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable)
+      .where(inArray(usersTable.id, rows.map((b) => b.userId))),
+  ]);
+  const firstPhotos = new Map<number, string>();
+  for (const p of photos) if (!firstPhotos.has(p.barberId)) firstPhotos.set(p.barberId, p.photoUrl);
+  const byRating = new Map(ratings.map((r) => [r.barberId, r]));
+  const byOwner = new Map(owners.map((u) => [u.id, u.name]));
+  return rows.map((b) => ({
+    ...b, cardImageUrl: b.logoUrl || firstPhotos.get(b.id) || null,
+    ownerName: byOwner.get(b.userId),
+    rating: Number(byRating.get(b.id)?.rating ?? 0),
+    reviewCount: byRating.get(b.id)?.count ?? 0,
+  }));
+}
+
 // ── Public: list approved barbers (for clients browsing) ───
 router.get("/barbers", async (req, res) => {
-  const { page = "1", limit = "20", search = "", status, city, categoryId, service } = req.query as Record<string, string>;
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  let rows = await db.select().from(barbersTable);
-  if (search) rows = rows.filter(b => b.salonName.toLowerCase().includes(search.toLowerCase()) || b.city?.toLowerCase().includes(search.toLowerCase()));
-  if (status) rows = rows.filter(b => b.status === status);
-  if (city) rows = rows.filter(b => b.city === city);
-  if (categoryId) {
-    const catId = parseInt(categoryId);
-    if (!Number.isNaN(catId)) {
-      const svc = await db.select({ barberId: servicesTable.barberId }).from(servicesTable).where(eq(servicesTable.categoryId, catId));
-      const ids = new Set(svc.map(s => s.barberId));
-      rows = rows.filter(b => ids.has(b.id));
-    }
+  const input = z.object({
+    page: z.coerce.number().int().min(1).max(1000000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    search: z.string().trim().max(200).default(""),
+    status: z.enum(["pending", "awaiting_document", "approved", "rejected", "suspended"]).optional(),
+    city: z.string().optional(), categoryId: z.coerce.number().int().positive().optional(),
+    service: z.string().max(200).optional(), sort: z.enum(["newest"]).optional(),
+  }).safeParse(req.query);
+  if (!input.success) { res.status(400).json({ error: "Invalid search parameters" }); return; }
+  const q = input.data;
+  // Public callers cannot enumerate unapproved salons by changing a query param.
+  const admin = await resolveAdminFromCookie(req);
+  if (!admin && q.status && q.status !== "approved") {
+    res.status(403).json({ error: "Admin access required for non-public salons" }); return;
   }
-  if (service) {
-    const q = service.toLowerCase();
-    const svc = await db.select({ barberId: servicesTable.barberId, name: servicesTable.name }).from(servicesTable);
-    const ids = new Set(svc.filter(s => s.name.toLowerCase().includes(q)).map(s => s.barberId));
-    rows = rows.filter(b => ids.has(b.id));
+  const conditions = [];
+  if (!admin || q.status) conditions.push(eq(barbersTable.status, q.status ?? "approved"));
+  const pattern = (v: string) => `%${v.replace(/[\\%_]/g, "\\$&")}%`;
+  if (q.search) conditions.push(or(
+    ilike(barbersTable.salonName, pattern(q.search)),
+    ilike(barbersTable.city, pattern(q.search)),
+    ilike(barbersTable.neighborhood, pattern(q.search)),
+  )!);
+  if (q.city) conditions.push(eq(barbersTable.city, q.city));
+  if (q.categoryId || q.service) {
+    const services = db.select({ id: servicesTable.barberId }).from(servicesTable).where(and(
+      q.categoryId ? eq(servicesTable.categoryId, q.categoryId) : undefined,
+      q.service ? ilike(servicesTable.name, pattern(q.service)) : undefined,
+    ));
+    conditions.push(inArray(barbersTable.id, services));
   }
-  const enriched = await Promise.all(rows.map(async b => {
-    const ratingRes = await db.select({ avg: avg(reviewsTable.rating), count: count() }).from(reviewsTable).where(eq(reviewsTable.barberId, b.id));
-    const [user] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, b.userId)).limit(1);
-    return { ...b, ownerName: user?.name, rating: ratingRes[0]?.avg ? parseFloat(ratingRes[0].avg) : 0, reviewCount: ratingRes[0]?.count ?? 0 };
-  }));
-  res.json({ data: enriched.slice(offset, offset + parseInt(limit)), total: enriched.length, page: parseInt(page), limit: parseInt(limit) });
+  const where = and(...conditions);
+  const [totals, rows] = await Promise.all([
+    db.select({ total: count() }).from(barbersTable).where(where),
+    db.select().from(barbersTable).where(where)
+      .orderBy(...(q.sort === "newest" ? [desc(barbersTable.createdAt), desc(barbersTable.id)] : [asc(barbersTable.id)]))
+      .limit(q.limit).offset((q.page - 1) * q.limit),
+  ]);
+  res.json({ data: await withCardDetails(rows), total: totals[0]?.total ?? 0, page: q.page, limit: q.limit });
+});
+
+router.get("/barbers/map-points", async (req, res) => {
+  const input = z.object({ categoryId: z.coerce.number().int().positive().optional() }).safeParse(req.query);
+  if (!input.success) { res.status(400).json({ error: "Invalid category" }); return; }
+  const rows = await db.select({
+    id: barbersTable.id, salonName: barbersTable.salonName, city: barbersTable.city,
+    neighborhood: barbersTable.neighborhood, latitude: barbersTable.latitude, longitude: barbersTable.longitude,
+    rating: sql<number>`coalesce((select avg(rating) from ${reviewsTable} where ${reviewsTable.barberId} = ${barbersTable.id}), 0)`.mapWith(Number),
+  }).from(barbersTable).where(and(
+    eq(barbersTable.status, "approved"),
+    gte(barbersTable.latitude, -90), lte(barbersTable.latitude, 90),
+    gte(barbersTable.longitude, -180), lte(barbersTable.longitude, 180),
+    input.data.categoryId ? inArray(barbersTable.id, db.select({ id: servicesTable.barberId })
+      .from(servicesTable).where(eq(servicesTable.categoryId, input.data.categoryId))) : undefined,
+  )).orderBy(asc(barbersTable.id));
+  res.json(rows);
 });
 
 // ── Barber: get all my salons (array; barber can own multiple) ───
@@ -508,16 +563,16 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
   const body = z.object({
     salonName: z.string().min(2),
     bio: z.string().optional(),
-    logoUrl: z.string().optional(),
+    logoUrl: z.string().nullable().optional(),
     country: z.string().optional(),
     city: z.string().min(1),
     neighborhood: z.string().optional(),
     address: z.string().optional(),
     phone: z.string().optional(),
     whatsapp: z.string().optional(),
-    latitude: z.number().optional(),
-    longitude: z.number().optional(),
-  }).safeParse(req.body);
+    latitude: z.number().finite().min(-90).max(90).nullable().optional(),
+    longitude: z.number().finite().min(-180).max(180).nullable().optional(),
+  }).refine((v) => (v.latitude == null) === (v.longitude == null), "Coordinates must be supplied together").safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
   let resolved;
   try {
@@ -552,13 +607,20 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
 router.patch("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
   if (req.localUser!.role !== "barber") { res.status(403).json({ error: "Barber account required" }); return; }
   const body = z.object({
-    salonName: z.string().optional(), bio: z.string().optional(), logoUrl: z.string().optional(),
+    salonName: z.string().optional(), bio: z.string().optional(), logoUrl: z.string().nullable().optional(),
     country: z.string().optional(), city: z.string().optional(), neighborhood: z.string().optional(), address: z.string().optional(),
     phone: z.string().optional(), whatsapp: z.string().optional(),
-  }).safeParse(req.body);
+    latitude: z.number().finite().min(-90).max(90).nullable().optional(),
+    longitude: z.number().finite().min(-180).max(180).nullable().optional(),
+  }).refine((v) => (v.latitude === undefined && v.longitude === undefined)
+    || (v.latitude === null && v.longitude === null)
+    || (typeof v.latitude === "number" && typeof v.longitude === "number"), "Coordinates must be supplied together").safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
-  const [existing] = await db.select().from(barbersTable).where(eq(barbersTable.userId, req.localUser!.id)).limit(1);
+  const [existing] = await db.select().from(barbersTable).where(eq(barbersTable.userId, req.localUser!.id)).orderBy(asc(barbersTable.id)).limit(1);
   if (!existing) { res.status(404).json({ error: "Profile not found" }); return; }
+  if (existing.homeServiceEnabled && body.data.latitude === null) {
+    res.status(400).json({ error: "Disable home service before removing salon coordinates" }); return;
+  }
   const patch: typeof body.data = { ...body.data };
   if (body.data.country !== undefined || body.data.city !== undefined) {
     try {
@@ -1100,7 +1162,8 @@ router.get("/barbers/:id/stats", requireAuth, async (req: AuthedRequest, res) =>
 
 router.get("/barbers/:id/gallery", async (req, res) => {
   const id = parseInt(String(req.params.id));
-  const photos = await db.select().from(galleryPhotosTable).where(eq(galleryPhotosTable.barberId, id));
+  const photos = await db.select().from(galleryPhotosTable).where(eq(galleryPhotosTable.barberId, id))
+    .orderBy(asc(galleryPhotosTable.createdAt), asc(galleryPhotosTable.id));
   res.json(photos);
 });
 

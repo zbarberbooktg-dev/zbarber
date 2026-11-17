@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2, Check, Plus, Pencil, X, CalendarPlus, Repeat } from "lucide-react";
 import {
-  useListSubscriptionPlans, useListSubscriptions, useListBarbers,
+  useListSubscriptionPlans, useListSubscriptions, listBarbers,
   useCreateSubscriptionPlan, useUpdateSubscriptionPlan, useDeleteSubscriptionPlan,
   useCreateSubscription, useUpdateSubscription, useDeleteSubscription,
   getListSubscriptionPlansQueryKey, getListSubscriptionsQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
@@ -52,7 +52,21 @@ export default function Subscriptions() {
 
   const { data: plans } = useListSubscriptionPlans();
   const { data: subsData } = useListSubscriptions({ limit: "100" } as any);
-  const { data: barbersData } = useListBarbers({ status: "approved", limit: "200" } as any);
+  const {
+    data: barbersData, hasNextPage: moreBarbers, fetchNextPage: fetchMoreBarbers,
+    isFetching: barbersFetching, isError: barbersError, refetch: retryBarbers,
+  } = useInfiniteQuery({
+    queryKey: ["/api/barbers", "subscription-options"],
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) => listBarbers({ status: "approved", limit: 100, page: pageParam }, { signal }),
+    getNextPageParam: (page) => page.page * page.limit < page.total ? page.page + 1 : undefined,
+    enabled: assignForm !== null,
+    staleTime: 0,
+  });
+  // The assignment selector needs the whole catalog, not just its first page.
+  useEffect(() => {
+    if (assignForm && moreBarbers && !barbersFetching && !barbersError) void fetchMoreBarbers();
+  }, [assignForm, moreBarbers, barbersFetching, barbersError, fetchMoreBarbers]);
   const createPlan = useCreateSubscriptionPlan();
   const updatePlan = useUpdateSubscriptionPlan();
   const deletePlan = useDeleteSubscriptionPlan();
@@ -62,7 +76,7 @@ export default function Subscriptions() {
 
   const subs = (subsData as any)?.data ?? [];
   const plansList = (plans as any) ?? [];
-  const barbersList = (barbersData as any)?.data ?? [];
+  const barbersList = barbersData?.pages.flatMap((page) => page.data) ?? [];
 
   const invalidatePlans = () => qc.invalidateQueries({ queryKey: getListSubscriptionPlansQueryKey() });
   const invalidateSubs = () => qc.invalidateQueries({ queryKey: getListSubscriptionsQueryKey() });
@@ -356,9 +370,11 @@ export default function Subscriptions() {
             <h2 className="text-lg font-bold">{s.assignTitle}</h2>
             <label className="text-sm space-y-1 block">
               <span className="text-muted-foreground">{s.fieldBarber}</span>
-              <select required value={assignForm.barberId} onChange={e => setAssignForm({ ...assignForm, barberId: e.target.value })} className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              {barbersFetching && <p className="text-sm text-muted-foreground">{locale === "fr" ? "Chargement des salons…" : "Loading salons…"}</p>}
+              {barbersError && <button type="button" onClick={() => retryBarbers()} className="text-sm text-destructive">{locale === "fr" ? "Impossible de charger les salons. Réessayer" : "Unable to load salons. Retry"}</button>}
+              <select required disabled={barbersFetching || barbersError || !!moreBarbers} value={assignForm.barberId} onChange={e => setAssignForm({ ...assignForm, barberId: e.target.value })} className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 <option value="">{s.pickBarber}</option>
-                {barbersList.map((bb: any) => (
+                {barbersList.map((bb) => (
                   <option key={bb.id} value={bb.id}>{bb.salonName} — {bb.city}</option>
                 ))}
               </select>
