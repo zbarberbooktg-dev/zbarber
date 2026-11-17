@@ -45,3 +45,4 @@
 - [Mobile keyboard-safe forms](mobile-keyboard-safe-forms.md) — native forms use the shared keyboard-aware scroll; never pin submit bars absolutely over editable content.
 - [iOS location purpose strings](ios-location-purpose-strings.md) — set all location Info.plist descriptions explicitly; the Expo plugin can leave generic strings that fail App Review.
 - [Salon discovery rules](salon-discovery-rules.md) — home images prefer logo then first gallery photo; show 20 new approved salons; search the whole catalog and map real coordinates.
+- [Mobile session boundaries](mobile-session-boundaries.md) — Clerk is authoritative; retain profile on failed logout, isolate account caches, bound push cleanup and wait for post-finalize identity.

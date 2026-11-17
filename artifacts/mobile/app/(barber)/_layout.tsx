@@ -8,15 +8,16 @@ import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { consumeAuthIntent } from "@/lib/authIntent";
+import { ActiveSessionGate, SessionTransition, SessionTransitionBoundary } from "@/components/ActiveSessionGate";
 
 export default function BarberTabs() {
   const c = useColors();
-  const { role, ready, syncing, authSyncError, syncAuth, user, barberProfile, t, lang } = useApp();
+  const { role, ready, syncAuth, user, barberProfile, t, lang, signingOut, signOutDestination, suspendedNotice } = useApp();
   const { isSignedIn, isLoaded } = useAuth();
   const segments = useSegments();
   const isWeb = Platform.OS === "web";
   const [authWaitTimedOut, setAuthWaitTimedOut] = useState(false);
-  const waitingForAuth = !isLoaded || !ready || !!(isSignedIn && !user && (syncing || authSyncError));
+  const waitingForAuth = !isLoaded || !ready || !!(isSignedIn && !user);
 
   useEffect(() => {
     if (!waitingForAuth) {
@@ -36,6 +37,8 @@ export default function BarberTabs() {
     void syncAuth().catch(() => {});
   };
 
+  if (signingOut && !user) return <SessionTransition signingOut />;
+  if (suspendedNotice && isSignedIn) return <ActiveSessionGate />;
   if (waitingForAuth) {
     return (
       <View style={{ flex: 1, backgroundColor: c.background, alignItems: "center", justifyContent: "center", padding: 28 }}>
@@ -67,6 +70,7 @@ export default function BarberTabs() {
   if (!isSignedIn) {
     const intent = consumeAuthIntent();
     if (intent === "signup") return <Redirect href="/(auth)/sign-up" />;
+    if (intent !== "signin" && signOutDestination) return <Redirect href={signOutDestination} />;
     return <Redirect href="/(auth)/sign-in" />;
   }
   if (role === "client") return <Redirect href="/(client)" />;
@@ -88,6 +92,7 @@ export default function BarberTabs() {
   const profileTabHref = blocked ? null : undefined;
 
   return (
+    <SessionTransitionBoundary busy={signingOut}>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: c.primary,
@@ -156,5 +161,6 @@ export default function BarberTabs() {
       <Tabs.Screen name="stats" options={{ href: null }} />
       <Tabs.Screen name="queue" options={{ href: null }} />
     </Tabs>
+    </SessionTransitionBoundary>
   );
 }

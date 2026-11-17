@@ -2,13 +2,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DeviceEventEmitter } from "react-native";
 import { LANG_CHANGE_EVENT } from "@/hooks/useClerkLocalization";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@clerk/expo";
+import { useAuth, useClerk } from "@clerk/expo";
+import { useQueryClient } from "@tanstack/react-query";
 import { setAuthTokenGetter, setUnauthorizedHandler, type ApiError } from "@workspace/api-client-react";
 
 import { localeMap, translations, type Lang } from "@/constants/i18n";
 import { apiUrl } from "@/lib/api";
 import { registerPushToken, unregisterPushToken } from "@/lib/push";
 import { ACCOUNT_SUSPENDED_EVENT, reportSuspendedIfNeeded } from "@/lib/accountGuard";
+import { SessionGeneration, SignOutRunner, withDeadline, waitForValue } from "@/lib/sessionLifecycle";
+import { setAuthIntent } from "@/lib/authIntent";
+import { setBrowsing } from "@/lib/browseIntent";
 
 export type AppRole = "client" | "barber" | "admin" | null;
 export type AppStatus = "active" | "suspended" | "pending" | null;
@@ -47,6 +51,9 @@ type AppState = {
   barberProfile: SyncedBarber | null;
   syncing: boolean;
   authSyncError: boolean;
+  signingOut: boolean;
+  signOutError: string | null;
+  signOutDestination: "/browse" | "/role-select" | "/(auth)/sign-in" | null;
   themePref: ThemePref;
   lang: Lang;
   ready: boolean;
@@ -55,7 +62,7 @@ type AppState = {
   setRole: (role: AppRole) => Promise<void>;
   setThemePref: (t: ThemePref) => Promise<void>;
   setLang: (l: Lang) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: (opts?: { destination?: "/browse" | "/role-select" | "/(auth)/sign-in" }) => Promise<void>;
   syncAuth: (opts?: SyncAuthOpts) => Promise<SyncedUser | null>;
   suspendedNotice: boolean;
   clearSuspendedNotice: () => void;
@@ -68,6 +75,7 @@ const AppContext = createContext<AppState | null>(null);
 const THEME_KEY = "gbc.theme";
 const LANG_KEY = "gbc.lang";
 const SELECTED_SALON_KEY = "gbc.selectedSalon";
+const SELECTED_SALON_OWNER_KEY = "gbc.selectedSalonOwner";
 
 type SyncResult = { user: SyncedUser; barber: SyncedBarber | null } | null;
 
@@ -83,7 +91,7 @@ export type SyncAuthOpts = {
 async function callSync(
   token: string | null,
   opts?: SyncAuthOpts,
-  { throwOnError = false }: { throwOnError?: boolean } = {},
+  { throwOnError = false, signal }: { throwOnError?: boolean; signal?: AbortSignal } = {},
 ): Promise<SyncResult> {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   const base = domain ? `https://${domain}` : "";
@@ -101,6 +109,7 @@ async function callSync(
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),
+    signal,
   });
   if (!res.ok) {
     let parsed: unknown = null;
@@ -121,24 +130,43 @@ async function callSync(
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { isLoaded, isSignedIn, getToken, signOut: clerkSignOut } = useAuth();
+  const { isLoaded, isSignedIn, userId, sessionId, getToken, signOut: clerkSignOut } = useAuth();
+  const queryClient = useQueryClient();
+  const clerk = useClerk();
+  const identity = isLoaded && isSignedIn && userId ? `${userId}:${sessionId ?? ""}` : null;
+  const authRef = useRef({ identity, userId, sessionId, isSignedIn, getToken, clerkSignOut });
+  authRef.current = { identity, userId, sessionId, isSignedIn, getToken, clerkSignOut };
+  const generation = useRef(new SessionGeneration()).current;
+  const previousIdentity = useRef<string | null | undefined>(undefined);
+  const initializedIdentity = useRef<string | null>(null);
+  const signOutRunner = useRef(new SignOutRunner()).current;
+  const signOutFlight = useRef<Promise<void> | null>(null);
+  const syncSequence = useRef(0);
   const [themePref, setThemePrefState] = useState<ThemePref>("system");
   const [lang, setLangState] = useState<Lang>("fr");
   const [storageReady, setStorageReady] = useState(false);
-  const [user, setUser] = useState<SyncedUser | null>(null);
-  const [barberProfile, setBarberProfile] = useState<SyncedBarber | null>(null);
+  const [storedUser, setUser] = useState<SyncedUser | null>(null);
+  const [storedBarber, setBarberProfile] = useState<SyncedBarber | null>(null);
+  const [profileIdentity, setProfileIdentity] = useState<string | null>(null);
+  const user = identity && profileIdentity === identity ? storedUser : null;
+  const barberProfile = identity && profileIdentity === identity ? storedBarber : null;
   const [syncing, setSyncing] = useState(false);
   const [authSyncError, setAuthSyncError] = useState(false);
-  const [initialSyncDone, setInitialSyncDone] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [signOutDestination, setSignOutDestination] = useState<AppState["signOutDestination"]>(null);
   const [selectedSalonId, setSelectedSalonIdState] = useState<number | null>(null);
   // The Expo push token registered for this session, kept so we can unregister
   // it on sign-out.
   const pushTokenRef = useRef<string | null>(null);
+  const pushRegistrationRef = useRef<Promise<string | null> | null>(null);
+  const pushAbortRef = useRef<AbortController | null>(null);
 
-  // Authed fetch closure for push (de)registration. Re-reads the latest token
-  // on each call via getToken; never throws to the caller.
-  const pushAuthedFetch = async (path: string, init: RequestInit = {}) => {
-    const token = await getToken();
+  // Push registration catches failures; this closure rejects stale sessions.
+  const pushAuthedFetch = async (path: string, init: RequestInit = {}, ticket?: number) => {
+    const scope = authRef.current.identity;
+    const token = await authRef.current.getToken();
+    if (!scope || scope !== authRef.current.identity || init.signal?.aborted || (ticket !== undefined && !generation.isCurrent(ticket))) throw new Error("Session changed");
     const headers = new Headers(init.headers);
     if (token && !headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
     if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
@@ -151,14 +179,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return res.status === 204 ? null : res.json().catch(() => null);
   };
 
-  const ensurePushRegistered = () => {
-    registerPushToken(pushAuthedFetch)
-      .then((tok) => { if (tok) pushTokenRef.current = tok; })
-      .catch(() => {});
+  const ensurePushRegistered = (ticket: number) => {
+    if (pushRegistrationRef.current || pushTokenRef.current || signOutRunner.running) return;
+    const controller = new AbortController();
+    pushAbortRef.current = controller;
+    const registration = registerPushToken((path, init) => {
+      if (!generation.isCurrent(ticket) || signOutRunner.running) return Promise.reject(new Error("Session changed"));
+      return pushAuthedFetch(path, { ...init, signal: controller.signal }, ticket);
+    }).then((tok) => {
+      if (tok && generation.isCurrent(ticket) && !signOutRunner.running) pushTokenRef.current = tok;
+      return tok;
+    }).catch(() => null).finally(() => {
+      if (pushRegistrationRef.current === registration) {
+        pushRegistrationRef.current = null;
+        pushAbortRef.current = null;
+      }
+    });
+    pushRegistrationRef.current = registration;
   };
 
   useEffect(() => {
-    setAuthTokenGetter(() => getToken());
+    setAuthTokenGetter(() => authRef.current.getToken());
     return () => setAuthTokenGetter(null);
     // getToken is a fresh function on each render in @clerk/expo; depending on it
     // causes an infinite re-render loop. We capture it once via a closure that
@@ -169,70 +210,103 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [t, l, s] = await Promise.all([
+        const [t, l] = await Promise.all([
           AsyncStorage.getItem(THEME_KEY),
           AsyncStorage.getItem(LANG_KEY),
-          AsyncStorage.getItem(SELECTED_SALON_KEY),
         ]);
         if (t === "light" || t === "dark" || t === "system") setThemePrefState(t);
         if (l === "fr" || l === "en") setLangState(l);
-        if (s != null && s !== "") {
-          const n = parseInt(s);
-          if (Number.isFinite(n)) setSelectedSalonIdState(n);
-        }
       } catch {}
       setStorageReady(true);
     })();
   }, []);
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      setUser(null);
-      setBarberProfile(null);
-      setAuthSyncError(false);
-      setInitialSyncDone(true);
-      return;
-    }
-    let cancel = false;
-    (async () => {
-      setSyncing(true);
-      setAuthSyncError(false);
-      try {
-        const token = await getToken();
-        const result = await callSync(token, undefined, { throwOnError: true });
-        if (!cancel) {
-          setUser(result?.user ?? null);
-          setBarberProfile(result?.barber ?? null);
-          if (result?.user) ensurePushRegistered();
-        }
-      } catch {
-        if (!cancel) setAuthSyncError(true);
-      } finally {
-        if (!cancel) { setSyncing(false); setInitialSyncDone(true); }
-      }
-    })();
-    return () => { cancel = true; };
-    // Intentionally exclude getToken (unstable identity in @clerk/expo).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, isSignedIn]);
-
   const syncAuth = async (opts?: SyncAuthOpts) => {
+    const activatedSessionId = clerk.session?.id;
+    if (activatedSessionId && (!authRef.current.identity || initializedIdentity.current !== authRef.current.identity)) {
+      // Signup finalize callbacks can run before useAuth has rendered the new session.
+      await withDeadline((signal) => waitForValue(() => {
+        const live = authRef.current;
+        return live.sessionId === activatedSessionId && live.identity === initializedIdentity.current ? live.identity : null;
+      }, signal), 3000, "La session s’initialise. Réessayez dans un instant.");
+    }
+    const scope = authRef.current.identity;
+    if (!scope || signOutRunner.running) throw new Error("Aucune session à synchroniser");
+    const ticket = generation.capture();
+    const sequence = ++syncSequence.current;
+    const current = () => generation.isCurrent(ticket) && scope === authRef.current.identity && !signOutRunner.running && sequence === syncSequence.current;
     setSyncing(true);
     setAuthSyncError(false);
     try {
-      const token = await getToken();
-      const result = await callSync(token, opts, { throwOnError: true });
+      const result = await withDeadline(async (signal) => {
+        const token = await authRef.current.getToken();
+        if (signal.aborted || !current()) throw new Error("Session changed");
+        return callSync(token, opts, { throwOnError: true, signal });
+      }, 15000, "Impossible de charger votre profil. Vérifiez votre connexion.");
+      if (!current()) return null;
       setUser(result?.user ?? null);
       setBarberProfile(result?.barber ?? null);
+      setProfileIdentity(scope);
+      if (result?.user) ensurePushRegistered(ticket);
       return result?.user ?? null;
     } catch (error) {
-      setAuthSyncError(true);
+      if (current()) setAuthSyncError(true);
       throw error;
     } finally {
-      setSyncing(false);
+      if (current()) setSyncing(false);
     }
   };
+
+  const clearPrivateState = (resetIntent = true) => {
+    generation.invalidate();
+    syncSequence.current += 1;
+    void queryClient.cancelQueries().catch(() => {});
+    queryClient.clear();
+    setUser(null);
+    setBarberProfile(null);
+    setProfileIdentity(null);
+    setSelectedSalonIdState(null);
+    setSyncing(false);
+    setAuthSyncError(false);
+    pushAbortRef.current?.abort();
+    pushAbortRef.current = null;
+    pushRegistrationRef.current = null;
+    pushTokenRef.current = null;
+    if (resetIntent) setAuthIntent(null);
+    setBrowsing(false);
+  };
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const changed = previousIdentity.current !== undefined && previousIdentity.current !== identity;
+    previousIdentity.current = identity;
+    clearPrivateState(changed);
+    initializedIdentity.current = identity;
+    if (!identity) {
+      void AsyncStorage.multiRemove([SELECTED_SALON_KEY, SELECTED_SALON_OWNER_KEY]).catch(() => {});
+      return;
+    }
+    setSignOutDestination(null);
+    setSignOutError(null);
+    setSuspendedNotice(false);
+    const ticket = generation.capture();
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [saved, owner] = await withDeadline(() => Promise.all([
+          AsyncStorage.getItem(SELECTED_SALON_KEY), AsyncStorage.getItem(SELECTED_SALON_OWNER_KEY),
+        ]), 1500, "Selection restore timed out").catch(() => [null, null]);
+        if (cancelled || !generation.isCurrent(ticket) || authRef.current.identity !== identity) return;
+        if (owner === userId && saved && Number.isFinite(Number(saved))) setSelectedSalonIdState(Number(saved));
+        await syncAuth();
+      } catch {
+        if (!cancelled && generation.isCurrent(ticket)) setAuthSyncError(true);
+      }
+    })();
+    return () => { cancelled = true; };
+    // Auth functions are read through authRef; do not depend on unstable getters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, identity]);
 
   const setRole = async (_r: AppRole) => {
     // Role is now driven by Clerk + server sync; kept for API compatibility.
@@ -244,9 +318,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setSelectedSalonId = async (id: number | null) => {
+    const owner = authRef.current.userId;
+    if (!owner || !authRef.current.identity || signOutRunner.running) return;
     setSelectedSalonIdState(id);
-    if (id == null) await AsyncStorage.removeItem(SELECTED_SALON_KEY);
-    else await AsyncStorage.setItem(SELECTED_SALON_KEY, String(id));
+    if (id == null) await AsyncStorage.multiRemove([SELECTED_SALON_KEY, SELECTED_SALON_OWNER_KEY]);
+    else await AsyncStorage.multiSet([[SELECTED_SALON_KEY, String(id)], [SELECTED_SALON_OWNER_KEY, owner]]);
   };
 
   const setLang = async (l: Lang) => {
@@ -255,14 +331,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     DeviceEventEmitter.emit(LANG_CHANGE_EVENT, l);
   };
 
-  const signOut = async () => {
-    // Best-effort: drop this device's push token before the session ends so the
-    // signed-out account stops receiving pushes on this device.
-    const tok = pushTokenRef.current;
-    if (tok) { await unregisterPushToken(pushAuthedFetch, tok); pushTokenRef.current = null; }
-    setUser(null);
-    setBarberProfile(null);
-    await clerkSignOut();
+  const signOut: AppState["signOut"] = (opts) => {
+    if (signOutFlight.current) return signOutFlight.current;
+    const scope = authRef.current.identity;
+    const sdk = authRef.current;
+    setSigningOut(true);
+    setSignOutError(null);
+    setSyncing(false);
+    setSignOutDestination(opts?.destination ?? "/browse");
+    generation.invalidate(); // Drop late profile syncs, but retain the profile until revocation.
+    const operation = signOutRunner.run({
+      beforeRevoke: async (signal) => {
+        const registrationAbort = pushAbortRef.current;
+        signal.addEventListener("abort", () => registrationAbort?.abort(), { once: true });
+        const pendingToken = await pushRegistrationRef.current;
+        const tok = pushTokenRef.current ?? pendingToken;
+        if (!tok || signal.aborted || authRef.current.identity !== scope) return;
+        const token = await sdk.getToken();
+        if (!token || signal.aborted || authRef.current.identity !== scope) return;
+        await unregisterPushToken(async (path, init) => {
+          const headers = new Headers(init?.headers);
+          headers.set("authorization", `Bearer ${token}`);
+          headers.set("content-type", "application/json");
+          const response = await fetch(apiUrl(path), { ...init, headers, signal });
+          if (!response.ok) throw new Error("Push cleanup failed");
+        }, tok);
+      },
+      revoke: () => sdk.clerkSignOut(sdk.sessionId ? { sessionId: sdk.sessionId } : undefined),
+      isStillSignedIn: () => sdk.sessionId ? clerk.session?.id === sdk.sessionId : !!clerk.session,
+      afterRevoke: async () => {
+        if (authRef.current.identity && authRef.current.identity !== scope) return;
+        clearPrivateState();
+        await withDeadline(() => AsyncStorage.multiRemove([SELECTED_SALON_KEY, SELECTED_SALON_OWNER_KEY]), 1500, "Cleanup timed out").catch(() => {});
+      },
+    });
+    const result = operation.catch(() => {
+      setSignOutDestination(null);
+      setSignOutError("Déconnexion impossible. Votre session n’a pas pu être fermée. Vérifiez votre connexion puis réessayez.");
+      if (authRef.current.identity === scope) {
+        // Push was unregistered before revocation; restore it if the session survives.
+        pushAbortRef.current?.abort();
+        pushRegistrationRef.current = null;
+        pushTokenRef.current = null;
+        ensurePushRegistered(generation.capture());
+      }
+      throw new Error("Déconnexion impossible. Veuillez réessayer.");
+    }).finally(() => {
+      signOutFlight.current = null;
+      setSigningOut(false);
+    });
+    signOutFlight.current = result;
+    return result;
   };
 
   const [suspendedNotice, setSuspendedNotice] = useState(false);
@@ -283,7 +402,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUnauthorizedHandler((err: ApiError) => reportSuspendedIfNeeded(err.status, err.data));
     const sub = DeviceEventEmitter.addListener(ACCOUNT_SUSPENDED_EVENT, () => {
       setSuspendedNotice(true);
-      signOutRef.current().catch(() => {});
+      signOutRef.current({ destination: "/(auth)/sign-in" }).catch(() => {});
     });
     return () => {
       setUnauthorizedHandler(null);
@@ -299,10 +418,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       barberProfile,
       syncing,
       authSyncError,
+      signingOut,
+      signOutError,
+      signOutDestination,
       themePref,
       lang,
       ready: storageReady,
-      selectedSalonId,
+      selectedSalonId: user ? selectedSalonId : null,
       setSelectedSalonId,
       setRole,
       setThemePref,
@@ -314,7 +436,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       t: translations[lang],
       locale: localeMap[lang],
     }),
-    [user, barberProfile, syncing, authSyncError, themePref, lang, storageReady, isLoaded, initialSyncDone, selectedSalonId, suspendedNotice],
+    [user, barberProfile, syncing, authSyncError, signingOut, signOutError, signOutDestination, themePref, lang, storageReady, isLoaded, selectedSalonId, suspendedNotice],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

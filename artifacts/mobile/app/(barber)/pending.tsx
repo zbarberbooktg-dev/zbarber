@@ -1,17 +1,18 @@
 import { Feather } from "@expo/vector-icons";
 import { Redirect, useFocusEffect } from "expo-router";
 import React, { useCallback } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DocumentUploadCard } from "@/components/DocumentUploadCard";
+import { SignOutButton } from "@/components/SignOutButton";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function BarberPending() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { user, barberProfile, signOut, syncAuth } = useApp();
+  const { user, barberProfile, syncAuth } = useApp();
   useFocusEffect(useCallback(() => {
     void syncAuth().catch(() => {});
     // syncAuth closes over Clerk's unstable getToken; key by account, not function.
@@ -97,20 +98,7 @@ export default function BarberPending() {
         </Text>
       </View>
 
-      <Pressable
-        onPress={signOut}
-        style={({ pressed }) => ({
-          backgroundColor: c.card,
-          borderWidth: 1,
-          borderColor: c.border,
-          padding: 14,
-          borderRadius: c.radius,
-          alignItems: "center",
-          opacity: pressed ? 0.85 : 1,
-        })}
-      >
-        <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold" }}>Se déconnecter</Text>
-      </Pressable>
+      <SignOutButton />
     </ScrollView>
   );
 }

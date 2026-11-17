@@ -9,15 +9,16 @@ import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { consumeAuthIntent } from "@/lib/authIntent";
 import { setBrowsing } from "@/lib/browseIntent";
+import { ActiveSessionGate, SessionTransition, SessionTransitionBoundary } from "@/components/ActiveSessionGate";
 
 export default function ClientTabs() {
   const c = useColors();
   const router = useRouter();
-  const { role, ready, syncing, authSyncError, syncAuth, user, t, lang } = useApp();
+  const { role, ready, syncAuth, user, t, lang, signingOut, signOutDestination, suspendedNotice } = useApp();
   const { isSignedIn, isLoaded } = useAuth();
   const isWeb = Platform.OS === "web";
   const [authWaitTimedOut, setAuthWaitTimedOut] = useState(false);
-  const waitingForAuth = !isLoaded || !ready || !!(isSignedIn && !user && (syncing || authSyncError));
+  const waitingForAuth = !isLoaded || !ready || !!(isSignedIn && !user);
 
   useEffect(() => {
     if (!waitingForAuth) {
@@ -61,6 +62,8 @@ export default function ClientTabs() {
     </Pressable>
   );
 
+  if (signingOut && !user) return <SessionTransition signingOut />;
+  if (suspendedNotice && isSignedIn) return <ActiveSessionGate />;
   if (waitingForAuth) {
     return (
       <View style={{ flex: 1, backgroundColor: c.background, alignItems: "center", justifyContent: "center", padding: 28 }}>
@@ -92,6 +95,7 @@ export default function ClientTabs() {
   if (!isSignedIn) {
     const intent = consumeAuthIntent();
     if (intent === "signup") return <Redirect href="/(auth)/sign-up" />;
+    if (intent !== "signin" && signOutDestination) return <Redirect href={signOutDestination} />;
     return <Redirect href="/(auth)/sign-in" />;
   }
   // A barber account can browse and book exactly like a client, so it is
@@ -100,6 +104,7 @@ export default function ClientTabs() {
   if (role !== "client" && role !== "barber") return <Redirect href="/(auth)/sign-in" />;
 
   return (
+    <SessionTransitionBoundary busy={signingOut}>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: c.primary,
@@ -141,5 +146,6 @@ export default function ClientTabs() {
       />
       <Tabs.Screen name="index" options={{ href: null }} />
     </Tabs>
+    </SessionTransitionBoundary>
   );
 }

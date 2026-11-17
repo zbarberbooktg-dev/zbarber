@@ -6,6 +6,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { DocumentUploadCard } from "@/components/DocumentUploadCard";
+import { SignOutButton } from "@/components/SignOutButton";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { EditSalonLocationModal } from "@/components/EditSalonLocationModal";
 import { Avatar, Button, Card } from "@/components/UI";
@@ -17,7 +18,7 @@ import { setBrowsing } from "@/lib/browseIntent";
 export default function BarberProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, signOut, t, user } = useApp();
+  const { themePref, setThemePref, lang, setLang, t, user } = useApp();
   const { data: myBarbers, refetch, isLoading, isError } = useGetMyBarbers({ query: {
     queryKey: getGetMyBarbersQueryKey(), staleTime: 0, refetchOnMount: "always",
   } });
@@ -237,15 +238,7 @@ export default function BarberProfile() {
             icon="shield"
             onPress={() => router.push("/legal/privacy")}
           />
-          <Button
-            label={t.signOut}
-            variant="ghost"
-            icon="log-out"
-            onPress={async () => {
-              await signOut();
-              router.replace("/");
-            }}
-          />
+          <SignOutButton />
           <Button
             label={(t as any).deleteAccount ?? "Supprimer mon compte"}
             variant="ghost"

@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 
 import { useApp } from "@/contexts/AppContext";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
@@ -20,41 +19,46 @@ type Props = { visible: boolean; onClose: () => void };
 export function DeleteAccountModal({ visible, onClose }: Props) {
   const c = useColors();
   const { t, signOut } = useApp();
-  const router = useRouter();
   const fetcher = useAuthedFetch();
   const [confirm, setConfirm] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [accountDeleted, setAccountDeleted] = useState(false);
+  const deleteLock = React.useRef(false);
 
   React.useEffect(() => {
-    if (visible) { setConfirm(""); setReason(""); setErr(null); }
+    if (visible) { setConfirm(""); setReason(""); setErr(null); setAccountDeleted(false); }
   }, [visible]);
 
   const confirmWord = (t as any).deleteAccountConfirmWord ?? "SUPPRIMER";
-  const canDelete = confirm.trim().toUpperCase() === confirmWord && !busy;
+  const canDelete = (accountDeleted || confirm.trim().toUpperCase() === confirmWord) && !busy;
 
   const handleDelete = async () => {
+    if (deleteLock.current || !canDelete) return;
+    deleteLock.current = true;
     setErr(null);
     setBusy(true);
     try {
-      const res = (await fetcher("/api/auth/me", { method: "DELETE" })) as Response;
-      if (!res.ok) throw new Error("Suppression impossible");
-      await signOut();
+      if (!accountDeleted) {
+        await fetcher("/api/auth/me", { method: "DELETE" });
+        setAccountDeleted(true);
+      }
+      await signOut({ destination: "/role-select" });
       onClose();
-      router.replace("/role-select");
     } catch (e: any) {
       setErr(e?.message ?? "Erreur");
     } finally {
+      deleteLock.current = false;
       setBusy(false);
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { if (!busy && !accountDeleted) onClose(); }}>
       <View style={{ flex: 1, backgroundColor: c.background }}>
         <View style={{ flexDirection: "row", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border, alignItems: "center", justifyContent: "space-between" }}>
-          <Pressable onPress={onClose} hitSlop={10} disabled={busy}>
+          <Pressable onPress={onClose} hitSlop={10} disabled={busy || accountDeleted}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>{(t as any).cancel ?? "Annuler"}</Text>
           </Pressable>
           <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>{(t as any).deleteAccountTitle}</Text>
@@ -120,7 +124,7 @@ export function DeleteAccountModal({ visible, onClose }: Props) {
           >
             {busy ? <ActivityIndicator color="#fff" /> : (
               <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
-                {(t as any).deleteAccountConfirmBtn}
+                {accountDeleted ? "Réessayer la déconnexion" : (t as any).deleteAccountConfirmBtn}
               </Text>
             )}
           </Pressable>

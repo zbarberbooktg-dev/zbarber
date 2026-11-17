@@ -8,6 +8,7 @@ import { CreateSalonModal } from "@/components/CreateSalonModal";
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { DocumentUploadCard } from "@/components/DocumentUploadCard";
+import { SignOutButton } from "@/components/SignOutButton";
 import { Avatar, Button, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
@@ -18,7 +19,7 @@ import { setBrowsing } from "@/lib/browseIntent";
 export default function ClientProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, signOut, syncAuth, t, user, barberProfile } = useApp();
+  const { themePref, setThemePref, lang, setLang, syncAuth, t, user, barberProfile } = useApp();
   const params = useLocalSearchParams<{ becomeBarber?: string }>();
   const fetcher = useAuthedFetch();
   const [editOpen, setEditOpen] = useState(false);
@@ -265,15 +266,7 @@ export default function ClientProfile() {
             icon="shield"
             onPress={() => router.push("/legal/privacy")}
           />
-          <Button
-            label={t.signOut}
-            variant="ghost"
-            icon="log-out"
-            onPress={async () => {
-              await signOut();
-              router.replace("/");
-            }}
-          />
+          <SignOutButton />
           <Button
             label={(t as any).deleteAccount ?? "Supprimer mon compte"}
             variant="ghost"
