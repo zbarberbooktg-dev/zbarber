@@ -5,6 +5,14 @@ description: Durable design decisions for the two-stage barber approval (first-v
 
 # Two-step barber verification
 
+## Superseded product rule
+
+The user now requires salon professional documents and their validation to be optional, never prerequisites to admin approval. Human salon approval remains required; do not auto-approve existing accounts.
+
+**Why:** the user explicitly changed the product requirement on 2026-11-17.
+
+**How to apply:** treat the two-step requirements below as historical, not as the target behavior. Preserve document privacy and financing-specific document requirements. Until the requested change is implemented, the code may still enforce the old rules.
+
 Barber accounts go through two admin validations, not one: `pending` → first-validate → `awaiting_document` (barber uploads an official authorization document within ~30 days) → final approve → `approved`. Admin can also reject a submitted document, keeping the account in `awaiting_document`.
 
 **Key decisions (the non-obvious parts):**
