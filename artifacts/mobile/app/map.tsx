@@ -70,18 +70,35 @@ function buildLeafletHtml(
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   html, body, #map { height: 100%; margin: 0; padding: 0; background: #0A0A0A; }
-  .gbc-pin { background: #D4AF37; color: #0A0A0A; border-radius: 999px; padding: 4px 8px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 11px; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.5); white-space: nowrap; }
+  .gbc-marker { background: transparent; border: 0; }
+  .gbc-pin { position: relative; width: 44px; height: 54px;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,.32)); }
+  .gbc-pin::after { content: ''; position: absolute; width: 13px; height: 13px;
+    background: ${PALETTE.gold}; border-radius: 0 0 3px 0; left: 15.5px; top: 34px;
+    transform: rotate(45deg); z-index: 0; }
+  .gbc-pin-head { position: relative; z-index: 1; display: flex; align-items: center;
+    justify-content: center; width: 38px; height: 38px; box-sizing: border-box;
+    margin: 2px 3px; border: 3px solid ${PALETTE.gold}; border-radius: 50%;
+    background: ${PALETTE.surface}; color: ${PALETTE.gold};
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); transition: transform .16s, background .16s, color .16s; }
+  .gbc-pin-head svg { width: 21px; height: 21px; }
+  .gbc-pin-rating { position: absolute; z-index: 2; right: -9px; top: -4px;
+    padding: 3px 5px; border: 2px solid ${PALETTE.surface}; border-radius: 9px;
+    background: ${PALETTE.gold}; color: ${PALETTE.bg}; font: 700 10px/1 -apple-system, sans-serif; }
+  .gbc-marker:hover .gbc-pin-head, .gbc-marker:focus-visible .gbc-pin-head,
+  .gbc-marker.is-selected .gbc-pin-head { background: ${PALETTE.gold}; color: ${PALETTE.bg}; transform: translateY(-3px); }
+  .gbc-marker:focus-visible { outline: 2px solid ${PALETTE.gold}; outline-offset: 3px; border-radius: 22px; }
+  @media (prefers-reduced-motion: reduce) { .gbc-pin-head { transition: none; } }
   .gbc-user { width: 14px; height: 14px; background: #3B82F6; border: 2px solid #fff;
     border-radius: 999px; box-shadow: 0 0 0 4px rgba(59,130,246,0.3); }
-  .leaflet-popup-content-wrapper { background: #141414; color: #F3F0E9; border-radius: 8px; }
+  .leaflet-popup-content-wrapper { background: #141414; color: #F3F0E9; border-radius: 14px;
+    border: 1px solid ${PALETTE.gold}; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
   .leaflet-popup-tip { background: #141414; }
   .leaflet-popup-content { margin: 10px 12px; font-family: -apple-system, sans-serif; font-size: 13px; }
-  .popup-title { font-weight: 700; margin-bottom: 4px; color: #D4AF37; }
+  .popup-title { font-weight: 700; margin-bottom: 4px; color: #D4AF37; overflow-wrap: anywhere; }
   .popup-sub { color: #A09D94; font-size: 11px; margin-bottom: 6px; }
-  .popup-btn { display: inline-block; background: #D4AF37; color: #0A0A0A; padding: 6px 10px;
-    border-radius: 4px; font-weight: 700; text-decoration: none; font-size: 11px; cursor: pointer; }
+  .popup-btn { display: block; text-align: center; background: #D4AF37; color: #0A0A0A; padding: 10px 12px;
+    border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 12px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -141,15 +158,34 @@ function buildLeafletHtml(
   function buildPinIcon(m) {
     var el = document.createElement('div');
     el.className = 'gbc-pin';
-    var label = m.rating > 0 ? (m.rating.toFixed(1) + ' \u2605') : '\u2702';
-    el.textContent = label;
-    return L.divIcon({ className: '', html: el.outerHTML, iconAnchor: [20, 14] });
+    var head = document.createElement('div');
+    head.className = 'gbc-pin-head';
+    // Static vector artwork, never user-generated HTML or a device-dependent emoji.
+    head.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.12 8.12 21 21M8.12 15.88 21 3"/></svg>';
+    el.appendChild(head);
+    if (m.rating > 0) {
+      var rating = document.createElement('span');
+      rating.className = 'gbc-pin-rating';
+      rating.textContent = m.rating.toFixed(1);
+      el.appendChild(rating);
+    }
+    return L.divIcon({ className: 'gbc-marker', html: el.outerHTML,
+      iconSize: [44,54], iconAnchor: [22,48], popupAnchor: [0,-42] });
   }
 
   var bounds = L.latLngBounds(data.userPosition ? [data.userPosition] : []);
   data.markers.forEach(function(m) {
-    var marker = L.marker([m.lat, m.lng], { icon: buildPinIcon(m) }).addTo(map);
-    marker.bindPopup(buildPopup(m));
+    var marker = L.marker([m.lat, m.lng], { icon: buildPinIcon(m), title: m.name,
+      alt: 'Salon : ' + m.name, keyboard: true, riseOnHover: true }).addTo(map);
+    marker.bindPopup(buildPopup(m), { minWidth: 160, maxWidth: 230 });
+    marker.on('popupopen', function() {
+      marker.getElement().classList.add('is-selected');
+      marker.setZIndexOffset(1000);
+    });
+    marker.on('popupclose', function() {
+      marker.getElement().classList.remove('is-selected');
+      marker.setZIndexOffset(0);
+    });
     bounds.extend([m.lat, m.lng]);
   });
 

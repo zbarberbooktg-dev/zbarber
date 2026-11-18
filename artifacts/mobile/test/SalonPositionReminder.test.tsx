@@ -8,18 +8,23 @@ import { hasSalonPosition } from "../../admin/src/lib/salonLocation";
 const h = vi.hoisted(() => ({
   salons: [] as Array<Record<string, unknown>>,
   mutate: vi.fn(),
+  read: vi.fn(),
 }));
 vi.mock("@workspace/api-client-react", () => ({
   getGetMyBarbersQueryKey: () => ["/api/barbers/me"],
   useGetMyBarbers: () => useQuery({ queryKey: ["/api/barbers/me"], queryFn: async () => h.salons }),
   useUpdateMySalon: () => ({ mutateAsync: h.mutate }),
+  getMyBarbers: h.read,
 }));
 vi.mock("@/lib/api", () => ({ useAuthedFetch: () => vi.fn() }));
 vi.mock("@/lib/imageUpload", () => ({ pickAndUploadImage: vi.fn(), resolveObjectUrl: () => null }));
 vi.mock("@/contexts/AppContext", () => ({
   useApp: () => ({ lang: "fr", t: {}, user: { name: "Owner" }, selectedSalonId: 2 }),
 }));
-vi.mock("expo-router", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("expo-router", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useFocusEffect: (cb: () => void) => React.useEffect(cb, [cb]),
+}));
 vi.mock("@expo/vector-icons", () => ({ Feather: "Icon" }));
 vi.mock("@/hooks/useColors", () => ({ useColors: () => ({ radius: 8 }) }));
 vi.mock("react-native", () => ({
@@ -54,6 +59,7 @@ beforeEach(() => {
     h.salons = h.salons.map((salon) => salon.id === params.salonId ? { ...salon, ...data } : salon);
     return h.salons.find((salon) => salon.id === params.salonId);
   });
+  h.read.mockImplementation(async () => h.salons);
 });
 afterEach(async () => {
   if (root) await act(async () => root!.unmount());
@@ -125,4 +131,59 @@ test("saving other salon details never invents a position or clears a missing-po
   expect(data).not.toHaveProperty("longitude");
   expect(find("salon-position-reminder-1")).toBeTruthy();
   expect(root!.root.findAllByProps({ testID: "salon-save" })).toHaveLength(0);
+});
+
+test("a successful response that did not persist coordinates keeps the chosen point and allows retry", async () => {
+  h.mutate.mockImplementationOnce(async ({ params, data }) => ({ ...h.salons.find(s => s.id === params.salonId), ...data }));
+  await mount();
+  await act(async () => find("salon-position-edit-1").props.onPress());
+  const point = { latitude: 6.180108, longitude: 1.274387 };
+  await act(async () => root!.root.findByType("SalonLocationFields" as never).props.onChange(point));
+  expect(root!.root.findByType("SalonLocationFields" as never).props.unsaved).toBe(true);
+  await act(async () => find("salon-save").props.onPress());
+  expect(h.read).toHaveBeenCalledWith({ cache: "no-store" });
+  expect(find("salon-position-reminder-1")).toBeTruthy();
+  expect(find("salon-save-error")).toBeTruthy();
+  expect(root!.root.findByType("SalonLocationFields" as never).props.value).toEqual(point);
+  expect(root!.root.findByType("SalonLocationFields" as never).props.unsaved).toBe(true);
+  // A retry really persists the same coordinates, and survives cache refresh.
+  await act(async () => find("salon-save").props.onPress());
+  expect(root!.root.findAllByProps({ testID: "salon-save" })).toHaveLength(0);
+  await act(async () => { await qc.invalidateQueries(); });
+  expect(root!.root.findAllByProps({ testID: "salon-position-reminder-1" })).toHaveLength(0);
+  await act(async () => find("edit-salon-1").props.onPress());
+  expect(root!.root.findByType("SalonLocationFields" as never).props.value).toEqual(point);
+  expect(root!.root.findByType("SalonLocationFields" as never).props.unsaved).toBe(false);
+});
+
+test("a failed verification preserves the editor instead of assuming a successful save", async () => {
+  h.read.mockRejectedValueOnce(new Error("Offline"));
+  await mount();
+  await act(async () => find("salon-position-edit-1").props.onPress());
+  await act(async () => root!.root.findByType("SalonLocationFields" as never).props.onChange({ latitude: 0, longitude: 0 }));
+  await act(async () => find("salon-save").props.onPress());
+  expect(find("salon-save")).toBeTruthy();
+  expect(find("salon-save-error")).toBeTruthy();
+});
+
+test("a server returning the wrong salon never confirms that the selected salon was saved", async () => {
+  h.mutate.mockResolvedValueOnce(h.salons[0]);
+  await mount();
+  await act(async () => find("salon-position-edit-2").props.onPress());
+  await act(async () => root!.root.findByType("SalonLocationFields" as never).props.onChange({ latitude: 0, longitude: 0 }));
+  await act(async () => find("salon-save").props.onPress());
+  expect(find("salon-position-reminder-2")).toBeTruthy();
+  expect(find("salon-save-error")).toBeTruthy();
+  expect(h.read).not.toHaveBeenCalled();
+});
+
+test("numeric coordinates from a legacy server are retained when reopening and saving", async () => {
+  h.salons[0] = { ...h.salons[0], latitude: "6.180108", longitude: "1.274387" };
+  await mount();
+  await act(async () => find("edit-salon-1").props.onPress());
+  expect(root!.root.findByType("SalonLocationFields" as never).props.value).toEqual({ latitude: 6.180108, longitude: 1.274387 });
+  await act(async () => find("salon-save").props.onPress());
+  expect(h.mutate).toHaveBeenCalledWith(expect.objectContaining({
+    data: expect.objectContaining({ latitude: 6.180108, longitude: 1.274387 }),
+  }));
 });

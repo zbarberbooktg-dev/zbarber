@@ -105,6 +105,21 @@ test("a GPS request completing late does not override a deliberate all-salons se
   expect(payload().showRadius).toBe(false);
   expect(payload().markers).toHaveLength(3);
 });
+
+test("salon markers use fixed-size vector pins with accessible names and selection feedback", async () => {
+  await mount();
+  const html = root.root.findByType("WebView" as never).props.source.html as string;
+  expect(html).toContain("iconSize: [44,54]");
+  expect(html).toContain("iconAnchor: [22,48]");
+  expect(html).toContain('<svg viewBox="0 0 24 24"');
+  expect(html).toContain("alt: 'Salon : ' + m.name");
+  expect(html).toContain("classList.add('is-selected')");
+  expect(html).toContain("classList.remove('is-selected')");
+  expect(html).not.toContain("\\u2702");
+  const inline = html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+  expect(inline).toBeTruthy();
+  expect(() => new Function(inline!)).not.toThrow();
+});
 test("a GPS failure is understandable and the user can retry without restarting", async () => {
   h.gps.mockRejectedValueOnce(new Error("Location unavailable"));
   await mount();

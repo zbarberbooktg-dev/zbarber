@@ -1,10 +1,11 @@
-import { useUpdateMySalon, type Barber } from "@workspace/api-client-react";
+import { getMyBarbers, getGetMyBarbersQueryKey, useUpdateMySalon, type Barber } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 import { refreshSalonDiscovery } from "@/lib/salonDiscovery";
 import { SalonLocationFields, type SalonCoordinates, validCoordinates } from "./SalonLocationFields";
-import React, { useState } from "react";
+import { coordinates as parseCoordinates } from "@/lib/salonSearch";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -43,8 +44,10 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved, sal
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
   const update = useUpdateMySalon();
-  const [coordinates, setCoordinates] = useState<SalonCoordinates | null>(() =>
-    validCoordinates(initial.latitude, initial.longitude) ? { latitude: initial.latitude!, longitude: initial.longitude! } : null);
+  const [coordinates, setCoordinates] = useState<SalonCoordinates | null>(() => {
+    const point = parseCoordinates(initial.latitude, initial.longitude);
+    return point ? { latitude: point.lat, longitude: point.lng } : null;
+  });
   const [logoUrl, setLogoUrl] = useState<string | null>(initial.logoUrl ?? null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -57,6 +60,11 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved, sal
   const [whatsapp, setWhatsapp] = useState(initial.whatsapp ?? "+228 ");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const saveInFlight = useRef(false);
+  const initialPoint = parseCoordinates(initial.latitude, initial.longitude);
+  const unsavedPosition = !!coordinates && (!initialPoint
+    || Math.abs(coordinates.latitude - initialPoint.lat) > 0.0000001
+    || Math.abs(coordinates.longitude - initialPoint.lng) > 0.0000001);
 
   // Mounted only while open by the profile: each opening uses the latest
   // persisted values, without a background refetch clobbering edits.
@@ -70,6 +78,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved, sal
   };
 
   const handleSave = async () => {
+    if (saveInFlight.current) return;
     setErr(null);
     if (!country.trim()) {
       setErr("Le pays est obligatoire");
@@ -79,8 +88,15 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved, sal
       setErr("La ville est obligatoire");
       return;
     }
+    if (coordinates && !validCoordinates(coordinates.latitude, coordinates.longitude)) {
+      setErr("La position du salon est invalide. Ajustez le repère avant d’enregistrer.");
+      return;
+    }
+    saveInFlight.current = true;
     setSaving(true);
     try {
+      // An older in-flight profile response must not overwrite the saved result.
+      await qc.cancelQueries({ queryKey: getGetMyBarbersQueryKey() });
       const saved = await update.mutateAsync({ params: { salonId }, data: {
           country: country.trim(),
           city: city.trim(),
@@ -91,18 +107,39 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved, sal
           logoUrl,
           ...(coordinates ?? {}),
       } });
-      onSaved?.(saved);
-      await refreshSalonDiscovery(qc);
+      if (saved?.id !== salonId) {
+        throw new Error("Le serveur a répondu pour un autre salon. La sauvegarde n’a pas pu être confirmée. Une mise à jour du serveur est nécessaire.");
+      }
+      // A 200 response is not proof of persistence: older servers can silently
+      // ignore new fields. Read the owned salon back, bypassing the query cache.
+      const persisted = await getMyBarbers({ cache: "no-store" }).catch(() => {
+        throw new Error("Impossible de vérifier l’enregistrement. Votre repère est conservé dans ce formulaire ; réessayez.");
+      });
+      const confirmed = Array.isArray(persisted) ? persisted.find((salon) => salon.id === salonId) : undefined;
+      if (!confirmed) {
+        throw new Error("Le salon enregistré n’a pas pu être retrouvé. Votre repère est conservé ; réessayez.");
+      }
+      const point = parseCoordinates(confirmed.latitude, confirmed.longitude);
+      if (coordinates && (!point
+        || Math.abs(point.lat - coordinates.latitude) > 0.00001
+        || Math.abs(point.lng - coordinates.longitude) > 0.00001)) {
+        throw new Error("Le serveur n’a pas conservé la position choisie. Votre repère est conservé dans ce formulaire. Une mise à jour du serveur peut être nécessaire.");
+      }
+      qc.setQueryData(getGetMyBarbersQueryKey(), persisted);
+      onSaved?.(confirmed);
+      await refreshSalonDiscovery(qc, { excludeOwned: true });
       onClose();
     } catch (e: any) {
       setErr(e?.message ?? "Erreur");
     } finally {
+      saveInFlight.current = false;
       setSaving(false);
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet"
+      onRequestClose={() => { if (!saving && !uploading && !locating) onClose(); }}>
       <View style={{ flex: 1, backgroundColor: c.background }}>
         <View style={{ flexDirection: "row", padding: 16, borderBottomWidth: 1, borderBottomColor: c.border, alignItems: "center", justifyContent: "space-between" }}>
           <Pressable onPress={onClose} disabled={saving || uploading || locating} hitSlop={10}>
@@ -117,6 +154,11 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved, sal
             )}
           </Pressable>
         </View>
+        {err && (
+          <View testID="salon-save-error" accessibilityRole="alert" style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+            <Text style={{ color: c.destructive, fontSize: 13, lineHeight: 18 }}>{err}</Text>
+          </View>
+        )}
 
         <KeyboardAwareScrollViewCompat
           contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}
@@ -149,7 +191,8 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved, sal
             </Pressable>}
             <Text style={{ color: c.mutedForeground, fontSize: 12 }}>Sans logo, la première photo de votre galerie représente le salon.</Text>
           </View>
-          <SalonLocationFields value={coordinates} onChange={setCoordinates} disabled={saving} onLocatingChange={setLocating} />
+          <SalonLocationFields value={coordinates} onChange={setCoordinates} disabled={saving} onLocatingChange={setLocating}
+            unsaved={unsavedPosition} />
 
           <Field label="Quartier">
             <TextInput
@@ -194,9 +237,6 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved, sal
             />
           </Field>
 
-          {err && (
-            <Text style={{ color: c.destructive, fontFamily: "Inter_400Regular", fontSize: 13 }}>{err}</Text>
-          )}
         </KeyboardAwareScrollViewCompat>
       </View>
     </Modal>

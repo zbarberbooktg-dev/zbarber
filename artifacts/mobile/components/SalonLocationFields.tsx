@@ -11,11 +11,12 @@ export function validCoordinates(lat: unknown, lng: unknown): boolean {
     && typeof lng === "number" && Number.isFinite(lng) && Math.abs(lng) <= 180;
 }
 
-export function SalonLocationFields({ value, onChange, disabled = false, onLocatingChange }: {
+export function SalonLocationFields({ value, onChange, disabled = false, onLocatingChange, unsaved = false }: {
   value: SalonCoordinates | null;
   onChange: (value: SalonCoordinates) => void;
   disabled?: boolean;
   onLocatingChange?: (busy: boolean) => void;
+  unsaved?: boolean;
 }) {
   const c = useColors();
   const [locating, setLocating] = useState(false);
@@ -45,6 +46,11 @@ export function SalonLocationFields({ value, onChange, disabled = false, onLocat
         {value ? `${value.latitude.toFixed(6)}, ${value.longitude.toFixed(6)}`
           : "Position non définie. Touchez la carte pour placer le salon, ou utilisez le GPS lorsque vous êtes sur place."}
       </Text>
+      {unsaved && (
+        <Text testID="salon-position-unsaved" style={{ color: c.primary, fontSize: 13, lineHeight: 18 }}>
+          Position modifiée. Touchez « Enregistrer » pour confirmer sa sauvegarde.
+        </Text>
+      )}
       <Pressable testID="salon-capture-gps" onPress={capture} disabled={locating || disabled}
         accessibilityRole="button" accessibilityLabel="Utiliser ma position GPS"
         style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 12 }}>

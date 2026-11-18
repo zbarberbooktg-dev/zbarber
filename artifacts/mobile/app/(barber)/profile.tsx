@@ -1,8 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { getGetMyBarbersQueryKey, useGetMyBarbers, type Barber } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
@@ -30,6 +30,7 @@ export default function BarberProfile() {
   const [editingSalonId, setEditingSalonId] = useState<number | null>(null);
   const editingSalon = myBarbers?.find((salon) => salon.id === editingSalonId);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
 
   const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
     { key: "system", label: t.themeAuto, icon: "smartphone" },
