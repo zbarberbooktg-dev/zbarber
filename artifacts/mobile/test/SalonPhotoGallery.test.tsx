@@ -79,3 +79,21 @@ test("uses actual container width for photo sizing and thumbnail navigation", as
   await act(async () => find("salon-photo-thumb-1").props.onPress());
   expect(h.scroll).toHaveBeenLastCalledWith({ offset: 375, animated: true });
 });
+
+test("theme changes update captions and placeholders without covering photos or resetting selection", async () => {
+  await mount();
+  await act(async () => find("salon-photo-thumb-1").props.onPress());
+  const light = { bg: "#FAF9F6", surface: "#FFFFFF", border: "#E5E7EB", text: "#0A0F1A", textMuted: "#6B7280", gold: "#0A0F1A" };
+  await act(async () => root.update(
+    <SalonPhotoGallery slides={slides} isGallery isFr colors={light} onOpen={open} />,
+  ));
+  expect(find("salon-photo-gallery").props.style.backgroundColor).toBe(light.bg);
+  const photo = root.root.findAllByType("ShimmerImage" as never)[0];
+  expect(photo.props).toMatchObject({ contentFit: "contain", shimmerBase: light.surface, shimmerHighlight: light.border });
+  expect(root.root.findAllByType("Text" as never).every(n =>
+    [light.text, light.textMuted].includes(n.props.style.color))).toBe(true);
+  expect(root.root.findAllByType("View" as never).some(n => n.props.style?.position === "absolute")).toBe(false);
+  expect(find("salon-photo-thumb-1").props.accessibilityState.selected).toBe(true);
+  await act(async () => find("salon-photo-expand").props.onPress());
+  expect(open).toHaveBeenLastCalledWith(1);
+});

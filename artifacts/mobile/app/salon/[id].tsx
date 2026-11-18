@@ -46,6 +46,7 @@ import { resolveObjectUrl } from "@/lib/imageUpload";
 import { SalonPhotoGallery } from "@/components/SalonPhotoGallery";
 import { ScrollHint } from "@/components/ScrollHint";
 import { PanoramaViewer } from "@/components/PanoramaViewer";
+import { useColors } from "@/hooks/useColors";
 
 const WEEK_DAYS_ORDER: Array<{ key: string; label: string }> = [
   { key: "monday", label: "Lundi" },
@@ -57,15 +58,22 @@ const WEEK_DAYS_ORDER: Array<{ key: string; label: string }> = [
   { key: "sunday", label: "Dimanche" },
 ];
 
-const PALETTE = {
-  bg: "#0A0A0A",
-  surface: "#141414",
-  border: "#2A2A2A",
-  text: "#F3F0E9",
-  textMuted: "#A09D94",
-  textDim: "#5A5A5A",
-  gold: "#D4AF37",
-};
+function useSalonPalette() {
+  const colors = useColors();
+  return {
+    bg: colors.background,
+    surface: colors.card,
+    border: colors.border,
+    text: colors.foreground,
+    textMuted: colors.mutedForeground,
+    textDim: colors.mutedForeground,
+    // Gold remains the button fill; accent foreground stays readable on light surfaces.
+    gold: colors.accentForeground,
+    primary: colors.primary,
+    onPrimary: colors.isDark ? colors.primaryForeground : colors.foreground,
+    accent: colors.accent,
+  };
+}
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -78,6 +86,7 @@ const salonFallbacks: ImageSourcePropType[] = [
 ];
 
 export default function PublicSalonDetail() {
+  const PALETTE = useSalonPalette();
   const { id } = useLocalSearchParams<{ id: string }>();
   const barberId = Number(id);
   const router = useRouter();
@@ -423,7 +432,7 @@ export default function PublicSalonDetail() {
                 <View style={{
                   flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, alignSelf: "flex-start",
                   paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-                  backgroundColor: `${PALETTE.gold}18`, borderWidth: 1, borderColor: `${PALETTE.gold}40`,
+                  backgroundColor: PALETTE.accent, borderWidth: 1, borderColor: `${PALETTE.gold}40`,
                 }}>
                   <Feather name="navigation" size={11} color={PALETTE.gold} />
                   <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
@@ -463,7 +472,7 @@ export default function PublicSalonDetail() {
             <View
               style={{
                 marginTop: 16,
-                backgroundColor: `${PALETTE.gold}12`,
+                backgroundColor: PALETTE.accent,
                 borderColor: `${PALETTE.gold}40`,
                 borderWidth: 1,
                 borderRadius: 14,
@@ -497,15 +506,15 @@ export default function PublicSalonDetail() {
                         borderRadius: 11,
                         alignItems: "center",
                         justifyContent: "center",
-                        backgroundColor: filled ? PALETTE.gold : "transparent",
+                        backgroundColor: filled ? PALETTE.primary : "transparent",
                         borderWidth: 1,
-                        borderColor: filled ? PALETTE.gold : PALETTE.border,
+                        borderColor: filled ? PALETTE.primary : PALETTE.border,
                       }}
                     >
                       {i === loyalty.threshold - 1 ? (
-                        <Feather name="gift" size={11} color={filled ? PALETTE.bg : PALETTE.textDim} />
+                        <Feather name="gift" size={11} color={filled ? PALETTE.onPrimary : PALETTE.textDim} />
                       ) : (
-                        <Feather name="scissors" size={10} color={filled ? PALETTE.bg : PALETTE.textDim} />
+                        <Feather name="scissors" size={10} color={filled ? PALETTE.onPrimary : PALETTE.textDim} />
                       )}
                     </View>
                   );
@@ -573,12 +582,12 @@ export default function PublicSalonDetail() {
                 style={({ pressed }) => ({
                   flex: 1, paddingVertical: 10, paddingHorizontal: 12,
                   flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
-                  backgroundColor: PALETTE.gold,
+                  backgroundColor: PALETTE.primary,
                   opacity: pressed ? 0.85 : 1,
                 })}
               >
-                <Feather name="navigation" size={13} color="#000" />
-                <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 12 }}>
+                <Feather name="navigation" size={13} color={PALETTE.onPrimary} />
+                <Text style={{ color: PALETTE.onPrimary, fontFamily: "Inter_700Bold", fontSize: 12 }}>
                   Itinéraire
                 </Text>
               </Pressable>
@@ -640,7 +649,7 @@ export default function PublicSalonDetail() {
                       style={{
                         flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
                         paddingVertical: 12,
-                        backgroundColor: mode === opt.key ? `${PALETTE.gold}18` : PALETTE.surface,
+                        backgroundColor: mode === opt.key ? PALETTE.accent : PALETTE.surface,
                         borderWidth: 1,
                         borderColor: mode === opt.key ? PALETTE.gold : PALETTE.border,
                       }}
@@ -731,7 +740,7 @@ export default function PublicSalonDetail() {
                   paddingVertical: 16,
                   paddingHorizontal: 16,
                   marginBottom: 12,
-                  backgroundColor: selectedService === s.id ? `${PALETTE.gold}18` : PALETTE.surface,
+                  backgroundColor: selectedService === s.id ? PALETTE.accent : PALETTE.surface,
                   borderWidth: 1,
                   borderColor: selectedService === s.id ? PALETTE.gold : PALETTE.border,
                 }}
@@ -800,8 +809,8 @@ export default function PublicSalonDetail() {
                 contentFit="cover"
               />
               <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
-                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: PALETTE.gold, alignItems: "center", justifyContent: "center" }}>
-                  <Feather name="compass" size={26} color="#000" />
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: PALETTE.primary, alignItems: "center", justifyContent: "center" }}>
+                  <Feather name="compass" size={26} color={PALETTE.onPrimary} />
                 </View>
                 <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 14, marginTop: 10 }}>
                   Explorer en 360°
@@ -856,7 +865,7 @@ export default function PublicSalonDetail() {
                 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
                     <View style={{
-                      width: 32, height: 32, borderRadius: 16, backgroundColor: `${PALETTE.gold}20`,
+                      width: 32, height: 32, borderRadius: 16, backgroundColor: PALETTE.accent,
                       alignItems: "center", justifyContent: "center",
                     }}>
                       <Feather name="user" size={14} color={PALETTE.gold} />
@@ -909,16 +918,16 @@ export default function PublicSalonDetail() {
             onPress={handleBook}
             disabled={booking}
             style={({ pressed }) => ({
-              backgroundColor: booking ? PALETTE.border : PALETTE.gold,
+              backgroundColor: booking ? PALETTE.border : PALETTE.primary,
               paddingVertical: 16,
               alignItems: "center",
               opacity: pressed ? 0.88 : 1,
             })}
           >
             {booking ? (
-              <ActivityIndicator color="#000" />
+              <ActivityIndicator color={PALETTE.text} />
             ) : (
-              <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 15 }}>
+              <Text style={{ color: PALETTE.onPrimary, fontFamily: "Inter_700Bold", fontSize: 15 }}>
                 {isSignedIn ? "Réserver" : "Se connecter pour réserver"}
               </Text>
             )}
@@ -981,6 +990,7 @@ export default function PublicSalonDetail() {
 }
 
 function SectionTitle({ title }: { title: string }) {
+  const PALETTE = useSalonPalette();
   return (
     <Text style={{
       color: PALETTE.text,
@@ -1004,6 +1014,7 @@ function Accordion({
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
+  const PALETTE = useSalonPalette();
   const [open, setOpen] = useState(defaultOpen);
   return (
     <View>
@@ -1025,7 +1036,7 @@ function Accordion({
             {title}
           </Text>
           {typeof count === "number" && count > 0 && (
-            <View style={{ backgroundColor: `${PALETTE.gold}20`, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
+            <View style={{ backgroundColor: PALETTE.accent, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>
               <Text style={{ color: PALETTE.gold, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
                 {count}
               </Text>

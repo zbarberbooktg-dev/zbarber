@@ -78,6 +78,8 @@ export function SalonPhotoGallery({ slides, isGallery, isFr, worksLabel, colors:
                 style={{ width, height }}
                 contentFit="contain"
                 transition={200}
+                shimmerBase={C.surface}
+                shimmerHighlight={C.border}
               />
             </Pressable>
           )}
