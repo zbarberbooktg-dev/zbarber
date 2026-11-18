@@ -1210,6 +1210,14 @@ export type ListBarberMapPointsParams = {
 categoryId?: number;
 };
 
+export type UpdateMySalonParams = {
+/**
+ * Specific owned salon ID (for multi-salon barbers)
+ * @minimum 1
+ */
+salonId?: number;
+};
+
 export type GetMyRevenueParams = {
 /**
  * Specific salon ID (for multi-salon barbers)

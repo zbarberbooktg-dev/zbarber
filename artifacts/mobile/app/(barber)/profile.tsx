@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { getGetMyBarbersQueryKey, useGetMyBarbers } from "@workspace/api-client-react";
+import { getGetMyBarbersQueryKey, useGetMyBarbers, type Barber } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -14,17 +15,20 @@ import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
 import { useColors } from "@/hooks/useColors";
 import { setBrowsing } from "@/lib/browseIntent";
+import { coordinates } from "@/lib/salonSearch";
 
 export default function BarberProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, t, user } = useApp();
+  const { themePref, setThemePref, lang, setLang, t, user, selectedSalonId } = useApp();
+  const qc = useQueryClient();
   const { data: myBarbers, refetch, isLoading, isError } = useGetMyBarbers({ query: {
     queryKey: getGetMyBarbersQueryKey(), staleTime: 0, refetchOnMount: "always",
   } });
-  const barber = myBarbers?.[0] ?? null;
+  const barber = myBarbers?.find((salon) => salon.id === selectedSalonId) ?? myBarbers?.[0] ?? null;
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [editLocationOpen, setEditLocationOpen] = useState(false);
+  const [editingSalonId, setEditingSalonId] = useState<number | null>(null);
+  const editingSalon = myBarbers?.find((salon) => salon.id === editingSalonId);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
@@ -87,9 +91,31 @@ export default function BarberProfile() {
       </Card>
 
       <View>
-        <SectionLabel label="Mon salon" />
+        <SectionLabel label={lang === "fr" ? "Mes salons" : "My salons"} />
         {isError && <Pressable onPress={() => refetch()}><Text style={{ color: c.destructive }}>Impossible de charger le salon. Réessayer</Text></Pressable>}
-        <Pressable testID="edit-salon" disabled={isLoading || !barber} onPress={() => setEditLocationOpen(true)}>
+        {myBarbers?.map((salon) => (
+        <View key={salon.id} style={{ gap: 10, marginBottom: 12 }}>
+        {!coordinates(salon.latitude, salon.longitude) && (
+          <Card>
+            <View testID={`salon-position-reminder-${salon.id}`} style={{ gap: 8 }}>
+              <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
+                {lang === "fr" ? `${salon.salonName} n’apparaît pas sur la carte` : `${salon.salonName} is not on the map`}
+              </Text>
+              <Text style={{ color: c.mutedForeground, fontSize: 13, lineHeight: 18 }}>
+                {lang === "fr"
+                  ? "Confirmez la position réelle du salon pour aider les clients à le trouver. Vous pouvez continuer à utiliser votre espace sans le faire maintenant."
+                  : "Confirm the real salon location to help clients find it. You can keep using your account without doing this now."}
+              </Text>
+              <Pressable testID={`salon-position-edit-${salon.id}`} accessibilityRole="button"
+                onPress={() => setEditingSalonId(salon.id)} style={{ paddingVertical: 10 }}>
+                <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold" }}>
+                  {lang === "fr" ? "Positionner ce salon" : "Set this salon’s location"}
+                </Text>
+              </Pressable>
+            </View>
+          </Card>
+        )}
+        <Pressable testID={`edit-salon-${salon.id}`} disabled={isLoading} onPress={() => setEditingSalonId(salon.id)}>
           {({ pressed }) => (
             <Card style={{ opacity: pressed ? 0.85 : 1 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -101,18 +127,18 @@ export default function BarberProfile() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
-                    {barber?.salonName ?? "Configurer mon salon"}
+                    {salon.salonName}
                   </Text>
                   <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
-                    {[barber?.neighborhood, barber?.city].filter(Boolean).join(", ") || "Ville non renseignée"}
+                    {[salon.neighborhood, salon.city].filter(Boolean).join(", ") || "Ville non renseignée"}
                   </Text>
-                  {barber?.address && (
+                  {salon.address && (
                     <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
-                      {barber.address}
+                      {salon.address}
                     </Text>
                   )}
                   <Text style={{ color: c.primary, fontSize: 12, marginTop: 4 }}>
-                    {barber?.latitude != null && barber?.longitude != null ? "Position GPS enregistrée · Modifier" : "Définir la position GPS et le logo"}
+                    {coordinates(salon.latitude, salon.longitude) ? "Position GPS enregistrée · Modifier" : "Définir la position GPS et le logo"}
                   </Text>
                 </View>
                 <Feather name="chevron-right" size={18} color={c.mutedForeground} />
@@ -120,6 +146,8 @@ export default function BarberProfile() {
             </Card>
           )}
         </Pressable>
+        </View>
+        ))}
       </View>
 
       <EditProfileModal
@@ -129,22 +157,26 @@ export default function BarberProfile() {
         initialPhone={user?.phone ?? ""}
       />
 
-      {editLocationOpen && <EditSalonLocationModal
-        visible={editLocationOpen}
-        onClose={() => setEditLocationOpen(false)}
+      {editingSalon && <EditSalonLocationModal
+        key={editingSalon.id}
+        salonId={editingSalon.id}
+        salonName={editingSalon.salonName}
+        visible
+        onClose={() => setEditingSalonId(null)}
         initial={{
-          country: barber?.country ?? null,
-          city: barber?.city,
-          neighborhood: barber?.neighborhood,
-          address: barber?.address,
-          phone: barber?.phone,
-          whatsapp: barber?.whatsapp,
-          latitude: barber?.latitude,
-          longitude: barber?.longitude,
-          logoUrl: barber?.logoUrl,
+          country: editingSalon.country ?? null,
+          city: editingSalon.city,
+          neighborhood: editingSalon.neighborhood,
+          address: editingSalon.address,
+          phone: editingSalon.phone,
+          whatsapp: editingSalon.whatsapp,
+          latitude: editingSalon.latitude,
+          longitude: editingSalon.longitude,
+          logoUrl: editingSalon.logoUrl,
         }}
-        onSaved={() => {
-          refetch();
+        onSaved={(saved) => {
+          qc.setQueryData<Barber[]>(getGetMyBarbersQueryKey(), (salons) =>
+            salons?.map((salon) => salon.id === saved.id ? { ...salon, ...saved } : salon));
         }}
       />}
 

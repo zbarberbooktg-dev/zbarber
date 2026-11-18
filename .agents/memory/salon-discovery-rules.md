@@ -26,3 +26,9 @@ Public-catalog compatibility matters across independently released mobile apps a
 **Why:** the live backend accepted the public paginated salon list but failed on map points and ignored newest sorting while the workspace/test backend supported both. Workspace functionality alone is not proof the installed app's backend supports it.
 
 **How to apply:** preserve the shared complete-catalog compatibility path until backend/mobile capabilities are deliberately coordinated. Load every catalog page before claiming the globally newest twenty or an exhaustive map result. Do not restore reliance on a newer endpoint solely because local tests pass.
+
+Missing salon positions must remain optional: show non-blocking help to confirm the actual salon position, never assign the owner's personal GPS automatically, invent coordinates, change approval requirements, or send messages without authorization.
+
+**Why:** the user explicitly set these limits for helping unlocated salons appear on the map.
+
+**How to apply:** reuse the location editor, target the correct owned salon, and retain the reminder until a valid pair is actually saved. During public audits, verify each returned row's approval status rather than treating the API total as an approved count: an older live server returned non-approved salons too.

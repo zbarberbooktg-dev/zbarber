@@ -588,6 +588,8 @@ router.post("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
 // ── Barber: update own profile ───
 router.patch("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
   if (req.localUser!.role !== "barber") { res.status(403).json({ error: "Barber account required" }); return; }
+  const query = z.object({ salonId: z.coerce.number().int().positive().optional() }).safeParse(req.query);
+  if (!query.success) { res.status(400).json({ error: "Invalid salonId" }); return; }
   const body = z.object({
     salonName: z.string().optional(), bio: z.string().optional(), logoUrl: z.string().nullable().optional(),
     country: z.string().optional(), city: z.string().optional(), neighborhood: z.string().optional(), address: z.string().optional(),
@@ -598,7 +600,10 @@ router.patch("/barbers/me", requireAuth, async (req: AuthedRequest, res) => {
     || (v.latitude === null && v.longitude === null)
     || (typeof v.latitude === "number" && typeof v.longitude === "number"), "Coordinates must be supplied together").safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Invalid input" }); return; }
-  const [existing] = await db.select().from(barbersTable).where(eq(barbersTable.userId, req.localUser!.id)).orderBy(asc(barbersTable.id)).limit(1);
+  const [existing] = await db.select().from(barbersTable).where(and(
+    eq(barbersTable.userId, req.localUser!.id),
+    query.data.salonId !== undefined ? eq(barbersTable.id, query.data.salonId) : undefined,
+  )).orderBy(asc(barbersTable.id)).limit(1);
   if (!existing) { res.status(404).json({ error: "Profile not found" }); return; }
   if (existing.homeServiceEnabled && body.data.latitude === null) {
     res.status(400).json({ error: "Disable home service before removing salon coordinates" }); return;

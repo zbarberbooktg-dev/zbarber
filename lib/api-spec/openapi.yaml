@@ -415,7 +415,14 @@ paths:
     patch:
       operationId: updateMySalon
       tags: [barbers]
-      summary: Update the authenticated barber primary salon
+      summary: Update an owned salon (primary salon when salonId is omitted)
+      parameters:
+        - in: query
+          name: salonId
+          schema:
+            type: integer
+            minimum: 1
+          description: Specific owned salon ID (for multi-salon barbers)
       requestBody:
         required: true
         content:

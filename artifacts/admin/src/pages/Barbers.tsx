@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useT } from "@/lib/i18n";
 import { formatApiError } from "@/lib/errors";
+import { hasSalonPosition } from "@/lib/salonLocation";
 
 type ModalState = { type: "reject" | "suspend"; id: number; salonName: string } | null;
 
@@ -141,7 +142,14 @@ export default function Barbers() {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">{row.city}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {row.city}
+                  {!hasSalonPosition(row.latitude, row.longitude) && (
+                    <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400" title={b.missingPositionHelp}>
+                      {b.missingPosition}
+                    </p>
+                  )}
+                </td>
                 <td className="px-4 py-3"><StatusBadge status={row.status} /></td>
                 <td className="px-4 py-3">
                   <span className="text-primary font-semibold">{row.rating?.toFixed(1) ?? "—"}</span>

@@ -102,6 +102,7 @@ import type {
   SyncAuthInput,
   TopBarber,
   UpdateLocationInput,
+  UpdateMySalonParams,
   UploadUrlRequest,
   UploadUrlResponse,
   User,
@@ -1463,20 +1464,28 @@ export const useCreateMySalon = <TError = ErrorType<unknown>,
       return useMutation(getCreateMySalonMutationOptions(options));
     }
 
-export const getUpdateMySalonUrl = () => {
+export const getUpdateMySalonUrl = (params?: UpdateMySalonParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/barbers/me`
+  return stringifiedParams.length > 0 ? `/api/barbers/me?${stringifiedParams}` : `/api/barbers/me`
 }
 
 /**
- * @summary Update the authenticated barber primary salon
+ * @summary Update an owned salon (primary salon when salonId is omitted)
  */
-export const updateMySalon = async (barberUpdate: BarberUpdate, options?: RequestInit): Promise<Barber> => {
+export const updateMySalon = async (barberUpdate: BarberUpdate,
+    params?: UpdateMySalonParams, options?: RequestInit): Promise<Barber> => {
 
-  return customFetch<Barber>(getUpdateMySalonUrl(),
+  return customFetch<Barber>(getUpdateMySalonUrl(params),
   {
     ...options,
     method: 'PATCH',
@@ -1490,8 +1499,8 @@ export const updateMySalon = async (barberUpdate: BarberUpdate, options?: Reques
 
 
 export const getUpdateMySalonMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMySalon>>, TError,{data: BodyType<BarberUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateMySalon>>, TError,{data: BodyType<BarberUpdate>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMySalon>>, TError,{data: BodyType<BarberUpdate>;params?: UpdateMySalonParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMySalon>>, TError,{data: BodyType<BarberUpdate>;params?: UpdateMySalonParams}, TContext> => {
 
 const mutationKey = ['updateMySalon'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1503,10 +1512,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMySalon>>, {data: BodyType<BarberUpdate>}> = (props) => {
-          const {data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMySalon>>, {data: BodyType<BarberUpdate>;params?: UpdateMySalonParams}> = (props) => {
+          const {data,params} = props ?? {};
 
-          return  updateMySalon(data,requestOptions)
+          return  updateMySalon(data,params,requestOptions)
         }
 
 
@@ -1521,14 +1530,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateMySalonMutationError = ErrorType<unknown>
 
     /**
- * @summary Update the authenticated barber primary salon
+ * @summary Update an owned salon (primary salon when salonId is omitted)
  */
 export const useUpdateMySalon = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMySalon>>, TError,{data: BodyType<BarberUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMySalon>>, TError,{data: BodyType<BarberUpdate>;params?: UpdateMySalonParams}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateMySalon>>,
         TError,
-        {data: BodyType<BarberUpdate>},
+        {data: BodyType<BarberUpdate>;params?: UpdateMySalonParams},
         TContext
       > => {
       return useMutation(getUpdateMySalonMutationOptions(options));

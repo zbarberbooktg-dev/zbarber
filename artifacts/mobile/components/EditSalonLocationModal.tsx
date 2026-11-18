@@ -1,4 +1,4 @@
-import { useUpdateMySalon } from "@workspace/api-client-react";
+import { useUpdateMySalon, type Barber } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
@@ -20,6 +20,8 @@ import { useColors } from "@/hooks/useColors";
 import { CountryCityFields } from "@/components/CountryCityFields";
 
 type Props = {
+  salonId: number;
+  salonName: string;
   visible: boolean;
   onClose: () => void;
   initial: {
@@ -33,10 +35,10 @@ type Props = {
     longitude?: number | null;
     logoUrl?: string | null;
   };
-  onSaved?: () => void;
+  onSaved?: (salon: Barber) => void;
 };
 
-export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: Props) {
+export function EditSalonLocationModal({ visible, onClose, initial, onSaved, salonId, salonName }: Props) {
   const c = useColors();
   const fetcher = useAuthedFetch();
   const qc = useQueryClient();
@@ -79,7 +81,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
     }
     setSaving(true);
     try {
-      await update.mutateAsync({ data: {
+      const saved = await update.mutateAsync({ params: { salonId }, data: {
           country: country.trim(),
           city: city.trim(),
           neighborhood: neighborhood.trim(),
@@ -89,8 +91,8 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
           logoUrl,
           ...(coordinates ?? {}),
       } });
+      onSaved?.(saved);
       await refreshSalonDiscovery(qc);
-      onSaved?.();
       onClose();
     } catch (e: any) {
       setErr(e?.message ?? "Erreur");
@@ -106,7 +108,7 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
           <Pressable onPress={onClose} disabled={saving || uploading || locating} hitSlop={10}>
             <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>Annuler</Text>
           </Pressable>
-          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>Mon salon</Text>
+          <Text numberOfLines={1} style={{ flex: 1, marginHorizontal: 12, color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>{salonName}</Text>
           <Pressable testID="salon-save" onPress={handleSave} disabled={saving || uploading || locating} hitSlop={10}>
             {saving ? (
               <ActivityIndicator color={c.primary} size="small" />
@@ -122,6 +124,9 @@ export function EditSalonLocationModal({ visible, onClose, initial, onSaved }: P
         >
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
             Mettez à jour l'adresse de votre salon si vous avez déménagé. Vos clients verront immédiatement la nouvelle localisation.
+          </Text>
+          <Text style={{ color: c.mutedForeground, fontSize: 13, lineHeight: 18 }}>
+            Placez le repère à l’emplacement réel de ce salon. N’utilisez votre position GPS que si vous êtes sur place, puis vérifiez le repère avant d’enregistrer.
           </Text>
 
           <CountryCityFields

@@ -121,6 +121,7 @@ export * from './syncAuthInput';
 export * from './syncAuthInputRole';
 export * from './topBarber';
 export * from './updateLocationInput';
+export * from './updateMySalonParams';
 export * from './uploadUrlRequest';
 export * from './uploadUrlResponse';
 export * from './user';

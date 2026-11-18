@@ -485,8 +485,15 @@ export const CreateMySalonBody = zod.object({
 
 
 /**
- * @summary Update the authenticated barber primary salon
+ * @summary Update an owned salon (primary salon when salonId is omitted)
  */
+
+
+
+export const UpdateMySalonQueryParams = zod.object({
+  "salonId": zod.coerce.number().min(1).optional().describe('Specific owned salon ID (for multi-salon barbers)')
+})
+
 export const UpdateMySalonBody = zod.object({
   "salonName": zod.string().optional(),
   "bio": zod.string().nullish(),
