@@ -1169,6 +1169,9 @@ export type ListBarbersParams = {
  * Search all approved salons by name, city or neighborhood before pagination
  */
 search?: string;
+/**
+ * Newest registrations first by createdAt descending, then id descending; approval date does not affect this order.
+ */
 sort?: ListBarbersSort;
 categoryId?: number;
 service?: string;

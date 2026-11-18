@@ -4,6 +4,7 @@
 - [Admin Clerk Bearer](admin-clerk-bearer.md) — browser SPAs on Replit shared proxy must send Clerk JWT via Authorization header; cookie auth silently 401s in dev.
 - [Multi-salon barber model](multi-salon.md) — /barbers/me returns array; no unique constraint on barbersTable.userId; consumers must extract [0] for primary salon.
 - [Orval naming collision](orval-naming.md) — component schema names must not match auto-generated response type names (operationId + "Response"); rename schema to avoid TS2308.
+- [Orval infinite pagination](orval-infinite-pagination.md) — v8.9.1 leaves numeric page parameters untyped in infinite-query output; compose generated page queries until verified fixed.
 - [Barber approval gate](barber-approval-gate.md) — layout uses barberProfile.status (from AppContext, populated by /auth/sync barber field), NOT user.status.
 - [Salon document policy](two-step-barber-verification.md) — documents and their review are optional; no deadline or access condition; human approval, private files and financing requirements remain.
 - [api-server integration tests](api-server-integration-tests.md) — vitest+supertest vs real dev DB; fake Clerk via header+mock, admins via signed gbc_admin cookie; mount routers not app.ts.

@@ -7,7 +7,8 @@ import {
   useFonts,
 } from "@expo-google-fonts/playfair-display";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getListBarbersQueryKey, useListBarbers, useListHomeGalleryPhotos, useListPublicArticles } from "@workspace/api-client-react";
+import { getListBarbersQueryKey, useListBarbers, useListHomeGalleryPhotos, useListPublicArticles, useApprovedSalonCatalog } from "@workspace/api-client-react";
+import { newestRegisteredSalons } from "@/lib/salonSearch";
 import { useAuth } from "@clerk/expo";
 import { reloadAppAsync } from "expo";
 import * as Location from "expo-location";
@@ -194,10 +195,8 @@ export default function PublicHome() {
     { status: "approved", search: search || undefined, limit: 20 },
     { query: { queryKey: getListBarbersQueryKey({ status: "approved", search: search || undefined, limit: 20 }), staleTime: 30000, refetchOnMount: "always" } },
   );
-  const { data: newest, isLoading: newestLoading, isError: newestError, refetch: refetchNewest } = useListBarbers(
-    { status: "approved", sort: "newest", limit: 20 },
-    { query: { queryKey: getListBarbersQueryKey({ status: "approved", sort: "newest", limit: 20 }), staleTime: 30000, refetchOnMount: "always" } },
-  );
+  const { data: catalog, isLoading: newestLoading, isError: newestError, refetch: refetchNewest } = useApprovedSalonCatalog();
+  const newest = useMemo(() => ({ data: newestRegisteredSalons(catalog) }), [catalog]);
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query.trim()), 250);
     return () => clearTimeout(timer);

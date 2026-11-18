@@ -1,11 +1,11 @@
 import { Feather } from "@expo/vector-icons";
-import { getListBarberMapPointsQueryKey, useListBarberMapPoints, useListServiceCategories } from "@workspace/api-client-react";
+import { useApprovedSalonCatalog, useListServiceCategories } from "@workspace/api-client-react";
 import * as Location from "expo-location";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  Linking,
   FlatList,
   Platform,
   Pressable,
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 
 import { useApp } from "@/contexts/AppContext";
+import { coordinates, nearbySalons, type Coordinates } from "@/lib/salonSearch";
 
 const PALETTE = {
   bg: "#0A0A0A",
@@ -28,20 +29,8 @@ const PALETTE = {
   gold: "#D4AF37",
 };
 
-const KINSHASA = { lat: -4.4419, lng: 15.2663 };
 const RADII = [2, 5, 10, 25, 50] as const;
 type Radius = (typeof RADII)[number];
-
-function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
-  const R = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-  const s =
-    Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return 2 * R * Math.asin(Math.sqrt(s));
-}
 
 function safeJson(v: unknown) {
   return JSON.stringify(v)
@@ -53,14 +42,14 @@ function safeJson(v: unknown) {
 }
 
 function buildLeafletHtml(
-  center: { lat: number; lng: number },
+  center: Coordinates | null,
   radiusKm: number,
   markers: Array<{ id: number; lat: number; lng: number; name: string; sub: string; rating: number }>,
   userPosition: { lat: number; lng: number } | null,
   showRadius: boolean,
 ) {
   const payload = safeJson({
-    center: [Number(center.lat) || 0, Number(center.lng) || 0],
+    center: center ? [center.lat, center.lng] : [20, 0],
     radiusM: Number(radiusKm) * 1000,
     userPosition: userPosition ? [userPosition.lat, userPosition.lng] : null,
     showRadius,
@@ -102,7 +91,7 @@ function buildLeafletHtml(
 (function() {
   var data = ${payload};
   var center = data.center;
-  var map = L.map('map', { zoomControl: true, attributionControl: false }).setView(center, 13);
+  var map = L.map('map', { zoomControl: true, attributionControl: false }).setView(center, data.userPosition ? 13 : 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '\u00a9 OpenStreetMap'
@@ -111,7 +100,10 @@ function buildLeafletHtml(
   var userIcon = L.divIcon({ className: '', html: '<div class="gbc-user"></div>', iconSize: [14,14], iconAnchor: [7,7] });
   if (data.userPosition) {
     L.marker(data.userPosition, { icon: userIcon }).addTo(map);
-    if (data.showRadius) L.circle(data.userPosition, { radius: data.radiusM, color: '#D4AF37', weight: 1, fillColor: '#D4AF37', fillOpacity: 0.08 }).addTo(map);
+    if (data.showRadius) {
+      var circle = L.circle(data.userPosition, { radius: data.radiusM, color: '#D4AF37', weight: 1, fillColor: '#D4AF37', fillOpacity: 0.08 }).addTo(map);
+      map.fitBounds(circle.getBounds(), { padding: [12, 12], maxZoom: 15 });
+    }
   }
 
   function send(msg) {
@@ -161,7 +153,8 @@ function buildLeafletHtml(
     bounds.extend([m.lat, m.lng]);
   });
 
-  if (data.markers.length > 0) {
+  // Nearby and all-salon results must never override the actual user's center.
+  if (!data.userPosition && data.markers.length > 0) {
     try { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 }); } catch (e) {}
   }
 })();
@@ -173,65 +166,75 @@ function buildLeafletHtml(
 export default function MapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, t } = useApp();
+  const { t } = useApp();
   const webRef = useRef<WebView>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const [radius, setRadius] = useState<Radius>(5);
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [showAll, setShowAll] = useState(true);
-  const [locating, setLocating] = useState(false);
-  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(() => {
-    if (user?.latitude != null && user?.longitude != null
-      && Number.isFinite(Number(user.latitude)) && Number.isFinite(Number(user.longitude))
-      && Math.abs(Number(user.latitude)) <= 90 && Math.abs(Number(user.longitude)) <= 180) {
-      return { lat: Number(user.latitude), lng: Number(user.longitude) };
-    }
-    return null;
-  });
+  const [showAll, setShowAll] = useState(false);
+  const [locating, setLocating] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [permission, requestPermission] = Location.useForegroundPermissions();
+  const [center, setCenter] = useState<Coordinates | null>(null);
+  const locationRequest = useRef(false);
+  const mounted = useRef(true);
+  const locationVersion = useRef(0);
 
   const { data: categories } = useListServiceCategories();
-  const { data: barbers = [], isLoading: loading, isError, refetch } = useListBarberMapPoints(
-    { categoryId: categoryId ?? undefined }, { query: {
-      queryKey: getListBarberMapPointsQueryKey({ categoryId: categoryId ?? undefined }),
-      staleTime: 30000, refetchOnMount: "always",
-    } },
-  );
+  const { data: barbers, isLoading: loading, isError, refetch } = useApprovedSalonCatalog({ categoryId: categoryId ?? undefined });
   useFocusEffect(React.useCallback(() => { void refetch(); }, [refetch]));
 
   const requestLocation = async () => {
+    if (locationRequest.current) return;
+    locationRequest.current = true;
+    const version = ++locationVersion.current;
+    const current = () => mounted.current && locationVersion.current === version;
     setLocating(true);
+    setLocationError(null);
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const perm = await Location.requestForegroundPermissionsAsync();
+      const perm = await requestPermission();
+      if (!current()) return;
       if (!perm.granted) {
-        Alert.alert("Permission refusée", "Autorisez la géolocalisation pour voir les salons proches.");
+        if (current()) setLocationError("Autorisez la localisation pour rechercher les salons autour de vous, ou choisissez « Tous les salons ».");
         return;
       }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      setShowAll(false);
-    } catch (e: any) {
-      Alert.alert("Erreur", e?.message ?? "Impossible d'obtenir la position.");
+      const pos = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("GPS timeout")), 20000); }),
+      ]);
+      if (!current()) return;
+      const point = coordinates(pos.coords.latitude, pos.coords.longitude);
+      if (!point) throw new Error("Invalid GPS");
+      setCenter(point);
+    } catch {
+      if (current()) setLocationError("Position introuvable. Activez la localisation de votre téléphone puis réessayez avec « Ma position ».");
     } finally {
-      setLocating(false);
+      clearTimeout(timer);
+      if (current()) { locationRequest.current = false; setLocating(false); }
     }
   };
 
-  const withDistance = useMemo(() => {
-    return barbers
-      .filter((b) => b.latitude != null && b.longitude != null)
-      .map((b) => ({
-        ...b,
-        _km: center ? haversineKm(center, { lat: Number(b.latitude), lng: Number(b.longitude) }) : null,
-      }))
-      .filter((b) => showAll || b._km === null || b._km <= radius)
-      .sort((a, b) => (a._km ?? 0) - (b._km ?? 0));
-  }, [barbers, center, radius, showAll]);
+  useEffect(() => {
+    mounted.current = true;
+    void requestLocation();
+    return () => {
+      mounted.current = false;
+      locationRequest.current = false;
+      locationVersion.current += 1;
+    };
+    // Request GPS once on entry, not every time the permission hook updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const withDistance = useMemo(() => nearbySalons(barbers, center, showAll ? null : radius), [barbers, center, radius, showAll]);
+  const missingPositions = barbers.filter((b) => !coordinates(b.latitude, b.longitude)).length;
 
   const html = useMemo(
     () =>
       buildLeafletHtml(
-        center ?? (barbers[0] ? { lat: barbers[0].latitude, lng: barbers[0].longitude } : KINSHASA),
+        center,
         radius,
         withDistance.map((b) => ({
           id: b.id,
@@ -283,7 +286,7 @@ export default function MapScreen() {
       {/* Header */}
       <View style={{
         flexDirection: "row", alignItems: "center", gap: 14,
-        paddingTop: insets.top + 12, paddingHorizontal: 14, paddingBottom: 12,
+        paddingTop: (Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top) + 12, paddingHorizontal: 14, paddingBottom: 12,
         borderBottomWidth: 1, borderBottomColor: PALETTE.border, backgroundColor: PALETTE.bg,
       }}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
@@ -293,7 +296,8 @@ export default function MapScreen() {
           {t.mapTitle ?? "Salons à proximité"}
         </Text>
         <Pressable
-          onPress={requestLocation}
+          testID="map-locate-me"
+          onPress={() => { setShowAll(false); void requestLocation(); }}
           disabled={locating}
           hitSlop={10}
           style={{ paddingHorizontal: 8, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6 }}
@@ -324,7 +328,8 @@ export default function MapScreen() {
             return (
               <Pressable
                 key={r}
-                onPress={() => { setRadius(r); if (!center) void requestLocation(); else setShowAll(false); }}
+                testID={`map-radius-${r}`}
+                onPress={() => { setRadius(r); setShowAll(false); if (!center) void requestLocation(); }}
                 style={{
                   paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
                   backgroundColor: active ? PALETTE.gold : PALETTE.surface,
@@ -382,7 +387,14 @@ export default function MapScreen() {
 
       {/* Map */}
       <View style={{ flex: 1, minHeight: 280 }}>
-        {Platform.OS === "web" ? (
+        {!center && !showAll ? (
+          <View style={{ flex: 1, padding: 24, alignItems: "center", justifyContent: "center", gap: 16 }}>
+            {locating && <ActivityIndicator color={PALETTE.gold} />}
+            <Text style={{ color: PALETTE.textMuted, textAlign: "center" }}>
+              {locating ? "Recherche de votre position…" : locationError ?? "Votre position est nécessaire pour voir les salons autour de vous."}
+            </Text>
+          </View>
+        ) : Platform.OS === "web" ? (
           // On web, render the leaflet HTML inside an iframe (WebView is limited)
           // @ts-ignore — react-native-web renders div for View; we use raw iframe
           <iframe
@@ -406,19 +418,31 @@ export default function MapScreen() {
       {/* Results bar */}
       <View style={{
         paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: PALETTE.border,
-        backgroundColor: PALETTE.bg, maxHeight: 220,
+        backgroundColor: PALETTE.bg, maxHeight: 250,
+        paddingBottom: Platform.OS === "web" ? 34 : Math.max(insets.bottom, 10),
       }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
           <Text style={{ color: PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 13 }}>
-            {loading
+            {loading || locating
               ? (t.loading ?? "Chargement…")
+              : isError ? "Chargement impossible"
+              : !center && !showAll ? "Localisation nécessaire"
               : `${withDistance.length} ${withDistance.length > 1 ? (t.salonsFound ?? "salons trouvés") : (t.salonFound ?? "salon trouvé")}`}
           </Text>
           <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 11 }}>
             {showAll ? "Tous" : `${radius} km`}
           </Text>
         </View>
-        {isError && <Pressable onPress={() => refetch()}><Text style={{ color: PALETTE.textMuted }}>Impossible de charger les salons. Réessayer</Text></Pressable>}
+        {locationError && center && <Text style={{ color: PALETTE.textMuted }}>{locationError}</Text>}
+        {permission && !permission.granted && !permission.canAskAgain && Platform.OS !== "web" && (
+          <Pressable testID="map-location-settings" onPress={() => { void Linking.openSettings().catch(() => setLocationError("Ouvrez les réglages de votre téléphone pour autoriser la localisation.")); }}>
+            <Text style={{ color: PALETTE.gold, paddingVertical: 8 }}>Autoriser la localisation dans les réglages</Text>
+          </Pressable>
+        )}
+        {isError && <Pressable testID="map-retry-salons" onPress={() => { void refetch(); }}><Text style={{ color: PALETTE.textMuted }}>Impossible de charger tous les salons. Vérifiez votre connexion et réessayez.</Text></Pressable>}
+        {!loading && !isError && missingPositions > 0 && <Text style={{ color: PALETTE.textMuted, fontSize: 11, marginBottom: 8 }}>
+          {missingPositions} {missingPositions > 1 ? "salons n’ont" : "salon n’a"} pas de position enregistrée et {missingPositions > 1 ? "ne sont" : "n’est"} pas {missingPositions > 1 ? "affichés" : "affiché"} sur la carte.
+        </Text>}
         <FlatList
           data={withDistance}
           horizontal
@@ -426,7 +450,7 @@ export default function MapScreen() {
           keyExtractor={(b) => String(b.id)}
           contentContainerStyle={{ gap: 10 }}
           ListEmptyComponent={
-            !loading ? (
+            !loading && !locating && !isError && (center || showAll) ? (
               <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12 }}>
                   {showAll ? "Aucun salon avec une position enregistrée." : (t.noSalonsInRadius ?? "Aucun salon dans ce rayon. Élargissez la zone.")}
               </Text>

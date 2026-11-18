@@ -304,6 +304,7 @@ paths:
             type: string
         - in: query
           name: sort
+          description: Newest registrations first by createdAt descending, then id descending; approval date does not affect this order.
           schema:
             type: string
             enum: [newest]

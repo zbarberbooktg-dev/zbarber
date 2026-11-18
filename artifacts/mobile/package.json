@@ -9,6 +9,7 @@
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:auth": "vitest run --config vitest.config.ts",
+    "test": "vitest run --config vitest.config.ts",
     "eas:build:preview": "eas build --profile preview --platform all",
     "eas:build:test": "eas build --profile test --platform all",
     "eas:build:prod": "eas build --profile production --platform all",
