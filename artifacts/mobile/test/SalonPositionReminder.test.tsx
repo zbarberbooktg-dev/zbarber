@@ -4,11 +4,17 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import { coordinates } from "../lib/salonSearch";
 import { hasSalonPosition } from "../../admin/src/lib/salonLocation";
+import colors from "../constants/colors";
+import { translations } from "../constants/i18n";
 
 const h = vi.hoisted(() => ({
   salons: [] as Array<Record<string, unknown>>,
   mutate: vi.fn(),
   read: vi.fn(),
+  lang: "fr" as "fr" | "en",
+  theme: "dark" as "light" | "dark",
+  setThemePref: vi.fn(),
+  setLang: vi.fn(),
 }));
 vi.mock("@workspace/api-client-react", () => ({
   getGetMyBarbersQueryKey: () => ["/api/barbers/me"],
@@ -19,16 +25,20 @@ vi.mock("@workspace/api-client-react", () => ({
 vi.mock("@/lib/api", () => ({ useAuthedFetch: () => vi.fn() }));
 vi.mock("@/lib/imageUpload", () => ({ pickAndUploadImage: vi.fn(), resolveObjectUrl: () => null }));
 vi.mock("@/contexts/AppContext", () => ({
-  useApp: () => ({ lang: "fr", t: {}, user: { name: "Owner" }, selectedSalonId: 2 }),
+  useApp: () => ({ lang: h.lang, t: translations[h.lang], themePref: h.theme,
+    setThemePref: h.setThemePref, setLang: h.setLang, syncAuth: async () => {},
+    user: { name: "Owner" }, selectedSalonId: 2 }),
 }));
 vi.mock("expo-router", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  useLocalSearchParams: () => ({}),
   useFocusEffect: (cb: () => void) => React.useEffect(cb, [cb]),
 }));
 vi.mock("@expo/vector-icons", () => ({ Feather: "Icon" }));
-vi.mock("@/hooks/useColors", () => ({ useColors: () => ({ radius: 8 }) }));
+vi.mock("@/hooks/useColors", () => ({ useColors: () => ({ ...colors[h.theme], radius: colors.radius }) }));
 vi.mock("react-native", () => ({
   ...Object.fromEntries(["ActivityIndicator", "Image", "Modal", "Pressable", "ScrollView", "Text", "TextInput", "View"].map((s) => [s, s])),
+  StyleSheet: { create: (styles: unknown) => styles },
 }));
 vi.mock("@/components/UI", () => ({ Card: "Card", Button: "Button", Avatar: "Avatar" }));
 vi.mock("@/components/SupportCard", () => ({ SupportCard: "SupportCard" }));
@@ -36,6 +46,8 @@ vi.mock("@/components/DeleteAccountModal", () => ({ DeleteAccountModal: "DeleteA
 vi.mock("@/components/DocumentUploadCard", () => ({ DocumentUploadCard: "DocumentUploadCard" }));
 vi.mock("@/components/SignOutButton", () => ({ SignOutButton: "SignOutButton" }));
 vi.mock("@/components/EditProfileModal", () => ({ EditProfileModal: "EditProfileModal" }));
+vi.mock("@/components/CreateSalonModal", () => ({ CreateSalonModal: "CreateSalonModal" }));
+vi.mock("expo-location", () => ({}));
 vi.mock("@/components/KeyboardAwareScrollViewCompat", () => ({ KeyboardAwareScrollViewCompat: "KeyboardScroll" }));
 vi.mock("@/components/CountryCityFields", () => ({ CountryCityFields: "CountryCityFields" }));
 vi.mock("@/components/SalonLocationFields", () => ({
@@ -44,12 +56,15 @@ vi.mock("@/components/SalonLocationFields", () => ({
 }));
 
 import BarberProfile from "../app/(barber)/profile";
+import ClientProfile from "../app/(client)/profile";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: ReactTestRenderer | undefined;
 let qc: QueryClient;
 beforeEach(() => {
   vi.clearAllMocks();
+  h.lang = "fr";
+  h.theme = "dark";
   h.salons = [
     { id: 1, salonName: "First salon", latitude: null, longitude: null, country: "Togo", city: "Lomé" },
     { id: 2, salonName: "Second salon", latitude: 95, longitude: 0, country: "Togo", city: "Lomé" },
@@ -67,13 +82,37 @@ afterEach(async () => {
   root = undefined;
   qc.clear();
 });
-async function mount() {
+async function mount(Profile = BarberProfile) {
   qc.setQueryData(["/api/barbers/me"], h.salons);
   await act(async () => {
-    root = TestRenderer.create(<QueryClientProvider client={qc}><BarberProfile /></QueryClientProvider>);
+    root = TestRenderer.create(<QueryClientProvider client={qc}><Profile /></QueryClientProvider>);
   });
 }
 const find = (id: string) => root!.root.findByProps({ testID: id });
+
+test.each([
+  ["client", ClientProfile, "fr", "light", "Votre position"],
+  ["client", ClientProfile, "en", "dark", "Your location"],
+  ["barber", BarberProfile, "fr", "dark", "Mes salons"],
+  ["barber", BarberProfile, "en", "light", "My salons"],
+] as const)("%s profile preserves actions in %s / %s / %s", async (role, Profile, lang, theme, locationLabel) => {
+  h.lang = lang;
+  h.theme = theme;
+  await mount(Profile);
+  expect(root!.root.findByType("ScrollView" as never).props.style.backgroundColor).toBe(colors[theme].background);
+  expect(root!.root.findAllByType("Text" as never).some((n) => n.children.includes(locationLabel))).toBe(true);
+  expect(find(`profile-theme-${theme}`).props.accessibilityState.checked).toBe(true);
+  expect(find(`profile-language-${lang}`).props.accessibilityState.checked).toBe(true);
+  expect(root!.root.findAllByType("SupportCard" as never)).toHaveLength(1);
+  expect(root!.root.findAllByType("SignOutButton" as never)).toHaveLength(1);
+  if (role === "barber") expect(find("edit-salon-1")).toBeTruthy();
+  await act(async () => find("profile-theme-system").props.onPress());
+  await act(async () => find("profile-language-en").props.onPress());
+  await act(async () => find("profile-edit").props.onPress());
+  expect(h.setThemePref).toHaveBeenCalledWith("system");
+  expect(h.setLang).toHaveBeenCalledWith("en");
+  expect(root!.root.findByType("EditProfileModal" as never).props.visible).toBe(true);
+});
 
 test.each([
   [null, null, false], [undefined, 1, false], [1, null, false],

@@ -3,7 +3,7 @@ import { getGetMyBarbersQueryKey, useGetMyBarbers, type Barber } from "@workspac
 import { useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { DocumentUploadCard } from "@/components/DocumentUploadCard";
@@ -11,9 +11,9 @@ import { SupportCard } from "@/components/SupportCard";
 import { SignOutButton } from "@/components/SignOutButton";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { EditSalonLocationModal } from "@/components/EditSalonLocationModal";
-import { Avatar, Button, Card } from "@/components/UI";
-import { useApp, type ThemePref } from "@/contexts/AppContext";
-import type { Lang } from "@/constants/i18n";
+import { ProfileIdentity, ProfilePreferences, ProfileSectionTitle } from "@/components/ProfileSections";
+import { Button, Card } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { setBrowsing } from "@/lib/browseIntent";
 import { coordinates } from "@/lib/salonSearch";
@@ -21,7 +21,8 @@ import { coordinates } from "@/lib/salonSearch";
 export default function BarberProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, t, user, selectedSalonId } = useApp();
+  const { lang, t, user, selectedSalonId } = useApp();
+  const fr = lang === "fr";
   const qc = useQueryClient();
   const { data: myBarbers, refetch, isLoading, isError } = useGetMyBarbers({ query: {
     queryKey: getGetMyBarbersQueryKey(), staleTime: 0, refetchOnMount: "always",
@@ -33,68 +34,21 @@ export default function BarberProfile() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
 
-  const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
-    { key: "system", label: t.themeAuto, icon: "smartphone" },
-    { key: "light", label: t.themeLight, icon: "sun" },
-    { key: "dark", label: t.themeDark, icon: "moon" },
-  ];
-
-  const langOptions: Array<{ key: Lang; label: string }> = [
-    { key: "fr", label: "Français" },
-    { key: "en", label: "English" },
-  ];
-
-  const SectionLabel = ({ label }: { label: string }) => (
-    <Text
-      style={{
-        color: c.mutedForeground,
-        fontFamily: "Inter_600SemiBold",
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-        marginBottom: 8,
-        marginLeft: 4,
-      }}
-    >
-      {label}
-    </Text>
-  );
-
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}
+      contentContainerStyle={{ padding: 16, gap: 22, paddingBottom: 48 }}
     >
+      <ProfileIdentity name={user?.name ?? barber?.salonName ?? t.mySalon} email={user?.email} role={t.barberAccount} onEdit={() => setEditProfileOpen(true)} />
       <DocumentUploadCard />
 
-      <Card>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <Avatar name={user?.name ?? barber?.salonName ?? t.mySalon} size={56} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>
-              {user?.name ?? t.mySalon}
-            </Text>
-            <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13 }}>
-              {user?.email ?? t.barberAccount}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => setEditProfileOpen(true)}
-            hitSlop={10}
-            style={({ pressed }) => ({
-              padding: 8,
-              borderRadius: c.radius - 4,
-              backgroundColor: pressed ? c.accent : "transparent",
-            })}
-          >
-            <Feather name="edit-2" size={18} color={c.primary} />
-          </Pressable>
-        </View>
-      </Card>
-
-      <View>
-        <SectionLabel label={lang === "fr" ? "Mes salons" : "My salons"} />
-        {isError && <Pressable onPress={() => refetch()}><Text style={{ color: c.destructive }}>Impossible de charger le salon. Réessayer</Text></Pressable>}
+      <View testID="profile-my-salons">
+        <ProfileSectionTitle label={fr ? "Mes salons" : "My salons"} icon="scissors" />
+        {isLoading && <ActivityIndicator color={c.primary} accessibilityLabel={fr ? "Chargement des salons" : "Loading salons"} />}
+        {isError && <Pressable accessibilityRole="button" onPress={() => refetch()} style={{ paddingVertical: 12 }}><Text style={{ color: c.destructive }}>{fr ? "Impossible de charger les salons. Réessayer" : "Could not load salons. Retry"}</Text></Pressable>}
+        {!isLoading && !isError && !myBarbers?.length && (
+          <Card><Text style={{ color: c.mutedForeground }}>{fr ? "Aucun salon associé pour le moment." : "No salons linked yet."}</Text></Card>
+        )}
         {myBarbers?.map((salon) => (
         <View key={salon.id} style={{ gap: 10, marginBottom: 12 }}>
         {!coordinates(salon.latitude, salon.longitude) && (
@@ -117,9 +71,9 @@ export default function BarberProfile() {
             </View>
           </Card>
         )}
-        <Pressable testID={`edit-salon-${salon.id}`} disabled={isLoading} onPress={() => setEditingSalonId(salon.id)}>
+        <Pressable testID={`edit-salon-${salon.id}`} accessibilityRole="button" disabled={isLoading} onPress={() => setEditingSalonId(salon.id)}>
           {({ pressed }) => (
-            <Card style={{ opacity: pressed ? 0.85 : 1 }}>
+            <Card style={{ opacity: pressed ? 0.85 : 1, borderRadius: c.radius + 6 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                 <View style={{
                   width: 40, height: 40, borderRadius: 20,
@@ -132,7 +86,7 @@ export default function BarberProfile() {
                     {salon.salonName}
                   </Text>
                   <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
-                    {[salon.neighborhood, salon.city].filter(Boolean).join(", ") || "Ville non renseignée"}
+                     {[salon.neighborhood, salon.city].filter(Boolean).join(", ") || (fr ? "Ville non renseignée" : "City not set")}
                   </Text>
                   {salon.address && (
                     <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
@@ -140,7 +94,9 @@ export default function BarberProfile() {
                     </Text>
                   )}
                   <Text style={{ color: c.primary, fontSize: 12, marginTop: 4 }}>
-                    {coordinates(salon.latitude, salon.longitude) ? "Position GPS enregistrée · Modifier" : "Définir la position GPS et le logo"}
+                     {coordinates(salon.latitude, salon.longitude)
+                       ? (fr ? "Position GPS enregistrée · Modifier" : "GPS location saved · Edit")
+                       : (fr ? "Définir la position GPS et le logo" : "Set GPS location and logo")}
                   </Text>
                 </View>
                 <Feather name="chevron-right" size={18} color={c.mutedForeground} />
@@ -182,76 +138,11 @@ export default function BarberProfile() {
         }}
       />}
 
-      <View>
-        <SectionLabel label={t.appearance} />
-        <Card style={{ flexDirection: "row", gap: 8, padding: 8 }}>
-          {themeOptions.map((opt) => {
-            const active = themePref === opt.key;
-            return (
-              <Pressable
-                key={opt.key}
-                onPress={() => setThemePref(opt.key)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: c.radius - 4,
-                  backgroundColor: active ? c.accent : "transparent",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-              >
-                <Feather name={opt.icon} size={18} color={active ? c.primary : c.mutedForeground} />
-                <Text
-                  style={{
-                    color: active ? c.primary : c.mutedForeground,
-                    fontFamily: "Inter_600SemiBold",
-                    fontSize: 12,
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </Card>
-      </View>
-
-      <View>
-        <SectionLabel label={t.language} />
-        <Card style={{ flexDirection: "row", gap: 8, padding: 8 }}>
-          {langOptions.map((opt) => {
-            const active = lang === opt.key;
-            return (
-              <Pressable
-                key={opt.key}
-                onPress={() => setLang(opt.key)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: c.radius - 4,
-                  backgroundColor: active ? c.accent : "transparent",
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    color: active ? c.primary : c.mutedForeground,
-                    fontFamily: "Inter_600SemiBold",
-                    fontSize: 13,
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </Card>
-      </View>
-
+      <ProfilePreferences />
       <SupportCard />
 
       <View>
-        <SectionLabel label={t.account} />
+        <ProfileSectionTitle label={t.account} icon="settings" />
         <View style={{ gap: 10 }}>
           <Button
             label={lang === "fr" ? "Accueil" : "Home"}
