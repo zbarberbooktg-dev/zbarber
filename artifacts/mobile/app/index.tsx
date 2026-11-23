@@ -8,7 +8,7 @@ import {
 } from "@expo-google-fonts/playfair-display";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getListBarbersQueryKey, useListBarbers, useListHomeGalleryPhotos, useListPublicArticles, useApprovedSalonCatalog } from "@workspace/api-client-react";
-import { newestRegisteredSalons } from "@/lib/salonSearch";
+import { coordinates, nearbySalons, newestRegisteredSalons, type Coordinates } from "@/lib/salonSearch";
 import { useAuth } from "@clerk/expo";
 import { reloadAppAsync } from "expo";
 import * as Location from "expo-location";
@@ -23,6 +23,8 @@ import {
   Easing,
   ImageBackground,
   ImageSourcePropType,
+  Linking,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -178,6 +180,7 @@ export default function PublicHome() {
   };
   const buttonBorder = effective === "dark" ? PALETTE.border : "#000";
   const fetcher = useAuthedFetch();
+  const [locationPermission, requestLocationPermission] = Location.useForegroundPermissions();
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
@@ -186,10 +189,17 @@ export default function PublicHome() {
   // expo-router may reuse this screen instance instead of remounting it.
   const browsing = useBrowsing();
   const [locationRefreshing, setLocationRefreshing] = useState(false);
+  const [nearbyPosition, setNearbyPosition] = useState<Coordinates | null>(null);
+  const [nearbyLocationBusy, setNearbyLocationBusy] = useState(false);
+  const [nearbyLocationError, setNearbyLocationError] = useState("");
+  const locationPrompted = useRef(false);
+  const locationReadLock = useRef(false);
   const [authWaitTimedOut, setAuthWaitTimedOut] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const featuredYRef = useRef(0);
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
+  const forceBrowse = pathname === "/browse" || browse === "1" || browsing;
+  const canUsePublicHome = isLoaded && (!isSignedIn || (!!user && ready && (role === "client" || forceBrowse)));
 
   const { data, isLoading, isFetching, isError, refetch, isRefetching } = useListBarbers(
     { status: "approved", search: search || undefined, limit: 20 },
@@ -197,6 +207,43 @@ export default function PublicHome() {
   );
   const { data: catalog, isLoading: newestLoading, isError: newestError, refetch: refetchNewest } = useApprovedSalonCatalog();
   const newest = useMemo(() => ({ data: newestRegisteredSalons(catalog) }), [catalog]);
+  const nearestSalons = useMemo(
+    () => nearbyPosition ? nearbySalons(catalog ?? [], nearbyPosition, null).slice(0, 20) : [],
+    [catalog, nearbyPosition],
+  );
+  const locateNearbySalons = async () => {
+    if (locationReadLock.current) return;
+    locationReadLock.current = true;
+    setNearbyLocationBusy(true);
+    setNearbyLocationError("");
+    try {
+      const permission = locationPermission?.granted ? locationPermission : await requestLocationPermission();
+      if (!permission.granted) {
+        setNearbyPosition(null);
+        setNearbyLocationError(lang === "fr"
+          ? "Autorisez la localisation pour afficher les salons proches."
+          : "Allow location access to see nearby salons.");
+        return;
+      }
+      const { coords: point } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const position = coordinates(point.latitude, point.longitude);
+      if (!position) throw new Error("Invalid device location");
+      setNearbyPosition(position);
+    } catch {
+      setNearbyPosition(null);
+      setNearbyLocationError(lang === "fr"
+        ? "Votre position n’a pas pu être récupérée. Réessayez."
+        : "We couldn't get your location. Try again.");
+    } finally {
+      setNearbyLocationBusy(false);
+      locationReadLock.current = false;
+    }
+  };
+  useEffect(() => {
+    if (!onboardingDone || !canUsePublicHome || !locationPermission || locationPrompted.current) return;
+    locationPrompted.current = true;
+    void locateNearbySalons();
+  }, [onboardingDone, canUsePublicHome, locationPermission]);
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query.trim()), 250);
     return () => clearTimeout(timer);
@@ -247,13 +294,25 @@ export default function PublicHome() {
   // the public home from their profile (?browse=1).
   // A barber/admin reaches the public home either via the dedicated "/browse"
   // route (unambiguous, unlike "/") or via the browse intent flag/param.
-  const forceBrowse = pathname === "/browse" || browse === "1" || browsing;
   if (isSignedIn && user && (role === "barber" || role === "admin") && !forceBrowse) {
     return <Redirect href="/(barber)" />;
   }
 
   const featured = query.trim() ? list : list.slice(0, 6);
-  const nearby = list.slice(0, 4);
+  const openLocationSettings = () => {
+    if (locationPermission && !locationPermission.canAskAgain && Platform.OS !== "web") {
+      Alert.alert(
+        lang === "fr" ? "Localisation désactivée" : "Location is disabled",
+        lang === "fr" ? "Autorisez la localisation dans les réglages pour voir les salons proches." : "Allow location in Settings to see nearby salons.",
+        [
+          { text: lang === "fr" ? "Annuler" : "Cancel", style: "cancel" },
+          { text: lang === "fr" ? "Réglages" : "Settings", onPress: () => { void Linking.openSettings(); } },
+        ],
+      );
+      return;
+    }
+    void locateNearbySalons();
+  };
 
   const handleRefreshLocation = async () => {
     if (!isSignedIn) {
@@ -530,6 +589,85 @@ export default function PublicHome() {
           </View>
         )}
 
+        {!query.trim() && !!locationPermission && !locationPermission.granted && (
+          <View testID="nearby-location-gate" style={{ marginBottom: 28 }}>
+            <SectionHeader title={lang === "fr" ? "Salons à proximité" : "Nearby salons"}
+              action="" serifFont={serif} textColor={PALETTE.text} accentColor={PALETTE.gold} />
+            <View style={{ marginHorizontal: 20, padding: 16, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, gap: 12 }}>
+              <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 21 }}>
+                {nearbyLocationError || (lang === "fr"
+                  ? "Autorisez votre position pour découvrir les salons les plus proches de vous."
+                  : "Allow location access to discover the closest salons.")}
+              </Text>
+              <Pressable testID="nearby-location-enable" onPress={openLocationSettings} disabled={nearbyLocationBusy}
+                style={{ minHeight: 46, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 14, backgroundColor: PALETTE.gold, opacity: nearbyLocationBusy ? 0.6 : 1 }}>
+                {nearbyLocationBusy ? <ActivityIndicator color={PALETTE.bg} /> : <Feather name="crosshair" size={16} color={PALETTE.bg} />}
+                <Text style={{ color: PALETTE.bg, fontFamily: "Inter_600SemiBold" }}>
+                  {nearbyLocationBusy
+                    ? (lang === "fr" ? "Recherche de votre position…" : "Finding your location…")
+                    : (lang === "fr" ? "Activer ma position" : "Enable my location")}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {!query.trim() && !!locationPermission?.granted && (
+          <View testID="nearby-salons-section" style={{ marginBottom: 30 }}>
+            <SectionHeader title={lang === "fr" ? "Salons à proximité" : "Nearby salons"}
+              action={nearbyPosition ? (lang === "fr" ? "Actualiser" : "Refresh") : ""}
+              onPressAction={openLocationSettings} serifFont={serif} textColor={PALETTE.text} accentColor={PALETTE.gold} />
+            {nearbyLocationBusy || (nearbyPosition && newestLoading) ? (
+              <ActivityIndicator color={PALETTE.gold} />
+            ) : nearbyLocationError ? (
+              <Pressable testID="nearby-location-retry" onPress={openLocationSettings} style={{ paddingHorizontal: 20 }}>
+                <Text style={{ color: PALETTE.textMuted }}>{nearbyLocationError} {lang === "fr" ? "Réessayer." : "Try again."}</Text>
+              </Pressable>
+            ) : newestError ? (
+              <Pressable onPress={() => { void refetchNewest(); }} style={{ paddingHorizontal: 20 }}>
+                <Text style={{ color: PALETTE.textMuted }}>{lang === "fr" ? "Impossible de charger les salons proches. Réessayer." : "Nearby salons couldn't be loaded. Try again."}</Text>
+              </Pressable>
+            ) : !nearbyPosition ? (
+              <Pressable onPress={openLocationSettings} style={{ paddingHorizontal: 20 }}>
+                <Text style={{ color: PALETTE.textMuted }}>{lang === "fr" ? "Activez votre position pour voir les salons proches." : "Enable location to see nearby salons."}</Text>
+              </Pressable>
+            ) : nearestSalons.length === 0 ? (
+              <Text style={{ paddingHorizontal: 20, color: PALETTE.textMuted, fontFamily: serifItalic, fontSize: 14 }}>
+                {lang === "fr" ? "Aucun salon avec une position enregistrée pour le moment." : "No salons with a saved location yet."}
+              </Text>
+            ) : (
+              <ScrollView horizontal testID="nearby-salons-carousel" showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 14, paddingBottom: 6 }}>
+                {nearestSalons.map((b, idx) => {
+                  if (b._km == null) return null;
+                  const distanceLabel = b._km < 1 ? `${Math.round(b._km * 1000)} m` : `${b._km.toFixed(1)} km`;
+                  return (
+                    <Pressable key={b.id} testID={`nearby-salon-${b.id}`} accessibilityRole="button"
+                      accessibilityLabel={`${b.salonName}, ${distanceLabel}`}
+                      onPress={() => router.push(`/salon/${b.id}` as never)} style={{ width: 210 }}>
+                      <View style={{ width: "100%", height: 138, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden" }}>
+                        <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"}
+                          source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])}
+                          style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                        <View style={{ position: "absolute", top: 9, right: 9, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: PALETTE.bg }}>
+                          <Feather name="navigation" size={12} color={PALETTE.gold} />
+                          <Text style={{ color: PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 11 }}>{distanceLabel}</Text>
+                        </View>
+                      </View>
+                      <Text numberOfLines={1} style={{ color: PALETTE.text, fontFamily: serif, fontSize: 17, marginTop: 9 }}>
+                        {b.salonName}
+                      </Text>
+                      <Text numberOfLines={1} style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 3 }}>
+                        {[b.neighborhood, b.city].filter(Boolean).join(" • ")}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        )}
+
         {/* Featured salons / server-side search results */}
         <View onLayout={(e) => { featuredYRef.current = e.nativeEvent.layout.y; }}>
         <SectionHeader
@@ -621,44 +759,6 @@ export default function PublicHome() {
               serifItalic={serifItalic}
               palette={PALETTE}
             />
-
-            {/* Nearby list */}
-            {nearby.length > 0 && (
-              <View style={{ paddingHorizontal: 20, marginBottom: 28 }}>
-                <Text style={{ color: PALETTE.text, fontFamily: serif, fontSize: 22, marginBottom: 16 }}>Près de chez vous</Text>
-                <View style={{ gap: 12 }}>
-                  {nearby.map((b, idx) => (
-                    <Pressable
-                      key={`near-${b.id}`}
-                      onPress={() => router.push(`/salon/${b.id}` as never)}
-                      style={{ flexDirection: "row", gap: 14, padding: 14, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, alignItems: "center" }}
-                    >
-                      <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"} source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])} style={{ width: 72, height: 72 }} contentFit="cover" />
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: PALETTE.text, fontFamily: serif, fontSize: 16, marginBottom: 4 }} numberOfLines={1}>{b.salonName}</Text>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>
-                          <Feather name="map-pin" size={10} color={PALETTE.textMuted} />
-                          <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 11 }} numberOfLines={1}>
-                            {b.neighborhood ? `${b.neighborhood} • ${b.city}` : b.city}
-                          </Text>
-                        </View>
-                        {b.rating && Number(b.rating) > 0 ? (
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                            <Feather name="star" size={10} color={PALETTE.gold} />
-                            <Text style={{ color: PALETTE.text, fontFamily: "Inter_600SemiBold", fontSize: 11 }}>{Number(b.rating).toFixed(1)}</Text>
-                          </View>
-                        ) : (
-                          <Text style={{ color: PALETTE.gold, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1, textTransform: "uppercase" }}>Nouveau</Text>
-                        )}
-                      </View>
-                      <View style={{ width: 36, height: 36, borderWidth: 1, borderColor: PALETTE.gold, alignItems: "center", justifyContent: "center" }}>
-                        <Feather name="chevron-right" size={16} color={PALETTE.gold} />
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            )}
 
             {/* Barber CTA */}
             {!isSignedIn && (
