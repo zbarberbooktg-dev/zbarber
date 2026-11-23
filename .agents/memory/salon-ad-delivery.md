@@ -11,6 +11,8 @@ Serve ad videos through a dedicated route that checks both the ad status and the
 
 Autoplay must stay muted and only one visible ad should play. Preserve a viewer’s pause choice when they scroll away and come back.
 
+On mobile home, place the ad carousel after L’Édito and before the new salons. Its heading is « Salon du mois », with the film icon.
+
 **Why:** the user asked for automatic playback, but scrolling or leaving home must not start background playback or override an explicit pause.
 
 Replacing or deleting a video should detach it before removing the old file, with a durable retry if storage is unavailable. Version public and admin video URLs on replacement.

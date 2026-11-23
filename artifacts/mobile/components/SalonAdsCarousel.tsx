@@ -77,7 +77,7 @@ export function SalonAdsCarousel({ visible, onLayout }: { visible: boolean; onLa
       <View style={styles.heading}>
         <Feather name="film" size={17} color={c.primary} />
         <Text accessibilityRole="header" style={{ color: c.foreground, fontSize: 19, fontFamily: "Inter_700Bold" }}>
-          {fr ? "Salons en vidéo" : "Salons on video"}
+          {fr ? "Salon du mois" : "Salon of the month"}
         </Text>
       </View>
       <FlatList

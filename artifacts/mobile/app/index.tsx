@@ -513,11 +513,6 @@ export default function PublicHome() {
           </View>
         </View>
 
-        {!query.trim() && <SalonAdsCarousel visible={adsVisible} onLayout={(e) => {
-          const { y, height } = e.nativeEvent.layout;
-          Object.assign(adViewport.current, { top: y, height });
-          updateAdVisibility();
-        }} />}
         {/* Hero image — falls back to a static visual when no articles are configured */}
         {!query && (!articles || articles.length === 0) && (
           <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
@@ -588,6 +583,12 @@ export default function PublicHome() {
             </ScrollView>
           </View>
         )}
+
+        {!query.trim() && <SalonAdsCarousel visible={adsVisible} onLayout={(e) => {
+          const { y, height } = e.nativeEvent.layout;
+          Object.assign(adViewport.current, { top: y, height });
+          updateAdVisibility();
+        }} />}
 
         {!query.trim() && (
           <View testID="new-salons-section" style={{ marginBottom: 28 }}>
