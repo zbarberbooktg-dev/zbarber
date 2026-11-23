@@ -7,6 +7,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { DeleteAccountModal } from "@/components/DeleteAccountModal";
 import { DocumentUploadCard } from "@/components/DocumentUploadCard";
+import { SupportCard } from "@/components/SupportCard";
 import { SignOutButton } from "@/components/SignOutButton";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { EditSalonLocationModal } from "@/components/EditSalonLocationModal";
@@ -247,6 +248,8 @@ export default function BarberProfile() {
         </Card>
       </View>
 
+      <SupportCard />
+
       <View>
         <SectionLabel label={t.account} />
         <View style={{ gap: 10 }}>
@@ -258,18 +261,6 @@ export default function BarberProfile() {
               setBrowsing(true);
               router.push("/browse");
             }}
-          />
-          <Button
-            label={(t as any).legalTerms ?? "Conditions d'utilisation"}
-            variant="ghost"
-            icon="file-text"
-            onPress={() => router.push("/legal/terms")}
-          />
-          <Button
-            label={(t as any).legalPrivacy ?? "Politique de confidentialité"}
-            variant="ghost"
-            icon="shield"
-            onPress={() => router.push("/legal/privacy")}
           />
           <SignOutButton />
           <Button

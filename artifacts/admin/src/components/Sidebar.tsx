@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, Scissors, Calendar, CreditCard,
-  Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight, Image as ImageIcon, ShieldCheck, FileText,
+  Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight, Image as ImageIcon, ShieldCheck, FileText, LifeBuoy,
 } from "lucide-react";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useTheme } from "@/lib/theme";
@@ -25,6 +25,7 @@ export function Sidebar() {
     { path: "/reviews",       label: t.nav.reviews,       icon: Star },
     { path: "/gallery",       label: t.nav.gallery,       icon: ImageIcon },
     { path: "/articles",      label: "L'édito",           icon: FileText },
+    { path: "/support",       label: "Assistance",        icon: LifeBuoy },
     { path: "/admins",        label: "Admins",            icon: ShieldCheck },
   ];
 

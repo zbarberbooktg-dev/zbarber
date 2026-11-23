@@ -18,6 +18,7 @@ import locationsRouter from "./locations";
 import accountDeletionRouter from "./accountDeletion";
 import articlesRouter from "./articles";
 import favoritesRouter from "./favorites";
+import supportRouter from "./support";
 
 const router: IRouter = Router();
 
@@ -39,6 +40,7 @@ router.use(locationsRouter);
 router.use(accountDeletionRouter);
 router.use(articlesRouter);
 router.use(favoritesRouter);
+router.use(supportRouter);
 router.use(adminRouter);
 
 export default router;

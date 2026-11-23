@@ -2397,3 +2397,153 @@ export const RequestUploadUrlResponse = zod.object({
 })
 
 
+export const getSupportLinksResponseWhatsappRegExp = new RegExp('^\\+[1-9][0-9]{6,14}$');
+export const getSupportLinksResponseTiktokMax = 500;
+
+export const getSupportLinksResponseInstagramMax = 500;
+
+export const getSupportLinksResponseFacebookMax = 500;
+
+
+
+export const GetSupportLinksResponse = zod.object({
+  "whatsapp": zod.string().regex(getSupportLinksResponseWhatsappRegExp).nullable(),
+  "tiktok": zod.string().max(getSupportLinksResponseTiktokMax).nullable(),
+  "instagram": zod.string().max(getSupportLinksResponseInstagramMax).nullable(),
+  "facebook": zod.string().max(getSupportLinksResponseFacebookMax).nullable()
+})
+
+
+export const saveSupportLinksBodyWhatsappRegExp = new RegExp('^\\+[1-9][0-9]{6,14}$');
+export const saveSupportLinksBodyTiktokMax = 500;
+
+export const saveSupportLinksBodyInstagramMax = 500;
+
+export const saveSupportLinksBodyFacebookMax = 500;
+
+
+
+export const SaveSupportLinksBody = zod.object({
+  "whatsapp": zod.string().regex(saveSupportLinksBodyWhatsappRegExp).nullable(),
+  "tiktok": zod.string().max(saveSupportLinksBodyTiktokMax).nullable(),
+  "instagram": zod.string().max(saveSupportLinksBodyInstagramMax).nullable(),
+  "facebook": zod.string().max(saveSupportLinksBodyFacebookMax).nullable()
+})
+
+export const saveSupportLinksResponseWhatsappRegExp = new RegExp('^\\+[1-9][0-9]{6,14}$');
+export const saveSupportLinksResponseTiktokMax = 500;
+
+export const saveSupportLinksResponseInstagramMax = 500;
+
+export const saveSupportLinksResponseFacebookMax = 500;
+
+
+
+export const SaveSupportLinksResponse = zod.object({
+  "whatsapp": zod.string().regex(saveSupportLinksResponseWhatsappRegExp).nullable(),
+  "tiktok": zod.string().max(saveSupportLinksResponseTiktokMax).nullable(),
+  "instagram": zod.string().max(saveSupportLinksResponseInstagramMax).nullable(),
+  "facebook": zod.string().max(saveSupportLinksResponseFacebookMax).nullable()
+})
+
+
+export const listSupportTicketsQueryBeforeMax = 2147483647;
+
+
+
+export const ListSupportTicketsQueryParams = zod.object({
+  "before": zod.coerce.number().min(1).max(listSupportTicketsQueryBeforeMax).optional()
+})
+
+export const ListSupportTicketsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "category": zod.enum(['account', 'booking', 'salon', 'other']),
+  "subject": zod.string(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "requesterName": zod.string().optional()
+})),
+  "nextBefore": zod.number().nullable()
+})
+
+
+export const createSupportTicketBodySubjectMin = 3;
+export const createSupportTicketBodySubjectMax = 120;
+
+export const createSupportTicketBodyMessageMin = 10;
+export const createSupportTicketBodyMessageMax = 4000;
+
+
+
+export const CreateSupportTicketBody = zod.object({
+  "category": zod.enum(['account', 'booking', 'salon', 'other']),
+  "subject": zod.string().min(createSupportTicketBodySubjectMin).max(createSupportTicketBodySubjectMax),
+  "message": zod.string().min(createSupportTicketBodyMessageMin).max(createSupportTicketBodyMessageMax)
+})
+
+
+export const getSupportTicketPathIdMax = 2147483647;
+
+
+
+export const GetSupportTicketParams = zod.object({
+  "id": zod.coerce.number().min(1).max(getSupportTicketPathIdMax)
+})
+
+export const GetSupportTicketResponse = zod.object({
+  "ticket": zod.object({
+  "id": zod.number(),
+  "category": zod.enum(['account', 'booking', 'salon', 'other']),
+  "subject": zod.string(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "requesterName": zod.string().optional()
+}),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "author": zod.enum(['user', 'admin']),
+  "message": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+export const replyToSupportTicketPathIdMax = 2147483647;
+
+
+
+export const ReplyToSupportTicketParams = zod.object({
+  "id": zod.coerce.number().min(1).max(replyToSupportTicketPathIdMax)
+})
+
+export const replyToSupportTicketBodyMessageMax = 4000;
+
+
+
+export const ReplyToSupportTicketBody = zod.object({
+  "message": zod.string().min(1).max(replyToSupportTicketBodyMessageMax)
+})
+
+
+export const closeSupportTicketPathIdMax = 2147483647;
+
+
+
+export const CloseSupportTicketParams = zod.object({
+  "id": zod.coerce.number().min(1).max(closeSupportTicketPathIdMax)
+})
+
+export const CloseSupportTicketResponse = zod.object({
+  "id": zod.number(),
+  "category": zod.enum(['account', 'booking', 'salon', 'other']),
+  "subject": zod.string(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "requesterName": zod.string().optional()
+})
+
+

@@ -16,8 +16,10 @@ The product is branded **Zbarber** (was "Global Barber Corp"). User-facing brand
 # Contact + admin notifications
 
 - Public contact email is **zbarberbook@gmail.com** (vitrine contact block as `mailto:`, legal-content privacy FR/EN).
-- Admin notification email: `notifyAdmin(subject, body)` in `artifacts/api-server/src/lib/email.ts` sends to `ADMIN_NOTIFICATION_EMAIL` (env override, defaults to zbarberbook@gmail.com). It is **fire-and-forget** (no await, catches internally) so a mail failure never breaks the originating request; if SMTP is unconfigured `sendEmail` just logs.
+- Admin notification email: `notifyAdmin(subject, body)` in `artifacts/api-server/src/lib/email.ts` sends to `ADMIN_NOTIFICATION_EMAIL` (env override, defaults to contact@zbarber.net). It is **fire-and-forget** (no await, catches internally) so a mail failure never breaks the originating request; if SMTP is unconfigured `sendEmail` returns `delivered: false`.
 - Wired at: new barber registration (`POST /barbers/me`), financing requests (`POST /barbers/me/financing` and `POST /financing-requests`), and public account-deletion request (`POST /account-deletion-requests`). Add a `notifyAdmin(...)` call at any new admin-relevant event.
+
+Support tickets are a separate notification stream with their own user-specified inbox. Only email the reference, never the private ticket content. **Why:** the support team reads and answers inside authenticated administration, and changing the support recipient must not reroute unrelated alerts.
 
 # Branded email template (single source)
 

@@ -39,7 +39,7 @@ const queryClient = new QueryClient({
 });
 
 function ThemedRoot() {
-  const { themePref, ready } = useApp();
+  const { themePref, ready, lang } = useApp();
   const systemScheme = useColorScheme();
   const effective = themePref === "system" ? systemScheme : themePref;
   const palette = effective === "dark" ? colors.dark : colors.light;
@@ -84,6 +84,7 @@ function ThemedRoot() {
       <Stack.Screen name="role-select" options={{ headerShown: false }} />
       <Stack.Screen name="(client)" options={{ headerShown: false }} />
       <Stack.Screen name="(barber)" options={{ headerShown: false }} />
+      <Stack.Screen name="support" options={{ title: lang === "fr" ? "Assistance" : "Support", headerBackTitle: "" }} />
     </Stack>
   );
 
