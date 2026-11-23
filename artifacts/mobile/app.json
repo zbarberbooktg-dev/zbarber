@@ -91,14 +91,9 @@
       "url": "https://u.expo.dev/59c0644f-780e-40f1-8331-6a0afec307ad",
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0,
-      "requestHeaders": {
-        "expo-channel-name": "production"
-      }
+      "fallbackToCacheTimeout": 0
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.1-ota.1",
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

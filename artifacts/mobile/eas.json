@@ -28,6 +28,7 @@
     "test": {
       "autoIncrement": true,
       "channel": "test",
+      "environment": "preview",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "api.test.zbarber.net",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://zbarber.net/api/__clerk",
@@ -37,6 +38,7 @@
     "production": {
       "autoIncrement": true,
       "channel": "production",
+      "environment": "production",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "api.zbarber.net",
         "EXPO_PUBLIC_CLERK_PROXY_URL": "https://zbarber.net/api/__clerk",

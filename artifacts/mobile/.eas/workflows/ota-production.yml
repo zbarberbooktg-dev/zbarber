@@ -1,0 +1,18 @@
+name: Zbarber OTA — Production
+on:
+  workflow_dispatch: {}
+jobs:
+  publish_update:
+    type: update
+    environment: production
+    env:
+      EXPO_PUBLIC_DOMAIN: api.zbarber.net
+      EXPO_PUBLIC_CLERK_PROXY_URL: https://zbarber.net/api/__clerk
+    params:
+      channel: production
+    hooks:
+      after_checkout:
+        - name: Verify production release configuration
+          run: |
+            if [ -f artifacts/mobile/scripts/check-ota-env.cjs ]; then cd artifacts/mobile; fi
+            node scripts/check-ota-env.cjs production
