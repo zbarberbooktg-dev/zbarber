@@ -168,7 +168,7 @@ export default function PublicHome() {
   const { ready, syncing, user, role, lang, syncAuth, themePref } = useApp();
   const fr = lang === "fr";
   const { width } = useWindowDimensions();
-  const editorialWidth = Math.min(480, width - 58);
+  const editorialWidth = Math.min(280, Math.round(width * 0.64));
   const systemScheme = useColorScheme();
   const effective = themePref === "system" ? (systemScheme ?? "dark") : themePref;
   const tp = effective === "dark" ? colors.dark : colors.light;
@@ -515,21 +515,21 @@ export default function PublicHome() {
 
         {/* Hero image — falls back to a static visual when no articles are configured */}
         {!query && (!articles || articles.length === 0) && (
-          <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
-            <ImageBackground source={heroImage} style={{ width: "100%", aspectRatio: 16 / 10, maxHeight: 330, borderRadius: 22, overflow: "hidden" }}>
+          <View style={{ marginHorizontal: 20, marginBottom: 26, width: editorialWidth }}>
+            <ImageBackground source={heroImage} style={homeStyles.editorialCover}>
               <View style={{ padding: 13 }}>
                 <View style={{ alignSelf: "flex-start", backgroundColor: PALETTE.gold, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8, borderRadius: 12 }}>
                   <Text style={{ color: PALETTE.onGold, fontSize: 10, letterSpacing: 1.2, fontFamily: "Inter_700Bold", textTransform: "uppercase" }}>{fr ? "L’Édito" : "Editorial"}</Text>
                 </View>
               </View>
             </ImageBackground>
-            <Text style={{ color: PALETTE.text, marginTop: 8, fontFamily: serif, fontSize: 25, lineHeight: 32 }}>{fr ? "La renaissance du rasage" : "The revival of shaving"}</Text>
+            <Text style={{ color: PALETTE.text, marginTop: 8, fontFamily: serif, fontSize: 18, lineHeight: 23 }}>{fr ? "La renaissance du rasage" : "The revival of shaving"}</Text>
           </View>
         )}
 
         {/* Articles carousel (édito) */}
         {!query && articles && articles.length > 0 && (
-          <View style={{ marginBottom: 36 }}>
+          <View style={{ marginBottom: 26 }}>
             <View style={{ paddingHorizontal: 20, marginBottom: 14, flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View style={{ backgroundColor: PALETTE.gold, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
                 <Text style={{ color: PALETTE.onGold, fontSize: 10, letterSpacing: 1.2, fontFamily: "Inter_700Bold", textTransform: "uppercase" }}>{fr ? "L’Édito" : "Editorial"}</Text>
@@ -552,7 +552,7 @@ export default function PublicHome() {
                   accessibilityRole="button"
                   style={({ pressed }) => ({ width: editorialWidth, opacity: pressed ? 0.85 : 1 })}
                 >
-                  <View style={{ aspectRatio: 16 / 10, borderRadius: 22, overflow: "hidden" }}>
+                  <View style={homeStyles.editorialCover}>
                     <Image
                       source={{ uri: resolveObjectUrl(a.coverImageUrl, 700) ?? "" }}
                       style={{ width: "100%", height: "100%" }}
@@ -561,7 +561,7 @@ export default function PublicHome() {
                   </View>
                   <View style={homeStyles.salonDetails}>
                   <Text
-                    style={{ color: PALETTE.text, fontFamily: serif, fontSize: 21, lineHeight: 27 }}
+                    style={{ color: PALETTE.text, fontFamily: serif, fontSize: 18, lineHeight: 23 }}
                     numberOfLines={2}
                   >
                     {a.title}
@@ -861,5 +861,6 @@ function SectionHeader({ title, action, serifFont, onPressAction, textColor, acc
 }
 
 const homeStyles = StyleSheet.create({
+  editorialCover: { width: "100%", aspectRatio: 2.1, borderRadius: 14, overflow: "hidden" },
   salonDetails: { paddingHorizontal: 2, paddingTop: 8, paddingBottom: 3 },
 });
