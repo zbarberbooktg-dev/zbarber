@@ -98,6 +98,7 @@ export * from './review';
 export * from './reviewInput';
 export * from './reviewListResponse';
 export * from './salonAdVisibility';
+export * from './salonCatalogLocation';
 export * from './salonVideoAd';
 export * from './schedule';
 export * from './scheduleInput';

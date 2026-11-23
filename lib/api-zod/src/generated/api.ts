@@ -426,6 +426,21 @@ export const ActivateUserResponse = zod.object({
 /**
  * @summary List barbers
  */
+export const listBarbersQueryCountryMax = 200;
+
+export const listBarbersQueryMinPriceMin = 0;
+
+export const listBarbersQueryMaxPriceMin = 0;
+
+export const listBarbersQueryLatitudeMin = -90;
+export const listBarbersQueryLatitudeMax = 90;
+
+export const listBarbersQueryLongitudeMin = -180;
+export const listBarbersQueryLongitudeMax = 180;
+
+export const listBarbersQueryRadiusKmMin = 0.1;
+export const listBarbersQueryRadiusKmMax = 500;
+
 
 export const listBarbersQueryLimitMax = 100;
 
@@ -438,6 +453,12 @@ export const ListBarbersQueryParams = zod.object({
   "service": zod.coerce.string().optional(),
   "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']).optional(),
   "city": zod.coerce.string().optional(),
+  "country": zod.coerce.string().max(listBarbersQueryCountryMax).optional(),
+  "minPrice": zod.coerce.number().min(listBarbersQueryMinPriceMin).optional().describe('At least one active service meets both price bounds (inclusive).'),
+  "maxPrice": zod.coerce.number().min(listBarbersQueryMaxPriceMin).optional(),
+  "latitude": zod.coerce.number().min(listBarbersQueryLatitudeMin).max(listBarbersQueryLatitudeMax).optional(),
+  "longitude": zod.coerce.number().min(listBarbersQueryLongitudeMin).max(listBarbersQueryLongitudeMax).optional(),
+  "radiusKm": zod.coerce.number().min(listBarbersQueryRadiusKmMin).max(listBarbersQueryRadiusKmMax).optional().describe('Radius from latitude and longitude; nearest results first.'),
   "page": zod.coerce.number().min(1).optional(),
   "limit": zod.coerce.number().min(1).max(listBarbersQueryLimitMax).optional()
 })
@@ -494,6 +515,16 @@ export const CreateBarberBody = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish()
 })
+
+
+/**
+ * @summary Distinct countries and cities of approved salons
+ */
+export const ListSalonCatalogLocationsResponseItem = zod.object({
+  "country": zod.string().nullable(),
+  "city": zod.string()
+})
+export const ListSalonCatalogLocationsResponse = zod.array(ListSalonCatalogLocationsResponseItem)
 
 
 /**

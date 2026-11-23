@@ -5,6 +5,12 @@
  * Zbarber API
  * OpenAPI spec version: 0.1.0
  */
+export interface SalonCatalogLocation {
+  /** @nullable */
+  country: string | null;
+  city: string;
+}
+
 export interface SalonVideoAd {
   id: number;
   salonId: number;
@@ -1314,6 +1320,35 @@ categoryId?: number;
 service?: string;
 status?: ListBarbersStatus;
 city?: string;
+/**
+ * @maxLength 200
+ */
+country?: string;
+/**
+ * At least one active service meets both price bounds (inclusive).
+ * @minimum 0
+ */
+minPrice?: number;
+/**
+ * @minimum 0
+ */
+maxPrice?: number;
+/**
+ * @minimum -90
+ * @maximum 90
+ */
+latitude?: number;
+/**
+ * @minimum -180
+ * @maximum 180
+ */
+longitude?: number;
+/**
+ * Radius from latitude and longitude; nearest results first.
+ * @minimum 0.1
+ * @maximum 500
+ */
+radiusKm?: number;
 /**
  * @minimum 1
  */

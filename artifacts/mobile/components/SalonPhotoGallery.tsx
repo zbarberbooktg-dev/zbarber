@@ -52,7 +52,7 @@ export function SalonPhotoGallery({ slides, isGallery, isFr, worksLabel, colors:
       onLayout={(e) => setW(Math.round(e.nativeEvent.layout.width))}
       testID="salon-photo-gallery"
     >
-      <View style={{ width, height, backgroundColor: C.surface }}>
+      <View style={{ width, height, borderRadius: 20, overflow: "hidden", backgroundColor: C.surface }}>
         <FlatList
           ref={listRef}
           data={slides}

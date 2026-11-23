@@ -89,7 +89,7 @@ export function SalonAdsCarousel({ visible, onLayout }: { visible: boolean; onLa
           const playing = eligible && playingId === ad.id;
           const poster = resolveObjectUrl(ad.posterPath, 720);
           return (
-            <View style={[styles.card, { width: cardWidth, borderColor: c.border, backgroundColor: c.card }]}>
+            <View style={{ width: cardWidth }}>
               <View style={[styles.media, { backgroundColor: c.muted }]}>
                 {playing ? <AdVideo path={ad.videoPath} fr={fr} /> : (
                   <Pressable accessibilityRole="button" accessibilityLabel={fr ? `Lire la vidéo de ${ad.salonName}` : `Play video for ${ad.salonName}`}
@@ -112,7 +112,7 @@ export function SalonAdsCarousel({ visible, onLayout }: { visible: boolean; onLa
               </View>
               <Pressable accessibilityRole="link" accessibilityLabel={fr ? `Voir le salon ${ad.salonName}` : `View salon ${ad.salonName}`}
                 onPress={() => { setPlayingId(null); router.push(`/salon/${ad.salonId}`); }}
-                style={({ pressed }) => [styles.cta, { backgroundColor: pressed ? c.accent : c.card }]}>
+                style={({ pressed }) => [styles.cta, { opacity: pressed ? 0.7 : 1 }]}>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>{ad.salonName}</Text>
                   <Text style={{ color: c.mutedForeground, fontSize: 12, marginTop: 3 }}>{fr ? "Voir le salon" : "View salon"}</Text>
@@ -130,11 +130,10 @@ export function SalonAdsCarousel({ visible, onLayout }: { visible: boolean; onLa
 const styles = StyleSheet.create({
   list: { paddingHorizontal: 20, gap: 12 },
   heading: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 20, marginBottom: 10 },
-  card: { borderRadius: 20, overflow: "hidden", borderWidth: 1 },
-  media: { aspectRatio: 16 / 9, overflow: "hidden" },
+  media: { aspectRatio: 16 / 9, borderRadius: 20, overflow: "hidden" },
   center: { ...StyleSheet.absoluteFillObject, justifyContent: "center", alignItems: "center", gap: 8 },
   sponsored: { position: "absolute", top: 10, left: 10, borderRadius: 12, paddingVertical: 5, paddingHorizontal: 8 },
   play: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   stop: { position: "absolute", right: 8, top: 8, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  cta: { flexDirection: "row", alignItems: "center", paddingVertical: 11, paddingHorizontal: 14, gap: 8 },
+  cta: { flexDirection: "row", alignItems: "center", minHeight: 48, paddingVertical: 7, paddingHorizontal: 2, gap: 8 },
 });

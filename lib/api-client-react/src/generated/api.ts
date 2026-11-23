@@ -86,6 +86,7 @@ import type {
   ReviewInput,
   ReviewListResponse,
   SalonAdVisibility,
+  SalonCatalogLocation,
   SalonVideoAd,
   Schedule,
   ScheduleInput,
@@ -1702,6 +1703,83 @@ export const useCreateBarber = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreateBarberMutationOptions(options));
     }
+
+export const getListSalonCatalogLocationsUrl = () => {
+
+
+
+
+  return `/api/barbers/catalog-locations`
+}
+
+/**
+ * @summary Distinct countries and cities of approved salons
+ */
+export const listSalonCatalogLocations = async ( options?: RequestInit): Promise<SalonCatalogLocation[]> => {
+
+  return customFetch<SalonCatalogLocation[]>(getListSalonCatalogLocationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSalonCatalogLocationsQueryKey = () => {
+    return [
+    `/api/barbers/catalog-locations`
+    ] as const;
+    }
+
+
+export const getListSalonCatalogLocationsQueryOptions = <TData = Awaited<ReturnType<typeof listSalonCatalogLocations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSalonCatalogLocations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSalonCatalogLocationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSalonCatalogLocations>>> = ({ signal }) => listSalonCatalogLocations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSalonCatalogLocations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSalonCatalogLocationsQueryResult = NonNullable<Awaited<ReturnType<typeof listSalonCatalogLocations>>>
+export type ListSalonCatalogLocationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Distinct countries and cities of approved salons
+ */
+
+export function useListSalonCatalogLocations<TData = Awaited<ReturnType<typeof listSalonCatalogLocations>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSalonCatalogLocations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSalonCatalogLocationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getListBarberMapPointsUrl = (params?: ListBarberMapPointsParams,) => {
   const normalizedParams = new URLSearchParams();

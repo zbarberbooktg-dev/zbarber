@@ -172,17 +172,27 @@ async function withCardDetails(rows: Array<typeof barbersTable.$inferSelect>) {
 }
 
 // ── Public: list approved barbers (for clients browsing) ───
+const optionalNumber = (min: number, max: number) => z.string().trim().min(1).pipe(z.coerce.number().min(min).max(max)).optional();
+
 router.get("/barbers", async (req, res) => {
   const input = z.object({
     page: z.coerce.number().int().min(1).max(1000000).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     search: z.string().trim().max(200).default(""),
     status: z.enum(["pending", "awaiting_document", "approved", "rejected", "suspended"]).optional(),
-    city: z.string().optional(), categoryId: z.coerce.number().int().positive().optional(),
+    city: z.string().trim().max(200).optional(), country: z.string().trim().max(200).optional(),
+    categoryId: z.coerce.number().int().positive().optional(),
+    minPrice: optionalNumber(0, Number.MAX_SAFE_INTEGER), maxPrice: optionalNumber(0, Number.MAX_SAFE_INTEGER),
+    latitude: optionalNumber(-90, 90), longitude: optionalNumber(-180, 180), radiusKm: optionalNumber(0.1, 500),
     service: z.string().max(200).optional(), sort: z.enum(["newest"]).optional(),
   }).safeParse(req.query);
   if (!input.success) { res.status(400).json({ error: "Invalid search parameters" }); return; }
   const q = input.data;
+  const usesDistance = q.radiusKm !== undefined || q.latitude !== undefined || q.longitude !== undefined;
+  if ((usesDistance && (q.radiusKm === undefined || q.latitude === undefined || q.longitude === undefined)) ||
+    (q.minPrice !== undefined && q.maxPrice !== undefined && q.minPrice > q.maxPrice)) {
+    res.status(400).json({ error: "Invalid distance or price range" }); return;
+  }
   // Public callers cannot enumerate unapproved salons by changing a query param.
   const admin = await resolveAdminFromCookie(req);
   if (!admin && q.status && q.status !== "approved") {
@@ -197,21 +207,46 @@ router.get("/barbers", async (req, res) => {
     ilike(barbersTable.neighborhood, pattern(q.search)),
   )!);
   if (q.city) conditions.push(eq(barbersTable.city, q.city));
-  if (q.categoryId || q.service) {
+  if (q.country) conditions.push(eq(barbersTable.country, q.country));
+  const byPrice = q.minPrice !== undefined || q.maxPrice !== undefined;
+  if (q.categoryId || q.service || byPrice) {
     const services = db.select({ id: servicesTable.barberId }).from(servicesTable).where(and(
       q.categoryId ? eq(servicesTable.categoryId, q.categoryId) : undefined,
       q.service ? ilike(servicesTable.name, pattern(q.service)) : undefined,
+      byPrice ? eq(servicesTable.isActive, true) : undefined,
+      q.minPrice === undefined ? undefined : gte(servicesTable.price, q.minPrice),
+      q.maxPrice === undefined ? undefined : lte(servicesTable.price, q.maxPrice),
     ));
     conditions.push(inArray(barbersTable.id, services));
+  }
+  const distance = q.radiusKm === undefined ? undefined : sql<number>`12742 * asin(sqrt(least(1,
+    power(sin(radians(${barbersTable.latitude} - ${q.latitude}::double precision) / 2), 2) +
+    cos(radians(${q.latitude}::double precision)) * cos(radians(${barbersTable.latitude})) *
+      power(sin(radians(${barbersTable.longitude} - ${q.longitude}::double precision) / 2), 2)
+  )))`;
+  if (distance && q.radiusKm !== undefined) {
+    conditions.push(
+      gte(barbersTable.latitude, -90), lte(barbersTable.latitude, 90),
+      gte(barbersTable.longitude, -180), lte(barbersTable.longitude, 180),
+      sql`${distance} <= ${q.radiusKm}`,
+    );
   }
   const where = and(...conditions);
   const [totals, rows] = await Promise.all([
     db.select({ total: count() }).from(barbersTable).where(where),
     db.select().from(barbersTable).where(where)
-      .orderBy(...(q.sort === "newest" ? [desc(barbersTable.createdAt), desc(barbersTable.id)] : [asc(barbersTable.id)]))
+      .orderBy(...(distance ? [asc(distance), asc(barbersTable.id)] :
+        q.sort === "newest" ? [desc(barbersTable.createdAt), desc(barbersTable.id)] : [asc(barbersTable.id)]))
       .limit(q.limit).offset((q.page - 1) * q.limit),
   ]);
   res.json({ data: await withCardDetails(rows), total: totals[0]?.total ?? 0, page: q.page, limit: q.limit });
+});
+
+router.get("/barbers/catalog-locations", async (_req, res) => {
+  const rows = await db.selectDistinct({ country: barbersTable.country, city: barbersTable.city })
+    .from(barbersTable).where(eq(barbersTable.status, "approved"))
+    .orderBy(asc(barbersTable.country), asc(barbersTable.city));
+  res.json(rows);
 });
 
 router.get("/barbers/map-points", async (req, res) => {

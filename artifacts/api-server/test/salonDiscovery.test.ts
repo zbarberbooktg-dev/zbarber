@@ -13,7 +13,7 @@ vi.mock("../src/lib/email", () => ({
 }));
 vi.mock("../src/lib/push", () => ({ sendPush: vi.fn(async () => {}) }));
 
-const { db, barbersTable, usersTable, galleryPhotosTable, pool } = await import("@workspace/db");
+const { db, barbersTable, usersTable, galleryPhotosTable, servicesTable, pool } = await import("@workspace/db");
 const { eq, inArray } = await import("drizzle-orm");
 const router = (await import("../src/routes/barbers")).default;
 const app = express();
@@ -95,6 +95,49 @@ describe("public salon discovery", () => {
   });
   it("rejects invalid pagination rather than silently truncating", async () => {
     for (const query of [{ page: 0 }, { limit: 101 }, { page: "bad" }]) {
+      expect((await request(app).get("/api/barbers").query(query)).status).toBe(400);
+    }
+  });
+  it("combines country, city, GPS and the price of a single active service before pagination", async () => {
+    const country = `${prefix} Pays`, city = `${prefix} Ville`;
+    const candidateIds = ids.slice(24, 32);
+    try {
+      for (const [index, id] of candidateIds.entries()) {
+        await db.update(barbersTable).set({
+          country: index === 3 ? `${prefix} Autre pays` : country,
+          city: index === 4 ? `${prefix} Autre ville` : city,
+          latitude: index === 2 ? null : 0,
+          longitude: index === 2 ? null : index === 5 ? 2 : index === 1 ? 0.001 : 0.01,
+        }).where(eq(barbersTable.id, id));
+      }
+      await db.insert(servicesTable).values([
+        ...candidateIds.slice(0, 6).map((barberId, i) => ({ barberId, name: "Coupe", price: i === 1 ? 2500 : 1000, durationMinutes: 20 })),
+        { barberId: candidateIds[6]!, name: "Pas disponible", price: 1800, durationMinutes: 20, isActive: false },
+        { barberId: candidateIds[7]!, name: "Sous le budget", price: 999, durationMinutes: 20 },
+        { barberId: candidateIds[7]!, name: "Hors budget", price: 2501, durationMinutes: 20 },
+      ]);
+      const filters = { search: prefix, country, city, minPrice: 1000, maxPrice: 2500, latitude: 0, longitude: 0, radiusKm: 5, limit: 1 };
+      const first = await request(app).get("/api/barbers").query(filters);
+      expect(first.status).toBe(200);
+      expect(first.body.total).toBe(2);
+      expect(first.body.data.map((b: { id: number }) => b.id)).toEqual([candidateIds[1]]);
+      const second = await request(app).get("/api/barbers").query({ ...filters, page: 2 });
+      expect(second.body.data.map((b: { id: number }) => b.id)).toEqual([candidateIds[0]]);
+      const known = await request(app).get("/api/barbers/catalog-locations");
+      expect(known.body).toContainEqual({ country, city });
+      expect(known.body.filter((location: { country: string; city: string }) => location.country === country && location.city === city)).toHaveLength(1);
+    } finally {
+      await db.delete(servicesTable).where(inArray(servicesTable.barberId, candidateIds));
+      for (const [index, id] of candidateIds.entries()) {
+        await db.update(barbersTable).set({ country: null, city: "Lomé", latitude: 0, longitude: 24 + index }).where(eq(barbersTable.id, id));
+      }
+    }
+  });
+  it("rejects incomplete GPS, out-of-range coordinates and invalid price bounds", async () => {
+    for (const query of [
+      { radiusKm: 5 }, { latitude: 0, longitude: 0 }, { latitude: 91, longitude: 0, radiusKm: 5 },
+      { latitude: "", longitude: 0, radiusKm: 5 }, { minPrice: 4000, maxPrice: 2000 }, { minPrice: -1 },
+    ]) {
       expect((await request(app).get("/api/barbers").query(query)).status).toBe(400);
     }
   });

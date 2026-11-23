@@ -44,6 +44,7 @@ import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ShimmerImage } from "@/components/ShimmerImage";
 import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { SalonAdsCarousel } from "@/components/SalonAdsCarousel";
+import { SalonListRow } from "@/components/SalonListRow";
 import { ONBOARDING_KEY } from "./onboarding";
 import { salonImageSource } from "@/lib/salonDiscovery";
 
@@ -77,7 +78,7 @@ function InfiniteGalleryCarousel({
   items: GalleryItem[];
   onPressItem: (item: GalleryItem, allItems: GalleryItem[]) => void;
   serifItalic: string;
-  palette: { border: string };
+  palette: { text: string };
 }) {
   const translateX = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -139,16 +140,15 @@ function InfiniteGalleryCarousel({
           <Pressable
             key={`${s.key}-${i}`}
             onPress={() => onPressItem(s, items)}
-            style={{ width: ITEM_W, aspectRatio: 3 / 4, marginRight: ITEM_GAP, borderRadius: 16, borderWidth: 1, borderColor: palette.border, overflow: "hidden" }}
+            style={{ width: ITEM_W, marginRight: ITEM_GAP }}
           >
             <ShimmerImage
               source={s.uri ? { uri: s.uri } : s.src}
-              style={{ width: "100%", height: "100%" }}
+              style={{ width: "100%", aspectRatio: 3 / 4, borderRadius: 16, overflow: "hidden" }}
               contentFit="cover"
             />
-            <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.22)" }} />
             {s.label ? (
-              <Text style={{ position: "absolute", bottom: 10, left: 12, color: "#fff", fontFamily: serifItalic, fontSize: 13 }}>
+              <Text style={{ marginTop: 7, color: palette.text, fontFamily: serifItalic, fontSize: 13 }}>
                 {s.label}
               </Text>
             ) : null}
@@ -521,15 +521,14 @@ export default function PublicHome() {
         {/* Hero image — falls back to a static visual when no articles are configured */}
         {!query && (!articles || articles.length === 0) && (
           <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>
-            <ImageBackground source={heroImage} style={{ width: "100%", aspectRatio: 16 / 10, maxHeight: 330, borderRadius: 22, overflow: "hidden", justifyContent: "flex-end" }}>
-              <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(10,10,10,0.50)" }} />
-              <View style={{ padding: 16 }}>
+            <ImageBackground source={heroImage} style={{ width: "100%", aspectRatio: 16 / 10, maxHeight: 330, borderRadius: 22, overflow: "hidden" }}>
+              <View style={{ padding: 13 }}>
                 <View style={{ alignSelf: "flex-start", backgroundColor: PALETTE.gold, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 8, borderRadius: 12 }}>
                   <Text style={{ color: PALETTE.onGold, fontSize: 10, letterSpacing: 1.2, fontFamily: "Inter_700Bold", textTransform: "uppercase" }}>{fr ? "L’Édito" : "Editorial"}</Text>
                 </View>
-                <Text style={{ color: "#fff", fontFamily: serif, fontSize: 25, lineHeight: 32 }}>{fr ? "La renaissance du rasage" : "The revival of shaving"}</Text>
               </View>
             </ImageBackground>
+            <Text style={{ color: PALETTE.text, marginTop: 8, fontFamily: serif, fontSize: 25, lineHeight: 32 }}>{fr ? "La renaissance du rasage" : "The revival of shaving"}</Text>
           </View>
         )}
 
@@ -556,17 +555,16 @@ export default function PublicHome() {
                   key={a.id}
                   onPress={() => router.push(`/articles/${a.id}` as never)}
                   accessibilityRole="button"
-                  style={({ pressed }) => ({ width: editorialWidth, borderRadius: 22, overflow: "hidden", borderWidth: 1, borderColor: PALETTE.border, backgroundColor: PALETTE.surface, opacity: pressed ? 0.85 : 1 })}
+                  style={({ pressed }) => ({ width: editorialWidth, opacity: pressed ? 0.85 : 1 })}
                 >
-                  <View style={{ aspectRatio: 16 / 10, overflow: "hidden" }}>
+                  <View style={{ aspectRatio: 16 / 10, borderRadius: 22, overflow: "hidden" }}>
                     <Image
                       source={{ uri: resolveObjectUrl(a.coverImageUrl, 700) ?? "" }}
                       style={{ width: "100%", height: "100%" }}
                       contentFit="cover"
                     />
-                    <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(10,10,10,0.30)" }} />
                   </View>
-                  <View style={{ padding: 15 }}>
+                  <View style={homeStyles.salonDetails}>
                   <Text
                     style={{ color: PALETTE.text, fontFamily: serif, fontSize: 21, lineHeight: 27 }}
                     numberOfLines={2}
@@ -606,10 +604,10 @@ export default function PublicHome() {
                 contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
                 {newest.data.map((b, idx) => (
                   <Pressable key={b.id} accessibilityRole="button" accessibilityLabel={fr ? `Ouvrir ${b.salonName}` : `Open ${b.salonName}`}
-                    onPress={() => router.push(`/salon/${b.id}` as never)} style={({ pressed }) => [homeStyles.salonCard, { width: 190, borderColor: PALETTE.border, backgroundColor: PALETTE.surface, opacity: pressed ? 0.85 : 1 }]}>
+                    onPress={() => router.push(`/salon/${b.id}` as never)} style={({ pressed }) => ({ width: 190, opacity: pressed ? 0.85 : 1 })}>
                     <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"}
                       source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])}
-                      style={{ width: "100%", height: 135 }} contentFit="cover" />
+                      style={{ width: "100%", height: 135, borderRadius: 18, overflow: "hidden" }} contentFit="cover" />
                     <View style={homeStyles.salonDetails}>
                       <Text numberOfLines={1} style={{ color: PALETTE.text, fontFamily: serif, fontSize: 17 }}>{b.salonName}</Text>
                       <Text numberOfLines={1} style={{ color: PALETTE.textMuted, fontSize: 12, marginTop: 4 }}>{[b.neighborhood, b.city].filter(Boolean).join(" • ")}</Text>
@@ -677,8 +675,8 @@ export default function PublicHome() {
                   return (
                     <Pressable key={b.id} testID={`nearby-salon-${b.id}`} accessibilityRole="button"
                       accessibilityLabel={`${b.salonName}, ${distanceLabel}`}
-                      onPress={() => router.push(`/salon/${b.id}` as never)} style={({ pressed }) => [homeStyles.salonCard, { width: 210, borderColor: PALETTE.border, backgroundColor: PALETTE.surface, opacity: pressed ? 0.85 : 1 }]}>
-                      <View style={{ width: "100%", height: 138, overflow: "hidden" }}>
+                      onPress={() => router.push(`/salon/${b.id}` as never)} style={({ pressed }) => ({ width: 210, opacity: pressed ? 0.85 : 1 })}>
+                      <View style={{ width: "100%", height: 138, borderRadius: 18, overflow: "hidden" }}>
                         <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"}
                           source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])}
                           style={{ width: "100%", height: "100%" }} contentFit="cover" />
@@ -733,8 +731,8 @@ export default function PublicHome() {
           >
             {featured.map((b, idx) => (
               <Pressable key={b.id} accessibilityRole="button" onPress={() => router.push(`/salon/${b.id}` as never)}
-                style={({ pressed }) => [homeStyles.salonCard, { width: 230, borderColor: PALETTE.border, backgroundColor: PALETTE.surface, opacity: pressed ? 0.85 : 1 }]}>
-                <View style={{ aspectRatio: 4 / 3, overflow: "hidden" }}>
+                style={({ pressed }) => ({ width: 230, opacity: pressed ? 0.85 : 1 })}>
+                <View style={{ aspectRatio: 4 / 3, borderRadius: 18, overflow: "hidden" }}>
                   <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"} source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                   {b.rating && Number(b.rating) > 0 ? (
                     <View style={{ position: "absolute", bottom: 12, left: 12, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }}>
@@ -798,6 +796,22 @@ export default function PublicHome() {
               palette={PALETTE}
             />
 
+            <View testID="home-salon-catalog-preview" style={{ marginBottom: 27 }}>
+              <SectionHeader title={fr ? "Explorer les salons" : "Explore salons"} action="" serifFont={serif}
+                textColor={PALETTE.text} accentColor={PALETTE.gold} />
+              <View style={{ paddingHorizontal: 20, gap: 5 }}>
+                {(newest?.data.length ? newest.data : list).slice(0, 5).map((salon, index) => (
+                  <SalonListRow key={salon.id} salon={salon} index={index} onPress={() => router.push(`/salon/${salon.id}`)} />
+                ))}
+                <Pressable accessibilityRole="button" onPress={() => router.push("/salons")}
+                  style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 48, borderRadius: 14,
+                    paddingHorizontal: 14, marginTop: 8, borderWidth: 1, borderColor: PALETTE.border, opacity: pressed ? 0.7 : 1 })}>
+                  <Text style={{ color: PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 14 }}>{fr ? "Voir le catalogue des salons" : "Browse the salon directory"}</Text>
+                  <Feather name="arrow-right" size={18} color={PALETTE.gold} />
+                </Pressable>
+              </View>
+            </View>
+
             {/* Barber CTA */}
             {!isSignedIn && (
               <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
@@ -846,6 +860,5 @@ function SectionHeader({ title, action, serifFont, onPressAction, textColor, acc
 }
 
 const homeStyles = StyleSheet.create({
-  salonCard: { borderRadius: 18, borderWidth: 1, overflow: "hidden" },
-  salonDetails: { paddingHorizontal: 12, paddingVertical: 11 },
+  salonDetails: { paddingHorizontal: 2, paddingTop: 8, paddingBottom: 3 },
 });
