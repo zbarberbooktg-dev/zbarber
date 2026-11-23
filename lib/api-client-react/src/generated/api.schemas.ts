@@ -29,7 +29,16 @@ export interface AdminSalonVideoAd {
 }
 
 export interface SalonAdVisibility {
-  active: boolean;
+  active?: boolean;
+  /**
+     * @minimum 1
+     * @maximum 2147483647
+     */
+  salonId?: number;
+}
+
+export interface SalonAdDeletion {
+  cleanupPending: boolean;
 }
 
 export interface SupportLinks {
@@ -1280,6 +1289,14 @@ export type CreateSalonAdParams = {
  * @minimum 1
  */
 salonId: number;
+};
+
+export type ReplaceSalonAdVideoParams = {
+/**
+ * @minimum 1
+ * @maximum 2147483647
+ */
+salonId?: number;
 };
 
 export type ListUsersParams = {

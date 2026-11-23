@@ -77,6 +77,7 @@ import type {
   RealisationInput,
   RegisterInput,
   RejectInput,
+  ReplaceSalonAdVideoParams,
   Reservation,
   ReservationInput,
   ReservationListResponse,
@@ -85,6 +86,7 @@ import type {
   Review,
   ReviewInput,
   ReviewListResponse,
+  SalonAdDeletion,
   SalonAdVisibility,
   SalonCatalogLocation,
   SalonVideoAd,
@@ -380,7 +382,7 @@ export const getSetSalonAdVisibilityUrl = (id: number,) => {
 }
 
 /**
- * @summary Activate or deactivate a salon video without reuploading it
+ * @summary Change the linked salon or activation without replacing the video
  */
 export const setSalonAdVisibility = async (id: number,
     salonAdVisibility: SalonAdVisibility, options?: RequestInit): Promise<AdminSalonVideoAd> => {
@@ -430,7 +432,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SetSalonAdVisibilityMutationError = ErrorType<unknown>
 
     /**
- * @summary Activate or deactivate a salon video without reuploading it
+ * @summary Change the linked salon or activation without replacing the video
  */
 export const useSetSalonAdVisibility = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSalonAdVisibility>>, TError,{id: number;data: BodyType<SalonAdVisibility>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -441,6 +443,157 @@ export const useSetSalonAdVisibility = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSetSalonAdVisibilityMutationOptions(options));
+    }
+
+export const getReplaceSalonAdVideoUrl = (id: number,
+    params?: ReplaceSalonAdVideoParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/salon-ads/${id}?${stringifiedParams}` : `/api/admin/salon-ads/${id}`
+}
+
+/**
+ * @summary Replace a video and optionally link a different salon
+ */
+export const replaceSalonAdVideo = async (id: number,
+    replaceSalonAdVideoBody: Blob,
+    params?: ReplaceSalonAdVideoParams, options?: RequestInit): Promise<AdminSalonVideoAd> => {
+
+  return customFetch<AdminSalonVideoAd>(getReplaceSalonAdVideoUrl(id,params),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'video/mp4', ...options?.headers },
+    body: JSON.stringify(
+      replaceSalonAdVideoBody,)
+  }
+);}
+
+
+
+
+export const getReplaceSalonAdVideoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceSalonAdVideo>>, TError,{id: number;data: BodyType<Blob>;params?: ReplaceSalonAdVideoParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replaceSalonAdVideo>>, TError,{id: number;data: BodyType<Blob>;params?: ReplaceSalonAdVideoParams}, TContext> => {
+
+const mutationKey = ['replaceSalonAdVideo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replaceSalonAdVideo>>, {id: number;data: BodyType<Blob>;params?: ReplaceSalonAdVideoParams}> = (props) => {
+          const {id,data,params} = props ?? {};
+
+          return  replaceSalonAdVideo(id,data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReplaceSalonAdVideoMutationResult = NonNullable<Awaited<ReturnType<typeof replaceSalonAdVideo>>>
+    export type ReplaceSalonAdVideoMutationBody = BodyType<Blob>
+    export type ReplaceSalonAdVideoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Replace a video and optionally link a different salon
+ */
+export const useReplaceSalonAdVideo = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceSalonAdVideo>>, TError,{id: number;data: BodyType<Blob>;params?: ReplaceSalonAdVideoParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof replaceSalonAdVideo>>,
+        TError,
+        {id: number;data: BodyType<Blob>;params?: ReplaceSalonAdVideoParams},
+        TContext
+      > => {
+      return useMutation(getReplaceSalonAdVideoMutationOptions(options));
+    }
+
+export const getDeleteSalonAdUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/salon-ads/${id}`
+}
+
+/**
+ * @summary Remove the advertisement and release its stored video
+ */
+export const deleteSalonAd = async (id: number, options?: RequestInit): Promise<SalonAdDeletion> => {
+
+  return customFetch<SalonAdDeletion>(getDeleteSalonAdUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteSalonAdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSalonAd>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteSalonAd>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteSalonAd'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteSalonAd>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteSalonAd(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteSalonAdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteSalonAd>>>
+
+    export type DeleteSalonAdMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove the advertisement and release its stored video
+ */
+export const useDeleteSalonAd = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSalonAd>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteSalonAd>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteSalonAdMutationOptions(options));
     }
 
 export const getStreamSalonAdVideoUrl = (id: number,) => {

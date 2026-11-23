@@ -11,24 +11,25 @@ import { apiUrl } from "@/lib/api";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ShimmerImage } from "@/components/ShimmerImage";
 
-function AdVideo({ path, fr }: { path: string; fr: boolean }) {
+function AdVideo({ path, fr, paused }: { path: string; fr: boolean; paused: boolean }) {
   const c = useColors();
   const player = useVideoPlayer({ uri: apiUrl(path), useCaching: false }, (video) => {
     video.muted = true;
-    video.loop = false;
-    if (Platform.OS !== "web") video.play();
+    video.loop = true;
   });
   const { status } = useEvent(player, "statusChange", { status: player.status });
+  const readyForPlayback = Platform.OS !== "web" || status === "readyToPlay";
   useEffect(() => {
-    // On web the element is not attached when the player setup callback runs.
-    if (Platform.OS === "web" && status === "readyToPlay") player.play();
-  }, [player, status]);
+    if (paused) player.pause();
+    // On web, wait for the HTML video to attach and become ready.
+    else if (readyForPlayback) player.play();
+  }, [player, paused, readyForPlayback]);
   if (status === "error") {
     return <View style={styles.center}><Text style={{ color: c.mutedForeground }}>{fr ? "Vidéo indisponible" : "Video unavailable"}</Text></View>;
   }
   return (
     <>
-      <VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} contentFit="contain" surfaceType="textureView" />
+      <VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} playsInline contentFit="contain" surfaceType="textureView" />
       {(status === "idle" || status === "loading") && <View pointerEvents="none" style={styles.center}><ActivityIndicator color={c.primary} /></View>}
     </>
   );
@@ -45,27 +46,32 @@ export function SalonAdsCarousel({ visible, onLayout }: { visible: boolean; onLa
   const cardWidth = Math.min(420, Math.max(200, width - 58));
   const [focused, setFocused] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === "active" || AppState.currentState === null);
-  const [playingId, setPlayingId] = useState<number | null>(null);
+  const [pausedIds, setPausedIds] = useState<ReadonlySet<number>>(() => new Set());
   const [inView, setInView] = useState<Set<number>>(() => new Set());
   const ads = useListSalonAds({ query: { queryKey: getListSalonAdsQueryKey(), staleTime: 0, refetchOnMount: "always", refetchInterval: focused && foreground ? 30_000 : false, retry: false } });
   useFocusEffect(useCallback(() => {
     setFocused(true);
     void ads.refetch();
-    return () => { setFocused(false); setPlayingId(null); };
+    return () => { setFocused(false); };
   }, [ads.refetch]));
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => setForeground(state === "active"));
     return () => sub.remove();
   }, []);
   const canPlay = visible && focused && foreground;
-  useEffect(() => { if (!canPlay) setPlayingId(null); }, [canPlay]);
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken<SalonVideoAd>[] }) => {
     const ids = new Set(viewableItems.filter((i) => i.isViewable).map((i) => i.item.id));
     setInView(ids);
-    setPlayingId((id) => id !== null && !ids.has(id) ? null : id);
   }).current;
 
   if (ads.isError || !ads.data?.length) return null;
+  const visibleAdId = ads.data.find((ad) => inView.has(ad.id))?.id;
+  const setPaused = (id: number, paused: boolean) => setPausedIds((old) => {
+    const next = new Set(old);
+    if (paused) next.add(id);
+    else next.delete(id);
+    return next;
+  });
   return (
     <View testID="home-salon-ads" onLayout={onLayout} style={{ marginBottom: 24 }}>
       <View style={styles.heading}>
@@ -85,33 +91,34 @@ export function SalonAdsCarousel({ visible, onLayout }: { visible: boolean; onLa
         snapToInterval={cardWidth + 12}
         decelerationRate="fast"
         renderItem={({ item: ad }) => {
-          const eligible = canPlay && inView.has(ad.id);
-          const playing = eligible && playingId === ad.id;
+          const eligible = canPlay && visibleAdId === ad.id;
+          const playing = eligible && !pausedIds.has(ad.id);
           const poster = resolveObjectUrl(ad.posterPath, 720);
           return (
             <View style={{ width: cardWidth }}>
               <View style={[styles.media, { backgroundColor: c.muted }]}>
-                {playing ? <AdVideo path={ad.videoPath} fr={fr} /> : (
-                  <Pressable accessibilityRole="button" accessibilityLabel={fr ? `Lire la vidéo de ${ad.salonName}` : `Play video for ${ad.salonName}`}
-                    disabled={!eligible} onPress={() => setPlayingId(ad.id)} style={styles.center}>
+                {eligible ? <AdVideo key={ad.videoPath} path={ad.videoPath} fr={fr} paused={!playing} /> : (
+                  <View style={styles.center}>
                     {poster && <>
                       <ShimmerImage source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" />
                       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,0.34)" }]} />
                     </>}
-                    <View style={[styles.play, { backgroundColor: c.accent }]}><Feather name="play" size={22} color={c.accentForeground} /></View>
-                    <Text style={{ color: poster ? "#fff" : c.foreground, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>{fr ? "Lire la vidéo" : "Play video"}</Text>
-                  </Pressable>
+                    <View style={[styles.play, { backgroundColor: c.accent }]}><Feather name="film" size={22} color={c.accentForeground} /></View>
+                    <Text style={{ color: poster ? "#fff" : c.foreground, fontSize: 13, fontFamily: "Inter_600SemiBold" }}>{fr ? "Vidéo du salon" : "Salon video"}</Text>
+                  </View>
                 )}
                 <View pointerEvents="none" style={[styles.sponsored, { backgroundColor: c.card }]}>
                   <Text style={{ color: c.foreground, fontSize: 10, fontFamily: "Inter_600SemiBold" }}>{fr ? "Publicité" : "Advertisement"}</Text>
                 </View>
-                {playing && <Pressable accessibilityRole="button" accessibilityLabel={fr ? "Arrêter la vidéo" : "Stop video"}
-                  onPress={() => setPlayingId(null)} style={[styles.stop, { backgroundColor: c.card }]}>
-                  <Feather name="x" size={18} color={c.foreground} />
+                {eligible && <Pressable accessibilityRole="button" accessibilityLabel={playing
+                  ? (fr ? "Mettre la publicité en pause" : "Pause advertisement")
+                  : (fr ? "Reprendre la publicité" : "Resume advertisement")}
+                  onPress={() => setPaused(ad.id, playing)} style={[styles.stop, { backgroundColor: c.card }]}>
+                  <Feather name={playing ? "pause" : "play"} size={18} color={c.foreground} />
                 </Pressable>}
               </View>
               <Pressable accessibilityRole="link" accessibilityLabel={fr ? `Voir le salon ${ad.salonName}` : `View salon ${ad.salonName}`}
-                onPress={() => { setPlayingId(null); router.push(`/salon/${ad.salonId}`); }}
+                onPress={() => router.push(`/salon/${ad.salonId}`)}
                 style={({ pressed }) => [styles.cta, { opacity: pressed ? 0.7 : 1 }]}>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={1} style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>{ad.salonName}</Text>

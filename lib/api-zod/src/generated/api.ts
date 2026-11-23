@@ -47,7 +47,7 @@ export const CreateSalonAdQueryParams = zod.object({
 
 
 /**
- * @summary Activate or deactivate a salon video without reuploading it
+ * @summary Change the linked salon or activation without replacing the video
  */
 
 
@@ -56,8 +56,13 @@ export const SetSalonAdVisibilityParams = zod.object({
   "id": zod.coerce.number().min(1)
 })
 
+export const setSalonAdVisibilityBodySalonIdMax = 2147483647;
+
+
+
 export const SetSalonAdVisibilityBody = zod.object({
-  "active": zod.boolean()
+  "active": zod.boolean().optional(),
+  "salonId": zod.number().min(1).max(setSalonAdVisibilityBodySalonIdMax).optional()
 })
 
 export const SetSalonAdVisibilityResponse = zod.object({
@@ -67,6 +72,49 @@ export const SetSalonAdVisibilityResponse = zod.object({
   "videoPath": zod.string(),
   "active": zod.boolean(),
   "salonPublic": zod.boolean()
+})
+
+
+/**
+ * @summary Replace a video and optionally link a different salon
+ */
+
+
+
+export const ReplaceSalonAdVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const replaceSalonAdVideoQuerySalonIdMax = 2147483647;
+
+
+
+export const ReplaceSalonAdVideoQueryParams = zod.object({
+  "salonId": zod.coerce.number().min(1).max(replaceSalonAdVideoQuerySalonIdMax).optional()
+})
+
+export const ReplaceSalonAdVideoResponse = zod.object({
+  "id": zod.number(),
+  "salonId": zod.number(),
+  "salonName": zod.string(),
+  "videoPath": zod.string(),
+  "active": zod.boolean(),
+  "salonPublic": zod.boolean()
+})
+
+
+/**
+ * @summary Remove the advertisement and release its stored video
+ */
+
+
+
+export const DeleteSalonAdParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const DeleteSalonAdResponse = zod.object({
+  "cleanupPending": zod.boolean()
 })
 
 

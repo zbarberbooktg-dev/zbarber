@@ -1,15 +1,16 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import { Router, raw, type Request, type Response, type NextFunction } from "express";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { barbersTable, db, galleryPhotosTable, salonAdsTable } from "@workspace/db";
+import { barbersTable, db, galleryPhotosTable, salonAdsTable, salonAdVideoCleanupTable as cleanup } from "@workspace/db";
 import {
   CreateSalonAdQueryParams, SetSalonAdVisibilityBody, SetSalonAdVisibilityParams,
-  StreamSalonAdVideoParams,
+  StreamSalonAdVideoParams, ReplaceSalonAdVideoParams, ReplaceSalonAdVideoQueryParams, DeleteSalonAdParams,
 } from "@workspace/api-zod";
 import { requireAdminAuth, type AdminAuthedRequest } from "../lib/adminAuth";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { isMp4Video, MAX_SALON_AD_BYTES, salonAdRange } from "../lib/salonAdMedia";
+import { removeQueuedSalonAdVideo } from "../lib/salonAdVideoCleanup";
 
 const router = Router();
 const storage = new ObjectStorageService();
@@ -32,11 +33,15 @@ function unlocked(req: AdminAuthedRequest, res: Response, next: NextFunction) {
 }
 const admin = [noStore, requireAdminAuth, unlocked];
 
-function summary(row: { id: number; salonId: number; salonName: string }) {
-  return { id: row.id, salonId: row.salonId, salonName: row.salonName, videoPath: `/api/salon-ads/${row.id}/video` };
+const version = (videoKey: string) => createHash("sha256").update(videoKey).digest("hex").slice(0, 24);
+const validId = (value: number) => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+const cleanupEntry = (videoKey: string) => ({ videoKey, retryAfter: new Date(0) });
+
+function summary(row: { id: number; salonId: number; salonName: string; videoKey: string }) {
+  return { id: row.id, salonId: row.salonId, salonName: row.salonName, videoPath: `/api/salon-ads/${row.id}/video?v=${version(row.videoKey)}` };
 }
 function adminSummary(row: Parameters<typeof summary>[0] & { active: boolean; salonStatus: string }) {
-  return { ...summary(row), videoPath: `/api/admin/salon-ads/${row.id}/video`, active: row.active, salonPublic: row.salonStatus === "approved" };
+  return { ...summary(row), videoPath: `/api/admin/salon-ads/${row.id}/video?v=${version(row.videoKey)}`, active: row.active, salonPublic: row.salonStatus === "approved" };
 }
 
 router.get("/salon-ads", noStore, async (_req, res) => {
@@ -87,21 +92,85 @@ router.post("/admin/salon-ads", admin, readVideo, async (req: Request, res: Resp
   res.status(201).json(adminSummary({ ...saved!, salonName: salon.name, salonStatus: salon.status }));
 });
 
+class AdEditError extends Error {
+  constructor(readonly status: number, message: string) { super(message); }
+}
+
+async function changeAd(id: number, changes: { active?: boolean; salonId?: number },
+  video?: { videoKey: string; byteCount: number }) {
+  return db.transaction(async (tx) => {
+    const [current] = await tx.select().from(ads).where(eq(ads.id, id)).for("update");
+    if (!current) throw new AdEditError(404, "Ad not found");
+    const salonId = changes.salonId ?? current.salonId;
+    const active = changes.active ?? current.active;
+    const [salon] = await tx.select({ salonName: barbersTable.salonName, salonStatus: barbersTable.status })
+      .from(barbersTable).where(eq(barbersTable.id, salonId)).for("share");
+    if (!salon) throw new AdEditError(404, "Salon not found");
+    if (active && (changes.active === true || salonId !== current.salonId) && salon.salonStatus !== "approved") {
+      throw new AdEditError(409, "Only approved salons can appear in public ads");
+    }
+    const [saved] = await tx.update(ads).set({ salonId, active, ...video }).where(eq(ads.id, id)).returning();
+    if (video) await tx.insert(cleanup).values(cleanupEntry(current.videoKey));
+    return { ad: adminSummary({ ...saved!, ...salon }), oldKey: video ? current.videoKey : undefined };
+  });
+}
+
+function respondToEditError(error: unknown, res: Response) {
+  if (!(error instanceof AdEditError)) throw error;
+  res.status(error.status).json({ error: error.message });
+}
+
 router.patch("/admin/salon-ads/:id", admin, async (req: Request, res: Response) => {
   const params = SetSalonAdVisibilityParams.safeParse(req.params);
   const body = SetSalonAdVisibilityBody.safeParse(req.body);
-  if (!params.success || !body.success || !Number.isSafeInteger(params.data.id) || params.data.id > 2147483647) {
-    res.status(400).json({ error: "Invalid ad or visibility" }); return;
+  if (!params.success || !validId(params.data.id) || !body.success ||
+      (body.data.active === undefined && body.data.salonId === undefined)) {
+    res.status(400).json({ error: "Invalid advertisement update" }); return;
   }
-  const { id } = params.data;
-  const [row] = await all().where(eq(ads.id, id));
-  if (!row) { res.status(404).json({ error: "Ad not found" }); return; }
-  if (body.data.active && row.salonStatus !== "approved") {
-    res.status(409).json({ error: "Only approved salons can appear in public ads" }); return;
+  try { res.json((await changeAd(params.data.id, body.data)).ad); }
+  catch (error) { respondToEditError(error, res); }
+});
+
+router.put("/admin/salon-ads/:id", admin, readVideo, async (req: Request, res: Response) => {
+  const params = ReplaceSalonAdVideoParams.safeParse(req.params);
+  const query = ReplaceSalonAdVideoQueryParams.safeParse(req.query);
+  if (!params.success || !validId(params.data.id) || !query.success) {
+    res.status(400).json({ error: "Invalid advertisement or salon" }); return;
   }
-  const [updated] = await db.update(ads).set({ active: body.data.active }).where(eq(ads.id, id)).returning({ active: ads.active });
-  if (!updated) { res.status(404).json({ error: "Ad not found" }); return; }
-  res.json(adminSummary({ ...row, active: updated.active }));
+  if (!Buffer.isBuffer(req.body) || !isMp4Video(req.body)) {
+    res.status(415).json({ error: "File is not a valid MP4 video" }); return;
+  }
+  const videoKey = randomUUID();
+  let saved;
+  try {
+    await storage.putSalonAdVideo(videoKey, req.body);
+    saved = await changeAd(params.data.id, query.data, { videoKey, byteCount: req.body.length });
+  } catch (error) {
+    // Never discard an attached file, including after an ambiguous commit error.
+    try {
+      const [attached] = await db.select({ id: ads.id }).from(ads).where(eq(ads.videoKey, videoKey));
+      if (!attached) {
+        await db.insert(cleanup).values(cleanupEntry(videoKey)).onConflictDoNothing();
+        await removeQueuedSalonAdVideo(videoKey);
+      }
+    } catch (err) { req.log?.error({ err }, "Failed to schedule cleanup of a rejected replacement"); }
+    respondToEditError(error, res);
+    return;
+  }
+  if (saved.oldKey) await removeQueuedSalonAdVideo(saved.oldKey);
+  res.json(saved.ad);
+});
+
+router.delete("/admin/salon-ads/:id", admin, async (req: Request, res: Response) => {
+  const params = DeleteSalonAdParams.safeParse(req.params);
+  if (!params.success || !validId(params.data.id)) { res.sendStatus(404); return; }
+  const key = await db.transaction(async (tx) => {
+    const [removed] = await tx.delete(ads).where(eq(ads.id, params.data.id)).returning({ videoKey: ads.videoKey });
+    if (removed) await tx.insert(cleanup).values(cleanupEntry(removed.videoKey));
+    return removed?.videoKey;
+  });
+  if (!key) { res.status(404).json({ error: "Ad not found" }); return; }
+  res.json({ cleanupPending: !(await removeQueuedSalonAdVideo(key)) });
 });
 
 function stream(forAdmin: boolean) {
@@ -111,7 +180,7 @@ function stream(forAdmin: boolean) {
       res.sendStatus(404); return;
     }
     const [ad] = await all().where(and(eq(ads.id, parsed.data.id), forAdmin ? undefined : publicAd));
-    if (!ad) { res.sendStatus(404); return; }
+    if (!ad || (req.query.v !== undefined && req.query.v !== version(ad.videoKey))) { res.sendStatus(404); return; }
     const bytes = salonAdRange(req.get("range"), ad.byteCount);
     res.set("Accept-Ranges", "bytes");
     if (!bytes) { res.set("Content-Range", `bytes */${ad.byteCount}`).status(416).end(); return; }

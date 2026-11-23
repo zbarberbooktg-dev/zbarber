@@ -7,5 +7,10 @@
  */
 
 export interface SalonAdVisibility {
-  active: boolean;
+  active?: boolean;
+  /**
+     * @minimum 1
+     * @maximum 2147483647
+     */
+  salonId?: number;
 }

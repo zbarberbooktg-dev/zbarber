@@ -96,7 +96,7 @@ paths:
     patch:
       operationId: setSalonAdVisibility
       tags: [admin]
-      summary: Activate or deactivate a salon video without reuploading it
+      summary: Change the linked salon or activation without replacing the video
       requestBody:
         required: true
         content:
@@ -108,6 +108,35 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+    put:
+      operationId: replaceSalonAdVideo
+      tags: [admin]
+      summary: Replace a video and optionally link a different salon
+      parameters:
+        - in: query
+          name: salonId
+          schema: { type: integer, minimum: 1, maximum: 2147483647 }
+      requestBody:
+        required: true
+        content:
+          video/mp4:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Updated advertisement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+    delete:
+      operationId: deleteSalonAd
+      tags: [admin]
+      summary: Remove the advertisement and release its stored video
+      responses:
+        "200":
+          description: Removed ad; if storage is temporarily unavailable, file cleanup is retried
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalonAdDeletion" }
   /salon-ads/{id}/video:
     parameters:
       - in: path
@@ -2411,9 +2440,14 @@ components:
         salonPublic: { type: boolean }
     SalonAdVisibility:
       type: object
-      required: [active]
       properties:
         active: { type: boolean }
+        salonId: { type: integer, minimum: 1, maximum: 2147483647 }
+    SalonAdDeletion:
+      type: object
+      required: [cleanupPending]
+      properties:
+        cleanupPending: { type: boolean }
     SupportLinks:
       type: object
       required: [whatsapp, tiktok, instagram, facebook]
