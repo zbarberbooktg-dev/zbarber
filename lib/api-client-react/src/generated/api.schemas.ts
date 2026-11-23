@@ -5,6 +5,115 @@
  * Zbarber API
  * OpenAPI spec version: 0.1.0
  */
+export interface SupportLinks {
+  /**
+     * @nullable
+     * @pattern ^\+[1-9][0-9]{6,14}$
+     */
+  whatsapp: string | null;
+  /**
+     * @maxLength 500
+     * @nullable
+     */
+  tiktok: string | null;
+  /**
+     * @maxLength 500
+     * @nullable
+     */
+  instagram: string | null;
+  /**
+     * @maxLength 500
+     * @nullable
+     */
+  facebook: string | null;
+}
+
+export type SupportTicketDraftCategory = typeof SupportTicketDraftCategory[keyof typeof SupportTicketDraftCategory];
+
+
+export const SupportTicketDraftCategory = {
+  account: 'account',
+  booking: 'booking',
+  salon: 'salon',
+  other: 'other',
+} as const;
+
+export interface SupportTicketDraft {
+  category: SupportTicketDraftCategory;
+  /**
+     * @minLength 3
+     * @maxLength 120
+     */
+  subject: string;
+  /**
+     * @minLength 10
+     * @maxLength 4000
+     */
+  message: string;
+}
+
+export interface SupportReply {
+  /**
+     * @minLength 1
+     * @maxLength 4000
+     */
+  message: string;
+}
+
+export type SupportTicketSummaryCategory = typeof SupportTicketSummaryCategory[keyof typeof SupportTicketSummaryCategory];
+
+
+export const SupportTicketSummaryCategory = {
+  account: 'account',
+  booking: 'booking',
+  salon: 'salon',
+  other: 'other',
+} as const;
+
+export type SupportTicketSummaryStatus = typeof SupportTicketSummaryStatus[keyof typeof SupportTicketSummaryStatus];
+
+
+export const SupportTicketSummaryStatus = {
+  open: 'open',
+  closed: 'closed',
+} as const;
+
+export interface SupportTicketSummary {
+  id: number;
+  category: SupportTicketSummaryCategory;
+  subject: string;
+  status: SupportTicketSummaryStatus;
+  createdAt: string;
+  updatedAt: string;
+  requesterName?: string;
+}
+
+export type SupportMessageAuthor = typeof SupportMessageAuthor[keyof typeof SupportMessageAuthor];
+
+
+export const SupportMessageAuthor = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export interface SupportMessage {
+  id: number;
+  author: SupportMessageAuthor;
+  message: string;
+  createdAt: string;
+}
+
+export interface SupportThread {
+  ticket: SupportTicketSummary;
+  messages: SupportMessage[];
+}
+
+export interface SupportTicketPage {
+  items: SupportTicketSummary[];
+  /** @nullable */
+  nextBefore: number | null;
+}
+
 export interface UploadUrlRequest {
   /** @minLength 1 */
   name: string;
@@ -1298,5 +1407,13 @@ export const ListFinancingRequestsStatus = {
 export type ListConferencesParams = {
 page?: number;
 limit?: number;
+};
+
+export type ListSupportTicketsParams = {
+/**
+ * @minimum 1
+ * @maximum 2147483647
+ */
+before?: number;
 };
 

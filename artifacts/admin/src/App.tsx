@@ -21,6 +21,7 @@ import Reviews from "@/pages/Reviews";
 import Gallery from "@/pages/Gallery";
 import Articles from "@/pages/Articles";
 import Admins from "@/pages/Admins";
+import Support from "@/pages/Support";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -76,6 +77,7 @@ function AppRoutes() {
         <Route path="/gallery" component={Gallery} />
         <Route path="/articles" component={Articles} />
         <Route path="/admins" component={Admins} />
+        <Route path="/support" component={Support} />
         <Route path="/sign-in"><Redirect to="/" /></Route>
         <Route component={NotFound} />
       </Switch>

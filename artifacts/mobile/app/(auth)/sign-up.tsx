@@ -1,5 +1,6 @@
 import { useSignUp, useAuth } from "@clerk/expo";
-import { Link, Redirect, useRouter } from "expo-router";
+import { Link, Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { salonReservationHref } from "@/lib/reservationRoute";
 import React, { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -30,6 +31,8 @@ export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
   const { syncAuth, t } = useApp();
   const router = useRouter();
+  const { bookingSalon } = useLocalSearchParams<{ bookingSalon?: string }>();
+  const bookingHref = salonReservationHref(bookingSalon);
   const { signUp, errors, fetchStatus } = useSignUp();
   const { isSignedIn } = useAuth();
   const fetcher = useAuthedFetch();
@@ -52,7 +55,7 @@ export default function SignUpScreen() {
   const [err, setErr] = useState<string | null>(null);
 
   if (isSignedIn && step !== "verify") {
-    return <Redirect href="/" />;
+    return <Redirect href={bookingHref ?? "/"} />;
   }
 
   const busy = fetchStatus === "fetching";
@@ -159,7 +162,7 @@ export default function SignUpScreen() {
               if (role === "barber") {
                 router.replace("/(client)/profile?becomeBarber=1");
               } else {
-                router.replace("/");
+                router.replace(bookingHref ?? "/");
               }
             } catch (outerErr: unknown) {
               setErr(formatApiError(outerErr, t.errors));
@@ -330,7 +333,7 @@ export default function SignUpScreen() {
 
             <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24 }}>
               <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular" }}>Déjà un compte ? </Text>
-              <Link href="/(auth)/sign-in" replace>
+              <Link href={bookingHref ? { pathname: "/(auth)/sign-in", params: { bookingSalon } } : "/(auth)/sign-in"} replace>
                 <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold" }}>Se connecter</Text>
               </Link>
             </View>

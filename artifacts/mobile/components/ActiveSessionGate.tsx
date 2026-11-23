@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { SignOutButton } from "@/components/SignOutButton";
+import { salonReservationHref } from "@/lib/reservationRoute";
 
 export function SessionTransition({ signingOut = false }: { signingOut?: boolean }) {
   const c = useColors();
@@ -26,11 +27,11 @@ export function SessionTransitionBoundary({ busy, children }: { busy: boolean; c
 }
 
 /** Never offer a password submission while Clerk already has an active session. */
-export function ActiveSessionGate() {
+export function ActiveSessionGate({ bookingSalon }: { bookingSalon?: string } = {}) {
   const c = useColors();
   const { user, syncing, authSyncError, syncAuth, signingOut, suspendedNotice } = useApp();
   if (signingOut) return <SessionTransition signingOut />;
-  if (user && !suspendedNotice) return <Redirect href={user.role === "barber" || user.role === "admin" ? "/(barber)" : "/(client)"} />;
+  if (user && !suspendedNotice) return <Redirect href={salonReservationHref(bookingSalon) ?? (user.role === "barber" || user.role === "admin" ? "/(barber)" : "/(client)")} />;
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 28, gap: 16, backgroundColor: c.background }}>
       {syncing && <ActivityIndicator color={c.primary} />}

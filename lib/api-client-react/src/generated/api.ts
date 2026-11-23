@@ -61,6 +61,7 @@ import type {
   ListReservationsParams,
   ListReviewsParams,
   ListSubscriptionsParams,
+  ListSupportTicketsParams,
   ListUsersParams,
   LoginInput,
   LoyaltyRedeemInput,
@@ -98,6 +99,13 @@ import type {
   SubscriptionPlanInput,
   SubscriptionPlanUpdate,
   SubscriptionUpdate,
+  SupportLinks,
+  SupportMessage,
+  SupportReply,
+  SupportThread,
+  SupportTicketDraft,
+  SupportTicketPage,
+  SupportTicketSummary,
   SuspendInput,
   SyncAuthInput,
   TopBarber,
@@ -8079,5 +8087,485 @@ export const useRequestUploadUrl = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRequestUploadUrlMutationOptions(options));
+    }
+
+export const getGetSupportLinksUrl = () => {
+
+
+
+
+  return `/api/support/links`
+}
+
+export const getSupportLinks = async ( options?: RequestInit): Promise<SupportLinks> => {
+
+  return customFetch<SupportLinks>(getGetSupportLinksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSupportLinksQueryKey = () => {
+    return [
+    `/api/support/links`
+    ] as const;
+    }
+
+
+export const getGetSupportLinksQueryOptions = <TData = Awaited<ReturnType<typeof getSupportLinks>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSupportLinks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSupportLinksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSupportLinks>>> = ({ signal }) => getSupportLinks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSupportLinks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSupportLinksQueryResult = NonNullable<Awaited<ReturnType<typeof getSupportLinks>>>
+export type GetSupportLinksQueryError = ErrorType<unknown>
+
+
+
+export function useGetSupportLinks<TData = Awaited<ReturnType<typeof getSupportLinks>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSupportLinks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSupportLinksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSaveSupportLinksUrl = () => {
+
+
+
+
+  return `/api/support/links`
+}
+
+export const saveSupportLinks = async (supportLinks: SupportLinks, options?: RequestInit): Promise<SupportLinks> => {
+
+  return customFetch<SupportLinks>(getSaveSupportLinksUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      supportLinks,)
+  }
+);}
+
+
+
+
+export const getSaveSupportLinksMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveSupportLinks>>, TError,{data: BodyType<SupportLinks>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveSupportLinks>>, TError,{data: BodyType<SupportLinks>}, TContext> => {
+
+const mutationKey = ['saveSupportLinks'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveSupportLinks>>, {data: BodyType<SupportLinks>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveSupportLinks(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveSupportLinksMutationResult = NonNullable<Awaited<ReturnType<typeof saveSupportLinks>>>
+    export type SaveSupportLinksMutationBody = BodyType<SupportLinks>
+    export type SaveSupportLinksMutationError = ErrorType<unknown>
+
+    export const useSaveSupportLinks = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveSupportLinks>>, TError,{data: BodyType<SupportLinks>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveSupportLinks>>,
+        TError,
+        {data: BodyType<SupportLinks>},
+        TContext
+      > => {
+      return useMutation(getSaveSupportLinksMutationOptions(options));
+    }
+
+export const getListSupportTicketsUrl = (params?: ListSupportTicketsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/support/tickets?${stringifiedParams}` : `/api/support/tickets`
+}
+
+export const listSupportTickets = async (params?: ListSupportTicketsParams, options?: RequestInit): Promise<SupportTicketPage> => {
+
+  return customFetch<SupportTicketPage>(getListSupportTicketsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSupportTicketsQueryKey = (params?: ListSupportTicketsParams,) => {
+    return [
+    `/api/support/tickets`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListSupportTicketsQueryOptions = <TData = Awaited<ReturnType<typeof listSupportTickets>>, TError = ErrorType<unknown>>(params?: ListSupportTicketsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSupportTickets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSupportTicketsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSupportTickets>>> = ({ signal }) => listSupportTickets(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSupportTickets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSupportTicketsQueryResult = NonNullable<Awaited<ReturnType<typeof listSupportTickets>>>
+export type ListSupportTicketsQueryError = ErrorType<unknown>
+
+
+
+export function useListSupportTickets<TData = Awaited<ReturnType<typeof listSupportTickets>>, TError = ErrorType<unknown>>(
+ params?: ListSupportTicketsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSupportTickets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSupportTicketsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateSupportTicketUrl = () => {
+
+
+
+
+  return `/api/support/tickets`
+}
+
+export const createSupportTicket = async (supportTicketDraft: SupportTicketDraft, options?: RequestInit): Promise<SupportThread> => {
+
+  return customFetch<SupportThread>(getCreateSupportTicketUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      supportTicketDraft,)
+  }
+);}
+
+
+
+
+export const getCreateSupportTicketMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportTicket>>, TError,{data: BodyType<SupportTicketDraft>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSupportTicket>>, TError,{data: BodyType<SupportTicketDraft>}, TContext> => {
+
+const mutationKey = ['createSupportTicket'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSupportTicket>>, {data: BodyType<SupportTicketDraft>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSupportTicket(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSupportTicketMutationResult = NonNullable<Awaited<ReturnType<typeof createSupportTicket>>>
+    export type CreateSupportTicketMutationBody = BodyType<SupportTicketDraft>
+    export type CreateSupportTicketMutationError = ErrorType<unknown>
+
+    export const useCreateSupportTicket = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportTicket>>, TError,{data: BodyType<SupportTicketDraft>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSupportTicket>>,
+        TError,
+        {data: BodyType<SupportTicketDraft>},
+        TContext
+      > => {
+      return useMutation(getCreateSupportTicketMutationOptions(options));
+    }
+
+export const getGetSupportTicketUrl = (id: number,) => {
+
+
+
+
+  return `/api/support/tickets/${id}`
+}
+
+export const getSupportTicket = async (id: number, options?: RequestInit): Promise<SupportThread> => {
+
+  return customFetch<SupportThread>(getGetSupportTicketUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSupportTicketQueryKey = (id: number,) => {
+    return [
+    `/api/support/tickets/${id}`
+    ] as const;
+    }
+
+
+export const getGetSupportTicketQueryOptions = <TData = Awaited<ReturnType<typeof getSupportTicket>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSupportTicket>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSupportTicketQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSupportTicket>>> = ({ signal }) => getSupportTicket(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSupportTicket>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSupportTicketQueryResult = NonNullable<Awaited<ReturnType<typeof getSupportTicket>>>
+export type GetSupportTicketQueryError = ErrorType<unknown>
+
+
+
+export function useGetSupportTicket<TData = Awaited<ReturnType<typeof getSupportTicket>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSupportTicket>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSupportTicketQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getReplyToSupportTicketUrl = (id: number,) => {
+
+
+
+
+  return `/api/support/tickets/${id}/messages`
+}
+
+export const replyToSupportTicket = async (id: number,
+    supportReply: SupportReply, options?: RequestInit): Promise<SupportMessage> => {
+
+  return customFetch<SupportMessage>(getReplyToSupportTicketUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      supportReply,)
+  }
+);}
+
+
+
+
+export const getReplyToSupportTicketMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyToSupportTicket>>, TError,{id: number;data: BodyType<SupportReply>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof replyToSupportTicket>>, TError,{id: number;data: BodyType<SupportReply>}, TContext> => {
+
+const mutationKey = ['replyToSupportTicket'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof replyToSupportTicket>>, {id: number;data: BodyType<SupportReply>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  replyToSupportTicket(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReplyToSupportTicketMutationResult = NonNullable<Awaited<ReturnType<typeof replyToSupportTicket>>>
+    export type ReplyToSupportTicketMutationBody = BodyType<SupportReply>
+    export type ReplyToSupportTicketMutationError = ErrorType<unknown>
+
+    export const useReplyToSupportTicket = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replyToSupportTicket>>, TError,{id: number;data: BodyType<SupportReply>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof replyToSupportTicket>>,
+        TError,
+        {id: number;data: BodyType<SupportReply>},
+        TContext
+      > => {
+      return useMutation(getReplyToSupportTicketMutationOptions(options));
+    }
+
+export const getCloseSupportTicketUrl = (id: number,) => {
+
+
+
+
+  return `/api/support/tickets/${id}/close`
+}
+
+export const closeSupportTicket = async (id: number, options?: RequestInit): Promise<SupportTicketSummary> => {
+
+  return customFetch<SupportTicketSummary>(getCloseSupportTicketUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCloseSupportTicketMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeSupportTicket>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof closeSupportTicket>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['closeSupportTicket'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof closeSupportTicket>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  closeSupportTicket(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CloseSupportTicketMutationResult = NonNullable<Awaited<ReturnType<typeof closeSupportTicket>>>
+
+    export type CloseSupportTicketMutationError = ErrorType<unknown>
+
+    export const useCloseSupportTicket = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeSupportTicket>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof closeSupportTicket>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getCloseSupportTicketMutationOptions(options));
     }
 

@@ -31,6 +31,7 @@ vi.mock("react-native", () => ({
   ...Object.fromEntries(["ActivityIndicator", "Image", "Modal", "Pressable", "ScrollView", "Text", "TextInput", "View"].map((s) => [s, s])),
 }));
 vi.mock("@/components/UI", () => ({ Card: "Card", Button: "Button", Avatar: "Avatar" }));
+vi.mock("@/components/SupportCard", () => ({ SupportCard: "SupportCard" }));
 vi.mock("@/components/DeleteAccountModal", () => ({ DeleteAccountModal: "DeleteAccountModal" }));
 vi.mock("@/components/DocumentUploadCard", () => ({ DocumentUploadCard: "DocumentUploadCard" }));
 vi.mock("@/components/SignOutButton", () => ({ SignOutButton: "SignOutButton" }));

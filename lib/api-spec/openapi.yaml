@@ -2134,8 +2134,166 @@ paths:
               schema:
                 $ref: "#/components/schemas/UploadUrlResponse"
 
+  /support/links:
+    get:
+      operationId: getSupportLinks
+      tags: [support]
+      responses:
+        "200":
+          description: Published support links
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportLinks" }
+    put:
+      operationId: saveSupportLinks
+      tags: [support]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportLinks" }
+      responses:
+        "200":
+          description: Links saved by an administrator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportLinks" }
+  /support/tickets:
+    get:
+      operationId: listSupportTickets
+      tags: [support]
+      parameters:
+        - name: before
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 2147483647 }
+      responses:
+        "200":
+          description: Tickets visible to the current account
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportTicketPage" }
+    post:
+      operationId: createSupportTicket
+      tags: [support]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportTicketDraft" }
+      responses:
+        "201":
+          description: Ticket created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportThread" }
+  /support/tickets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1, maximum: 2147483647 }
+    get:
+      operationId: getSupportTicket
+      tags: [support]
+      responses:
+        "200":
+          description: Ticket and its conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportThread" }
+  /support/tickets/{id}/messages:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1, maximum: 2147483647 }
+    post:
+      operationId: replyToSupportTicket
+      tags: [support]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportReply" }
+      responses:
+        "201":
+          description: Reply added to an open conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportMessage" }
+  /support/tickets/{id}/close:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1, maximum: 2147483647 }
+    post:
+      operationId: closeSupportTicket
+      tags: [support]
+      responses:
+        "200":
+          description: Conversation closed by an administrator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportTicketSummary" }
+
 components:
   schemas:
+    SupportLinks:
+      type: object
+      required: [whatsapp, tiktok, instagram, facebook]
+      properties:
+        whatsapp: { type: ["string", "null"], pattern: '^\+[1-9][0-9]{6,14}$' }
+        tiktok: { type: ["string", "null"], maxLength: 500 }
+        instagram: { type: ["string", "null"], maxLength: 500 }
+        facebook: { type: ["string", "null"], maxLength: 500 }
+    SupportTicketDraft:
+      type: object
+      required: [category, subject, message]
+      properties:
+        category: { type: string, enum: [account, booking, salon, other] }
+        subject: { type: string, minLength: 3, maxLength: 120 }
+        message: { type: string, minLength: 10, maxLength: 4000 }
+    SupportReply:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 4000 }
+    SupportTicketSummary:
+      type: object
+      required: [id, category, subject, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        category: { type: string, enum: [account, booking, salon, other] }
+        subject: { type: string }
+        status: { type: string, enum: [open, closed] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        requesterName: { type: string }
+    SupportMessage:
+      type: object
+      required: [id, author, message, createdAt]
+      properties:
+        id: { type: integer }
+        author: { type: string, enum: [user, admin] }
+        message: { type: string }
+        createdAt: { type: string, format: date-time }
+    SupportThread:
+      type: object
+      required: [ticket, messages]
+      properties:
+        ticket: { $ref: "#/components/schemas/SupportTicketSummary" }
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/SupportMessage" }
+    SupportTicketPage:
+      type: object
+      required: [items, nextBefore]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/SupportTicketSummary" }
+        nextBefore: { type: ["integer", "null"] }
     UploadUrlRequest:
       type: object
       required: [name, size, contentType]

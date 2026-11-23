@@ -1,6 +1,6 @@
 import { useSignIn, useAuth, useClerk } from "@clerk/expo";
 import { Feather } from "@expo/vector-icons";
-import { Link, Redirect, useRouter } from "expo-router";
+import { Link, Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +20,7 @@ import { consumeAuthIntent } from "@/lib/authIntent";
 import { PasswordInput } from "@/components/PasswordInput";
 import { ActiveSessionGate, SessionTransition } from "@/components/ActiveSessionGate";
 import { authErrorMessage, isSessionConflictError, withDeadline } from "@/lib/sessionLifecycle";
+import { salonReservationHref } from "@/lib/reservationRoute";
 
 type MfaStrategy = "totp" | "phone_code" | "email_code" | "backup_code";
 
@@ -27,6 +28,8 @@ export default function SignInScreen() {
   const c = useColors();
   const { t, suspendedNotice, clearSuspendedNotice, signingOut, signOutDestination } = useApp();
   const router = useRouter();
+  const { bookingSalon } = useLocalSearchParams<{ bookingSalon?: string }>();
+  const signupHref = salonReservationHref(bookingSalon) ? { pathname: "/(auth)/sign-up" as const, params: { bookingSalon } } : "/(auth)/sign-up";
   const { signIn, errors, fetchStatus } = useSignIn();
   const { isSignedIn, isLoaded } = useAuth();
   const clerk = useClerk();
@@ -61,8 +64,8 @@ export default function SignInScreen() {
   const [info, setInfo] = useState<string | null>(null);
 
   if (!isLoaded || signingOut) return <SessionTransition signingOut={signingOut} />;
-  if (isSignedIn || clerk.session || sessionConflict) return <ActiveSessionGate />;
-  if (intent === "signup") return <Redirect href="/(auth)/sign-up" />;
+  if (isSignedIn || clerk.session || sessionConflict) return <ActiveSessionGate bookingSalon={bookingSalon} />;
+  if (intent === "signup") return <Redirect href={signupHref} />;
 
   const enterMfa = async () => {
     setVerificationKind("mfa");
@@ -498,7 +501,7 @@ export default function SignInScreen() {
 
             <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24 }}>
               <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular" }}>Pas de compte ? </Text>
-              <Link href="/(auth)/sign-up" replace asChild>
+              <Link href={signupHref} replace asChild>
                 <Pressable disabled={busy}>
                 <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold" }}>S'inscrire</Text>
                 </Pressable>
