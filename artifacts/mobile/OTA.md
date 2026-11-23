@@ -8,8 +8,9 @@
 | `production` | `production` | `production` | `api.zbarber.net` |
 
 Construire les deux profils depuis une révision contenant cette configuration.
-La version affichée reste `1.0.1`, mais le nouveau runtime est `1.0.1-ota.1`.
-Les anciens builds au runtime `1.0.1` n’installent donc pas les nouvelles OTA,
+La version affichée reste `1.0.1`, mais le nouveau runtime est `1.0.1-ota.2`.
+Le lecteur natif des publicités vidéo requiert un nouveau build pour chaque
+profil. Les builds aux runtimes `1.0.1` ou `1.0.1-ota.1` ne peuvent pas recevoir ces OTA,
 même s’ils avaient lu le canal `production` imposé par l’ancienne configuration.
 Dans Expo, vérifier que les canaux `test` et `production` pointent vers **des
 branches de mises à jour différentes**.

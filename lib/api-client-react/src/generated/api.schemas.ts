@@ -5,6 +5,27 @@
  * Zbarber API
  * OpenAPI spec version: 0.1.0
  */
+export interface SalonVideoAd {
+  id: number;
+  salonId: number;
+  salonName: string;
+  videoPath: string;
+  posterPath?: string;
+}
+
+export interface AdminSalonVideoAd {
+  id: number;
+  salonId: number;
+  salonName: string;
+  videoPath: string;
+  active: boolean;
+  salonPublic: boolean;
+}
+
+export interface SalonAdVisibility {
+  active: boolean;
+}
+
 export interface SupportLinks {
   /**
      * @nullable
@@ -1247,6 +1268,13 @@ export interface BarberClientsResponse {
   data: BarberClient[];
   total: number;
 }
+
+export type CreateSalonAdParams = {
+/**
+ * @minimum 1
+ */
+salonId: number;
+};
 
 export type ListUsersParams = {
 role?: ListUsersRole;

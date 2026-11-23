@@ -21,6 +21,7 @@ import type {
 
 import type {
   ActivityItem,
+  AdminSalonVideoAd,
   AdminStats,
   AdvancedStats,
   Article,
@@ -39,6 +40,7 @@ import type {
   ConferenceInput,
   ConferenceListResponse,
   ConferenceUpdate,
+  CreateSalonAdParams,
   DocumentRejectInput,
   Favorite,
   FavoriteInput,
@@ -83,6 +85,8 @@ import type {
   Review,
   ReviewInput,
   ReviewListResponse,
+  SalonAdVisibility,
+  SalonVideoAd,
   Schedule,
   ScheduleInput,
   Service,
@@ -130,6 +134,465 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+export const getListSalonAdsUrl = () => {
+
+
+
+
+  return `/api/salon-ads`
+}
+
+/**
+ * @summary List active video ads for approved salons
+ */
+export const listSalonAds = async ( options?: RequestInit): Promise<SalonVideoAd[]> => {
+
+  return customFetch<SalonVideoAd[]>(getListSalonAdsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSalonAdsQueryKey = () => {
+    return [
+    `/api/salon-ads`
+    ] as const;
+    }
+
+
+export const getListSalonAdsQueryOptions = <TData = Awaited<ReturnType<typeof listSalonAds>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSalonAds>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSalonAdsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSalonAds>>> = ({ signal }) => listSalonAds({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSalonAds>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSalonAdsQueryResult = NonNullable<Awaited<ReturnType<typeof listSalonAds>>>
+export type ListSalonAdsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List active video ads for approved salons
+ */
+
+export function useListSalonAds<TData = Awaited<ReturnType<typeof listSalonAds>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSalonAds>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSalonAdsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListAdminSalonAdsUrl = () => {
+
+
+
+
+  return `/api/admin/salon-ads`
+}
+
+/**
+ * @summary List video ads including inactive ads
+ */
+export const listAdminSalonAds = async ( options?: RequestInit): Promise<AdminSalonVideoAd[]> => {
+
+  return customFetch<AdminSalonVideoAd[]>(getListAdminSalonAdsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminSalonAdsQueryKey = () => {
+    return [
+    `/api/admin/salon-ads`
+    ] as const;
+    }
+
+
+export const getListAdminSalonAdsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminSalonAds>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminSalonAds>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminSalonAdsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminSalonAds>>> = ({ signal }) => listAdminSalonAds({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminSalonAds>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminSalonAdsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminSalonAds>>>
+export type ListAdminSalonAdsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List video ads including inactive ads
+ */
+
+export function useListAdminSalonAds<TData = Awaited<ReturnType<typeof listAdminSalonAds>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminSalonAds>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminSalonAdsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateSalonAdUrl = (params: CreateSalonAdParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/salon-ads?${stringifiedParams}` : `/api/admin/salon-ads`
+}
+
+/**
+ * @summary Upload an MP4 under 20 MiB and save it as inactive
+ */
+export const createSalonAd = async (createSalonAdBody: Blob,
+    params: CreateSalonAdParams, options?: RequestInit): Promise<AdminSalonVideoAd> => {
+
+  return customFetch<AdminSalonVideoAd>(getCreateSalonAdUrl(params),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'video/mp4', ...options?.headers },
+    body: JSON.stringify(
+      createSalonAdBody,)
+  }
+);}
+
+
+
+
+export const getCreateSalonAdMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSalonAd>>, TError,{data: BodyType<Blob>;params: CreateSalonAdParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSalonAd>>, TError,{data: BodyType<Blob>;params: CreateSalonAdParams}, TContext> => {
+
+const mutationKey = ['createSalonAd'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSalonAd>>, {data: BodyType<Blob>;params: CreateSalonAdParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  createSalonAd(data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSalonAdMutationResult = NonNullable<Awaited<ReturnType<typeof createSalonAd>>>
+    export type CreateSalonAdMutationBody = BodyType<Blob>
+    export type CreateSalonAdMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Upload an MP4 under 20 MiB and save it as inactive
+ */
+export const useCreateSalonAd = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSalonAd>>, TError,{data: BodyType<Blob>;params: CreateSalonAdParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSalonAd>>,
+        TError,
+        {data: BodyType<Blob>;params: CreateSalonAdParams},
+        TContext
+      > => {
+      return useMutation(getCreateSalonAdMutationOptions(options));
+    }
+
+export const getSetSalonAdVisibilityUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/salon-ads/${id}`
+}
+
+/**
+ * @summary Activate or deactivate a salon video without reuploading it
+ */
+export const setSalonAdVisibility = async (id: number,
+    salonAdVisibility: SalonAdVisibility, options?: RequestInit): Promise<AdminSalonVideoAd> => {
+
+  return customFetch<AdminSalonVideoAd>(getSetSalonAdVisibilityUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      salonAdVisibility,)
+  }
+);}
+
+
+
+
+export const getSetSalonAdVisibilityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSalonAdVisibility>>, TError,{id: number;data: BodyType<SalonAdVisibility>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setSalonAdVisibility>>, TError,{id: number;data: BodyType<SalonAdVisibility>}, TContext> => {
+
+const mutationKey = ['setSalonAdVisibility'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setSalonAdVisibility>>, {id: number;data: BodyType<SalonAdVisibility>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setSalonAdVisibility(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetSalonAdVisibilityMutationResult = NonNullable<Awaited<ReturnType<typeof setSalonAdVisibility>>>
+    export type SetSalonAdVisibilityMutationBody = BodyType<SalonAdVisibility>
+    export type SetSalonAdVisibilityMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Activate or deactivate a salon video without reuploading it
+ */
+export const useSetSalonAdVisibility = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSalonAdVisibility>>, TError,{id: number;data: BodyType<SalonAdVisibility>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setSalonAdVisibility>>,
+        TError,
+        {id: number;data: BodyType<SalonAdVisibility>},
+        TContext
+      > => {
+      return useMutation(getSetSalonAdVisibilityMutationOptions(options));
+    }
+
+export const getStreamSalonAdVideoUrl = (id: number,) => {
+
+
+
+
+  return `/api/salon-ads/${id}/video`
+}
+
+/**
+ * @summary Play the video of a currently public ad with optional single byte range
+ */
+export const streamSalonAdVideo = async (id: number, options?: RequestInit): Promise<Blob | void> => {
+
+  return customFetch<Blob | void>(getStreamSalonAdVideoUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStreamSalonAdVideoQueryKey = (id: number,) => {
+    return [
+    `/api/salon-ads/${id}/video`
+    ] as const;
+    }
+
+
+export const getStreamSalonAdVideoQueryOptions = <TData = Awaited<ReturnType<typeof streamSalonAdVideo>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamSalonAdVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStreamSalonAdVideoQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamSalonAdVideo>>> = ({ signal }) => streamSalonAdVideo(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamSalonAdVideo>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type StreamSalonAdVideoQueryResult = NonNullable<Awaited<ReturnType<typeof streamSalonAdVideo>>>
+export type StreamSalonAdVideoQueryError = ErrorType<void>
+
+
+/**
+ * @summary Play the video of a currently public ad with optional single byte range
+ */
+
+export function useStreamSalonAdVideo<TData = Awaited<ReturnType<typeof streamSalonAdVideo>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamSalonAdVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getStreamSalonAdVideoQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getPreviewAdminSalonAdVideoUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/salon-ads/${id}/video`
+}
+
+/**
+ * @summary Preview a video even when the ad is inactive
+ */
+export const previewAdminSalonAdVideo = async (id: number, options?: RequestInit): Promise<Blob | void> => {
+
+  return customFetch<Blob | void>(getPreviewAdminSalonAdVideoUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getPreviewAdminSalonAdVideoQueryKey = (id: number,) => {
+    return [
+    `/api/admin/salon-ads/${id}/video`
+    ] as const;
+    }
+
+
+export const getPreviewAdminSalonAdVideoQueryOptions = <TData = Awaited<ReturnType<typeof previewAdminSalonAdVideo>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof previewAdminSalonAdVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPreviewAdminSalonAdVideoQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof previewAdminSalonAdVideo>>> = ({ signal }) => previewAdminSalonAdVideo(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof previewAdminSalonAdVideo>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type PreviewAdminSalonAdVideoQueryResult = NonNullable<Awaited<ReturnType<typeof previewAdminSalonAdVideo>>>
+export type PreviewAdminSalonAdVideoQueryError = ErrorType<void>
+
+
+/**
+ * @summary Preview a video even when the ad is inactive
+ */
+
+export function usePreviewAdminSalonAdVideo<TData = Awaited<ReturnType<typeof previewAdminSalonAdVideo>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof previewAdminSalonAdVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getPreviewAdminSalonAdVideoQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
 
 
 

@@ -9,6 +9,90 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List active video ads for approved salons
+ */
+export const ListSalonAdsResponseItem = zod.object({
+  "id": zod.number(),
+  "salonId": zod.number(),
+  "salonName": zod.string(),
+  "videoPath": zod.string(),
+  "posterPath": zod.string().optional()
+})
+export const ListSalonAdsResponse = zod.array(ListSalonAdsResponseItem)
+
+
+/**
+ * @summary List video ads including inactive ads
+ */
+export const ListAdminSalonAdsResponseItem = zod.object({
+  "id": zod.number(),
+  "salonId": zod.number(),
+  "salonName": zod.string(),
+  "videoPath": zod.string(),
+  "active": zod.boolean(),
+  "salonPublic": zod.boolean()
+})
+export const ListAdminSalonAdsResponse = zod.array(ListAdminSalonAdsResponseItem)
+
+
+/**
+ * @summary Upload an MP4 under 20 MiB and save it as inactive
+ */
+
+
+
+export const CreateSalonAdQueryParams = zod.object({
+  "salonId": zod.coerce.number().min(1)
+})
+
+
+/**
+ * @summary Activate or deactivate a salon video without reuploading it
+ */
+
+
+
+export const SetSalonAdVisibilityParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const SetSalonAdVisibilityBody = zod.object({
+  "active": zod.boolean()
+})
+
+export const SetSalonAdVisibilityResponse = zod.object({
+  "id": zod.number(),
+  "salonId": zod.number(),
+  "salonName": zod.string(),
+  "videoPath": zod.string(),
+  "active": zod.boolean(),
+  "salonPublic": zod.boolean()
+})
+
+
+/**
+ * @summary Play the video of a currently public ad with optional single byte range
+ */
+
+
+
+export const StreamSalonAdVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+/**
+ * @summary Preview a video even when the ad is inactive
+ */
+
+
+
+export const PreviewAdminSalonAdVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({

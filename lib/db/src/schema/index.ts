@@ -9,6 +9,7 @@ export * from "./conferences";
 export * from "./notifications";
 export * from "./gallery";
 export * from "./home-gallery";
+export * from "./salon-ads";
 export * from "./schedules";
 export * from "./homeService";
 export * from "./locations";

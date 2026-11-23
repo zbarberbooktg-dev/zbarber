@@ -43,6 +43,7 @@ import { useBrowsing } from "@/lib/browseIntent";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ShimmerImage } from "@/components/ShimmerImage";
 import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
+import { SalonAdsCarousel } from "@/components/SalonAdsCarousel";
 import { ONBOARDING_KEY } from "./onboarding";
 import { salonImageSource } from "@/lib/salonDiscovery";
 
@@ -200,6 +201,14 @@ export default function PublicHome() {
   const locationReadLock = useRef(false);
   const [authWaitTimedOut, setAuthWaitTimedOut] = useState(false);
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
+  const adViewport = useRef({ offset: 0, viewport: 0, top: 0, height: 0, visible: false });
+  const [adsVisible, setAdsVisible] = useState(false);
+  const updateAdVisibility = () => {
+    const frame = adViewport.current;
+    const intersection = Math.min(frame.offset + frame.viewport, frame.top + frame.height) - Math.max(frame.offset, frame.top);
+    const visible = frame.height > 0 && intersection >= frame.height * 0.6;
+    if (visible !== frame.visible) { frame.visible = visible; setAdsVisible(visible); }
+  };
   const forceBrowse = pathname === "/browse" || browse === "1" || browsing;
   const canUsePublicHome = isLoaded && (!isSignedIn || (!!user && ready && (role === "client" || forceBrowse)));
 
@@ -455,6 +464,9 @@ export default function PublicHome() {
       </View>
 
       <ScrollView
+        onLayout={(e) => { adViewport.current.viewport = e.nativeEvent.layout.height; updateAdVisibility(); }}
+        onScroll={(e) => { adViewport.current.offset = e.nativeEvent.contentOffset.y; updateAdVisibility(); }}
+        scrollEventThrottle={32}
         contentContainerStyle={{ paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -501,7 +513,11 @@ export default function PublicHome() {
           </View>
         </View>
 
-        {/* Home advertising insertion point: directly after search, before the editorial cards. */}
+        {!query.trim() && <SalonAdsCarousel visible={adsVisible} onLayout={(e) => {
+          const { y, height } = e.nativeEvent.layout;
+          Object.assign(adViewport.current, { top: y, height });
+          updateAdVisibility();
+        }} />}
         {/* Hero image — falls back to a static visual when no articles are configured */}
         {!query && (!articles || articles.length === 0) && (
           <View style={{ paddingHorizontal: 20, marginBottom: 36 }}>

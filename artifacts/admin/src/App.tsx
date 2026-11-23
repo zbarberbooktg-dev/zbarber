@@ -19,6 +19,7 @@ import Conferences from "@/pages/Conferences";
 import Notifications from "@/pages/Notifications";
 import Reviews from "@/pages/Reviews";
 import Gallery from "@/pages/Gallery";
+import SalonAds from "@/pages/SalonAds";
 import Articles from "@/pages/Articles";
 import Admins from "@/pages/Admins";
 import Support from "@/pages/Support";
@@ -75,6 +76,7 @@ function AppRoutes() {
         <Route path="/notifications" component={Notifications} />
         <Route path="/reviews" component={Reviews} />
         <Route path="/gallery" component={Gallery} />
+        <Route path="/salon-ads" component={SalonAds} />
         <Route path="/articles" component={Articles} />
         <Route path="/admins" component={Admins} />
         <Route path="/support" component={Support} />

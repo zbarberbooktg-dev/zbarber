@@ -85,7 +85,8 @@
             "backgroundColor": "#0C1118"
           }
         }
-      ]
+      ],
+      "expo-video"
     ],
     "updates": {
       "url": "https://u.expo.dev/59c0644f-780e-40f1-8331-6a0afec307ad",
@@ -93,7 +94,7 @@
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
     },
-    "runtimeVersion": "1.0.1-ota.1",
+    "runtimeVersion": "1.0.1-ota.2",
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

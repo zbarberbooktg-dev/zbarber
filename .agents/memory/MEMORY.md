@@ -47,3 +47,4 @@
 - [iOS location purpose strings](ios-location-purpose-strings.md) — set all location Info.plist descriptions explicitly; the Expo plugin can leave generic strings that fail App Review.
 - [Salon discovery rules](salon-discovery-rules.md) — home images prefer logo then first gallery photo; show 20 new approved salons; search the whole catalog and map real coordinates.
 - [Mobile session boundaries](mobile-session-boundaries.md) — Clerk is authoritative; retain profile on failed logout, isolate account caches, bound push cleanup and wait for post-finalize identity.
+- [Salon ad delivery](salon-ad-delivery.md) — Keep videos on dedicated visibility-checked routes; native player changes require a new OTA runtime.

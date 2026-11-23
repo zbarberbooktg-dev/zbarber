@@ -8,6 +8,7 @@
 
 export * from './activityItem';
 export * from './activityItemType';
+export * from './adminSalonVideoAd';
 export * from './adminStats';
 export * from './advancedStats';
 export * from './advancedStatsPeakDaysItem';
@@ -34,6 +35,7 @@ export * from './conference';
 export * from './conferenceInput';
 export * from './conferenceListResponse';
 export * from './conferenceUpdate';
+export * from './createSalonAdParams';
 export * from './documentRejectInput';
 export * from './favorite';
 export * from './favoriteInput';
@@ -95,6 +97,8 @@ export * from './revenueData';
 export * from './review';
 export * from './reviewInput';
 export * from './reviewListResponse';
+export * from './salonAdVisibility';
+export * from './salonVideoAd';
 export * from './schedule';
 export * from './scheduleInput';
 export * from './service';

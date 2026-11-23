@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, Scissors, Calendar, CreditCard,
-  Banknote, Video, Bell, Star, Moon, Sun, LogOut, ChevronRight, Image as ImageIcon, ShieldCheck, FileText, LifeBuoy,
+  Banknote, Video, Film, Bell, Star, Moon, Sun, LogOut, ChevronRight, Image as ImageIcon, ShieldCheck, FileText, LifeBuoy,
 } from "lucide-react";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useTheme } from "@/lib/theme";
@@ -10,7 +10,7 @@ import { useT, LanguageToggle } from "@/lib/i18n";
 export function Sidebar() {
   const [location] = useLocation();
   const { theme, toggle } = useTheme();
-  const { t } = useT();
+  const { t, lang } = useT();
   const { admin, logout } = useAdminAuth();
 
   const nav = [
@@ -24,6 +24,7 @@ export function Sidebar() {
     { path: "/notifications", label: t.nav.notifications, icon: Bell },
     { path: "/reviews",       label: t.nav.reviews,       icon: Star },
     { path: "/gallery",       label: t.nav.gallery,       icon: ImageIcon },
+    { path: "/salon-ads",     label: lang === "fr" ? "Publicités" : "Advertisements", icon: Film },
     { path: "/articles",      label: "L'édito",           icon: FileText },
     { path: "/support",       label: "Assistance",        icon: LifeBuoy },
     { path: "/admins",        label: "Admins",            icon: ShieldCheck },
