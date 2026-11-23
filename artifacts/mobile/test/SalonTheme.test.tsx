@@ -137,31 +137,26 @@ test.each([
   expect(gallery.props.colors).toMatchObject({
     bg: C.background, surface: C.card, text: C.foreground, textMuted: C.mutedForeground,
   });
-  const booking = button("Réserver");
+    const booking = button("Réserver");
   expect(style(booking).backgroundColor).toBe(C.primary);
   expect(contrast(style(booking.findByType("Text" as never)).color, C.primary)).toBeGreaterThanOrEqual(4.5);
   expect(contrast(C.mutedForeground, C.background)).toBeGreaterThanOrEqual(4.5);
   expect(contrast(C.accentForeground, C.accent)).toBeGreaterThanOrEqual(4.5);
 });
 
-test("system and explicit theme changes update mounted content without losing a service or slot", async () => {
+test("system and explicit theme changes preserve the salon page and booking navigation", async () => {
   h.preference = "system";
   await mount();
-  await act(async () => button("Coupe").props.onPress());
-  await act(async () => nodes("DateTimePicker")[0].props.onChange("2026-11-20T10:00:00Z"));
   for (const [preference, system, expected] of [
     ["system", "dark", "dark"], ["light", "dark", "light"], ["dark", "light", "dark"],
   ] as const) {
     h.preference = preference; h.system = system;
     await act(async () => root.update(<SalonDetail />));
     expect(style(nodes("View")[0]).backgroundColor).toBe(colors[expected].background);
-    expect(nodes("DateTimePicker")[0].props.value).toBe("2026-11-20T10:00:00Z");
+    expect(text("Salon témoin")).toBeTruthy();
   }
   await act(async () => button("Réserver").props.onPress());
-  expect(h.fetcher).toHaveBeenCalledWith("/api/reservations", {
-    method: "POST",
-    body: JSON.stringify({ barberId: 1, serviceId: 10, scheduledAt: "2026-11-20T10:00:00Z" }),
-  });
+  expect(h.push).toHaveBeenCalledWith({ pathname: "/salon/[id]/reservation", params: { id: "1" } });
 });
 
 test.each(["light", "dark"] as const)("loading state honors the %s theme before salon data arrives", async pref => {
@@ -179,12 +174,9 @@ test.each(["light", "dark"] as const)("phone-only salon keeps readable contact c
   expect(h.openURL).toHaveBeenCalledWith("tel:+000000000");
 });
 
-test("signed-out booking still offers the existing sign-in route", async () => {
+test("signed-out visitors can open the guided booking page", async () => {
   h.signedIn = false;
   await mount();
-  await act(async () => button("Se connecter pour réserver").props.onPress());
-  const choices = h.alert.mock.calls.at(-1)![2];
-  choices.find((choice: { text: string }) => choice.text === "Se connecter").onPress();
-  expect(h.push).toHaveBeenCalledWith("/(auth)/sign-in");
-  expect(h.fetcher).not.toHaveBeenCalled();
+  await act(async () => button("Réserver").props.onPress());
+  expect(h.push).toHaveBeenCalledWith({ pathname: "/salon/[id]/reservation", params: { id: "1" } });
 });
