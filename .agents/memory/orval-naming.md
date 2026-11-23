@@ -14,3 +14,5 @@ Never name a component schema `<OperationId>Response` — Orval generates an inl
 - If codegen fails with TS2308, check whether a component schema name matches `<operationId>Response`.
 - Fix: rename the component schema to something unique (e.g. `SyncAuthResponse` → `AuthSyncResult` for operationId `syncAuth`).
 - Update all `$ref` occurrences in the spec to point to the renamed schema before re-running codegen.
+
+When an operation has **both** path and query parameters, Orval can also emit `<OperationId>Params` twice: once as a path Zod validator and once as a query-only TypeScript type. An explicit re-export of the Zod validator in the public barrel resolves the ambiguity without editing generated files; the query validator keeps its separate `<OperationId>QueryParams` name.

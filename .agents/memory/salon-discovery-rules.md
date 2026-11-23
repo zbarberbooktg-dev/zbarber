@@ -3,6 +3,12 @@ name: Salon discovery product rules
 description: Requested priorities for salon card images, new salons and real map locations.
 ---
 
+Mobile image cards should keep the entire image rounded and place the caption below it, without a separate coloured or bordered footer. The vertical catalog preview goes directly after L’Inspiration and shows up to five approved salons.
+
+**Why:** the user requested a cleaner card style across the app and a direct route from home to the full salon catalog.
+
+**How to apply:** keep the text and navigation when removing footer styling. Catalog filters operate on the full approved set before pagination. A price range matches a single active service within both bounds; distance uses only actual coordinates after the user grants access.
+
 Salon images on the mobile home must prefer an optional salon logo, otherwise the first gallery image, otherwise a default image. Removing a logo must not remove gallery content.
 
 **Why:** the user explicitly requested this priority so each salon is represented by its own branding or work.

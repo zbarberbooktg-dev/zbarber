@@ -19,6 +19,7 @@ import accountDeletionRouter from "./accountDeletion";
 import articlesRouter from "./articles";
 import favoritesRouter from "./favorites";
 import supportRouter from "./support";
+import salonAdsRouter from "./salon-ads";
 
 const router: IRouter = Router();
 
@@ -41,6 +42,7 @@ router.use(accountDeletionRouter);
 router.use(articlesRouter);
 router.use(favoritesRouter);
 router.use(supportRouter);
+router.use(salonAdsRouter);
 router.use(adminRouter);
 
 export default router;

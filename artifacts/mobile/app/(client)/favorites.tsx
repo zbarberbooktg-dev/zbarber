@@ -2,11 +2,8 @@ import { Feather } from "@expo/vector-icons";
 import { useListFavorites } from "@workspace/api-client-react";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image } from "expo-image";
 import {
   ActivityIndicator,
-  ImageSourcePropType,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
@@ -15,27 +12,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/contexts/AppContext";
-import { resolveObjectUrl } from "@/lib/imageUpload";
-
-const PALETTE = {
-  bg: "#0A0A0A",
-  surface: "#141414",
-  border: "#2A2A2A",
-  text: "#F3F0E9",
-  textMuted: "#A09D94",
-  gold: "#D4AF37",
-};
-
-const salonFallbacks: ImageSourcePropType[] = [
-  require("../../assets/images/client-home/salon1.png"),
-  require("../../assets/images/client-home/salon2.png"),
-  require("../../assets/images/client-home/salon3.png"),
-];
+import { SalonListRow } from "@/components/SalonListRow";
+import { useColors } from "@/hooks/useColors";
 
 export default function Favorites() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useApp();
+  const c = useColors();
+  const PALETTE = { bg: c.background, text: c.foreground, textMuted: c.mutedForeground, gold: c.primary };
   const { data, isLoading, refetch, isRefetching } = useListFavorites();
 
   const items = data ?? [];
@@ -64,40 +49,7 @@ export default function Favorites() {
           </View>
         ) : (
           <View style={{ gap: 12 }}>
-            {items.map((b, idx) => {
-              const logo = resolveObjectUrl(b.logoUrl, 200);
-              return (
-                <Pressable
-                  key={b.id}
-                  onPress={() => router.push(`/salon/${b.id}` as never)}
-                  style={{ flexDirection: "row", gap: 14, padding: 14, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, alignItems: "center" }}
-                >
-                  <Image
-                    source={logo ? { uri: logo } : salonFallbacks[idx % salonFallbacks.length]}
-                    style={{ width: 72, height: 72, borderRadius: 6 }}
-                    contentFit="cover"
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: "#fff", fontFamily: "Inter_700Bold", fontSize: 16, marginBottom: 4 }} numberOfLines={1}>
-                      {b.salonName}
-                    </Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>
-                      <Feather name="map-pin" size={10} color={PALETTE.textMuted} />
-                      <Text style={{ color: PALETTE.textMuted, fontFamily: "Inter_400Regular", fontSize: 11 }} numberOfLines={1}>
-                        {b.neighborhood ? `${b.neighborhood} • ${b.city}` : b.city}
-                      </Text>
-                    </View>
-                    {b.rating && Number(b.rating) > 0 ? (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Feather name="star" size={10} color={PALETTE.gold} />
-                        <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 11 }}>{Number(b.rating).toFixed(1)}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Feather name="chevron-right" size={20} color={PALETTE.textMuted} />
-                </Pressable>
-              );
-            })}
+            {items.map((b, index) => <SalonListRow key={b.id} salon={b} index={index} onPress={() => router.push(`/salon/${b.id}`)} />)}
           </View>
         )}
       </ScrollView>

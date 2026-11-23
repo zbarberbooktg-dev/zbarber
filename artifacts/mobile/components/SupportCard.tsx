@@ -53,9 +53,12 @@ export function SupportCard() {
 
   return (
     <View testID="support-card">
-      <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 20, marginBottom: 10, marginLeft: 4 }}>
-        {fr ? "Assistance" : "Support"}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, paddingHorizontal: 3 }}>
+        <Feather name="help-circle" size={16} color={c.primary} />
+        <Text accessibilityRole="header" style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 18 }}>
+          {fr ? "Assistance" : "Support"}
+        </Text>
+      </View>
       <View style={{ backgroundColor: c.card, borderRadius: c.radius + 4, borderWidth: 1, borderColor: c.border, overflow: "hidden" }}>
         {rows.map((row, i) => (
           <React.Fragment key={row.key}>
@@ -76,7 +79,7 @@ export function SupportCard() {
             )}
             {row.key === "privacy" && (links.isLoading || links.isError) && <View style={{ height: 1, backgroundColor: c.border, marginLeft: 64 }} />}
             <Pressable testID={`support-row-${row.key}`} accessibilityRole={row.external ? "link" : "button"} onPress={row.onPress}
-              style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 12, minHeight: 56, backgroundColor: pressed ? c.muted : "transparent" })}>
+              style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 12, minHeight: 56, backgroundColor: pressed ? c.muted : row.key === "ticket" ? c.accent : "transparent" })}>
               <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
                 <Feather name={row.icon} size={17} color={c.primary} />
               </View>

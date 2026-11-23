@@ -10,9 +10,9 @@ import { EditProfileModal } from "@/components/EditProfileModal";
 import { DocumentUploadCard } from "@/components/DocumentUploadCard";
 import { SupportCard } from "@/components/SupportCard";
 import { SignOutButton } from "@/components/SignOutButton";
-import { Avatar, Button, Card } from "@/components/UI";
-import { useApp, type ThemePref } from "@/contexts/AppContext";
-import type { Lang } from "@/constants/i18n";
+import { ProfileIdentity, ProfilePreferences, ProfileSectionTitle } from "@/components/ProfileSections";
+import { Button, Card } from "@/components/UI";
+import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useAuthedFetch } from "@/lib/api";
 import { setBrowsing } from "@/lib/browseIntent";
@@ -20,7 +20,8 @@ import { setBrowsing } from "@/lib/browseIntent";
 export default function ClientProfile() {
   const c = useColors();
   const router = useRouter();
-  const { themePref, setThemePref, lang, setLang, syncAuth, t, user, barberProfile } = useApp();
+  const { lang, syncAuth, t, user, barberProfile } = useApp();
+  const fr = lang === "fr";
   const params = useLocalSearchParams<{ becomeBarber?: string }>();
   const fetcher = useAuthedFetch();
   const [editOpen, setEditOpen] = useState(false);
@@ -50,7 +51,7 @@ export default function ClientProfile() {
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("Permission refusée", "Autorisez la géolocalisation dans vos réglages.");
+        Alert.alert(fr ? "Permission refusée" : "Permission denied", fr ? "Autorisez la géolocalisation dans vos réglages." : "Allow location access in Settings.");
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -59,70 +60,20 @@ export default function ClientProfile() {
         body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
       });
       await syncAuth();
-      Alert.alert("Position mise à jour", "Merci !");
+      Alert.alert(fr ? "Position mise à jour" : "Location updated");
     } catch (e: any) {
-      Alert.alert("Erreur", e?.message ?? "Impossible d'actualiser la position.");
+      Alert.alert(fr ? "Erreur" : "Error", e?.message ?? (fr ? "Impossible d’actualiser la position." : "Unable to update your location."));
     } finally {
       setLocating(false);
     }
   };
 
-  const themeOptions: Array<{ key: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }> = [
-    { key: "system", label: t.themeAuto, icon: "smartphone" },
-    { key: "light", label: t.themeLight, icon: "sun" },
-    { key: "dark", label: t.themeDark, icon: "moon" },
-  ];
-
-  const langOptions: Array<{ key: Lang; label: string }> = [
-    { key: "fr", label: "Français" },
-    { key: "en", label: "English" },
-  ];
-
-  const SectionLabel = ({ label }: { label: string }) => (
-    <Text
-      style={{
-        color: c.mutedForeground,
-        fontFamily: "Inter_600SemiBold",
-        fontSize: 11,
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-        marginBottom: 8,
-        marginLeft: 4,
-      }}
-    >
-      {label}
-    </Text>
-  );
-
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}
+      contentContainerStyle={{ padding: 16, gap: 22, paddingBottom: 48 }}
     >
-      <Card>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <Avatar name={user?.name ?? t.myAccount} size={56} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>
-              {user?.name ?? t.myAccount}
-            </Text>
-            <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13 }}>
-              {user?.email ?? t.clientAccount}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => setEditOpen(true)}
-            hitSlop={10}
-            style={({ pressed }) => ({
-              padding: 8,
-              borderRadius: c.radius - 4,
-              backgroundColor: pressed ? c.accent : "transparent",
-            })}
-          >
-            <Feather name="edit-2" size={18} color={c.primary} />
-          </Pressable>
-        </View>
-      </Card>
+      <ProfileIdentity name={user?.name ?? t.myAccount} email={user?.email} role={t.clientAccount} onEdit={() => setEditOpen(true)} />
 
       <EditProfileModal
         visible={editOpen}
@@ -133,79 +84,13 @@ export default function ClientProfile() {
       {hasPendingBarberRequest && <DocumentUploadCard />}
 
       <View>
-        <SectionLabel label={t.appearance} />
-        <Card style={{ flexDirection: "row", gap: 8, padding: 8 }}>
-          {themeOptions.map((opt) => {
-            const active = themePref === opt.key;
-            return (
-              <Pressable
-                key={opt.key}
-                onPress={() => setThemePref(opt.key)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: c.radius - 4,
-                  backgroundColor: active ? c.accent : "transparent",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-              >
-                <Feather name={opt.icon} size={18} color={active ? c.primary : c.mutedForeground} />
-                <Text
-                  style={{
-                    color: active ? c.primary : c.mutedForeground,
-                    fontFamily: "Inter_600SemiBold",
-                    fontSize: 12,
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </Card>
-      </View>
-
-      <View>
-        <SectionLabel label={t.language} />
-        <Card style={{ flexDirection: "row", gap: 8, padding: 8 }}>
-          {langOptions.map((opt) => {
-            const active = lang === opt.key;
-            return (
-              <Pressable
-                key={opt.key}
-                onPress={() => setLang(opt.key)}
-                style={{
-                  flex: 1,
-                  paddingVertical: 10,
-                  borderRadius: c.radius - 4,
-                  backgroundColor: active ? c.accent : "transparent",
-                  alignItems: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    color: active ? c.primary : c.mutedForeground,
-                    fontFamily: "Inter_600SemiBold",
-                    fontSize: 13,
-                  }}
-                >
-                  {opt.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </Card>
-      </View>
-
-      <View>
-        <SectionLabel label="Position" />
-        <Card>
+        <ProfileSectionTitle label={fr ? "Votre position" : "Your location"} icon="map-pin" />
+        <Card style={{ borderRadius: c.radius + 6 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <Feather name="map-pin" size={18} color={c.primary} />
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 14 }}>
-                {user?.city ? `${user.city}${user.country ? ", " + user.country : ""}` : "Non renseignée"}
+                {user?.city ? `${user.city}${user.country ? ", " + user.country : ""}` : (fr ? "Non renseignée" : "Not set")}
               </Text>
               {user?.latitude && user?.longitude ? (
                 <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11 }}>
@@ -215,6 +100,8 @@ export default function ClientProfile() {
             </View>
             <Pressable
               onPress={handleRefreshLocation}
+              accessibilityRole="button"
+              accessibilityState={{ busy: locating, disabled: locating }}
               disabled={locating}
               style={({ pressed }) => ({
                 paddingHorizontal: 12, paddingVertical: 8, borderRadius: c.radius - 4,
@@ -224,17 +111,18 @@ export default function ClientProfile() {
             >
               <Feather name="refresh-cw" size={13} color={c.primary} />
               <Text style={{ color: c.primary, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
-                {locating ? "..." : "Actualiser"}
+                 {locating ? (fr ? "En cours…" : "Updating…") : (fr ? "Actualiser" : "Refresh")}
               </Text>
             </Pressable>
           </View>
         </Card>
       </View>
 
+      <ProfilePreferences />
       <SupportCard />
 
       <View>
-        <SectionLabel label={t.account} />
+        <ProfileSectionTitle label={t.account} icon="settings" />
         <View style={{ gap: 10 }}>
           <Button
             label={lang === "fr" ? "Accueil" : "Home"}

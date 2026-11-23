@@ -443,11 +443,11 @@ export default function PublicSalonDetail() {
             <SectionTitle title="Avant / Après" />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 4 }}>
               {realisations.map((r, ri) => (
-                <View key={r.id} style={{ width: 270, backgroundColor: PALETTE.surface, borderWidth: 1, borderColor: PALETTE.border, borderRadius: 16, overflow: "hidden" }}>
-                  <View style={{ flexDirection: "row" }}>
+                <View key={r.id} style={{ width: 270 }}>
+                  <View style={{ flexDirection: "row", gap: 5 }}>
                     {[{ uri: resolveObjectUrl(r.beforeUrl, 500), tag: "Avant" }, { uri: resolveObjectUrl(r.afterUrl, 500), tag: "Après" }].map((img, i) => (
                       <Pressable key={i} onPress={() => setRealisationLbIdx(ri * 2 + i)} accessibilityRole="imagebutton" accessibilityLabel={`${img.tag}`}
-                        style={{ flex: 1, aspectRatio: 1 }}>
+                        style={{ flex: 1, aspectRatio: 1, borderRadius: 14, overflow: "hidden" }}>
                         {img.uri && <Image source={{ uri: img.uri }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
                         <View style={{ position: "absolute", top: 6, left: 6, backgroundColor: "rgba(0,0,0,0.6)", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
                           <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 10 }}>{img.tag}</Text>

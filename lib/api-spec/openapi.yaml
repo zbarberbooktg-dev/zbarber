@@ -41,6 +41,146 @@ tags:
     description: Object storage upload and serving endpoints.
 
 paths:
+  /salon-ads:
+    get:
+      operationId: listSalonAds
+      tags: [barbers]
+      summary: List active video ads for approved salons
+      responses:
+        "200":
+          description: Public video ads
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SalonVideoAd" }
+  /admin/salon-ads:
+    get:
+      operationId: listAdminSalonAds
+      tags: [admin]
+      summary: List video ads including inactive ads
+      responses:
+        "200":
+          description: Admin video ads
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+    post:
+      operationId: createSalonAd
+      tags: [admin]
+      summary: Upload an MP4 under 20 MiB and save it as inactive
+      parameters:
+        - in: query
+          name: salonId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          video/mp4:
+            schema: { type: string, format: binary }
+      responses:
+        "201":
+          description: Created inactive ad
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+  /admin/salon-ads/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer, minimum: 1 }
+    patch:
+      operationId: setSalonAdVisibility
+      tags: [admin]
+      summary: Change the linked salon or activation without replacing the video
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SalonAdVisibility" }
+      responses:
+        "200":
+          description: Updated video ad
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+    put:
+      operationId: replaceSalonAdVideo
+      tags: [admin]
+      summary: Replace a video and optionally link a different salon
+      parameters:
+        - in: query
+          name: salonId
+          schema: { type: integer, minimum: 1, maximum: 2147483647 }
+      requestBody:
+        required: true
+        content:
+          video/mp4:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Updated advertisement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+    delete:
+      operationId: deleteSalonAd
+      tags: [admin]
+      summary: Remove the advertisement and release its stored video
+      responses:
+        "200":
+          description: Removed ad; if storage is temporarily unavailable, file cleanup is retried
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalonAdDeletion" }
+  /salon-ads/{id}/video:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: streamSalonAdVideo
+      tags: [barbers]
+      summary: Play the video of a currently public ad with optional single byte range
+      responses:
+        "200":
+          description: MP4 video
+          content:
+            video/mp4:
+              schema: { type: string, format: binary }
+        "206":
+          description: Requested byte range
+        "404":
+          description: Not currently public or video missing
+        "416":
+          description: Invalid or unsatisfiable byte range
+  /admin/salon-ads/{id}/video:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: previewAdminSalonAdVideo
+      tags: [admin]
+      summary: Preview a video even when the ad is inactive
+      responses:
+        "200":
+          description: MP4 video
+          content:
+            video/mp4:
+              schema: { type: string, format: binary }
+        "206":
+          description: Requested byte range
+        "404":
+          description: Ad or video missing
+        "416":
+          description: Invalid or unsatisfiable byte range
   /healthz:
     get:
       operationId: healthCheck
@@ -326,6 +466,26 @@ paths:
           schema:
             type: string
         - in: query
+          name: country
+          schema: { type: string, maxLength: 200 }
+        - in: query
+          name: minPrice
+          description: At least one active service meets both price bounds (inclusive).
+          schema: { type: number, minimum: 0 }
+        - in: query
+          name: maxPrice
+          schema: { type: number, minimum: 0 }
+        - in: query
+          name: latitude
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - in: query
+          name: longitude
+          schema: { type: number, minimum: -180, maximum: 180 }
+        - in: query
+          name: radiusKm
+          description: Radius from latitude and longitude; nearest results first.
+          schema: { type: number, minimum: 0.1, maximum: 500 }
+        - in: query
           name: page
           schema:
             type: integer
@@ -361,6 +521,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/Barber"
 
+  /barbers/catalog-locations:
+    get:
+      operationId: listSalonCatalogLocations
+      tags: [barbers]
+      summary: Distinct countries and cities of approved salons
+      responses:
+        "200":
+          description: Available salon locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SalonCatalogLocation"
   /barbers/map-points:
     get:
       operationId: listBarberMapPoints
@@ -2239,6 +2413,41 @@ paths:
 
 components:
   schemas:
+    SalonCatalogLocation:
+      type: object
+      required: [country, city]
+      properties:
+        country: { type: ["string", "null"] }
+        city: { type: string }
+    SalonVideoAd:
+      type: object
+      required: [id, salonId, salonName, videoPath]
+      properties:
+        id: { type: integer }
+        salonId: { type: integer }
+        salonName: { type: string }
+        videoPath: { type: string }
+        posterPath: { type: string }
+    AdminSalonVideoAd:
+      type: object
+      required: [id, salonId, salonName, videoPath, active, salonPublic]
+      properties:
+        id: { type: integer }
+        salonId: { type: integer }
+        salonName: { type: string }
+        videoPath: { type: string }
+        active: { type: boolean }
+        salonPublic: { type: boolean }
+    SalonAdVisibility:
+      type: object
+      properties:
+        active: { type: boolean }
+        salonId: { type: integer, minimum: 1, maximum: 2147483647 }
+    SalonAdDeletion:
+      type: object
+      required: [cleanupPending]
+      properties:
+        cleanupPending: { type: boolean }
     SupportLinks:
       type: object
       required: [whatsapp, tiktok, instagram, facebook]

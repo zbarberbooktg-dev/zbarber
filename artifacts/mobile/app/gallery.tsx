@@ -77,17 +77,15 @@ export default function HomeGallery() {
             <Pressable
               key={it.key}
               onPress={() => setLightbox({ index: idx })}
-              style={{ aspectRatio: 16 / 11, borderWidth: 1, borderColor: PALETTE.border, overflow: "hidden", position: "relative" }}
+              style={{ marginBottom: 8 }}
             >
               <ShimmerImage
                 source={it.uri ? { uri: it.uri } : it.src}
-                style={{ width: "100%", height: "100%" }}
+                style={{ width: "100%", aspectRatio: 16 / 11, borderRadius: 18, overflow: "hidden" }}
                 contentFit="cover"
               />
               {it.label ? (
-                <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: "rgba(0,0,0,0.55)" }}>
-                  <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 14 }}>{it.label}</Text>
-                </View>
+                <Text style={{ color: PALETTE.text, marginTop: 8, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>{it.label}</Text>
               ) : null}
             </Pressable>
           ))}

@@ -112,6 +112,8 @@ export class ObjectNotFoundError extends Error {
 const LOCAL_UPLOAD_PATH = "/api/storage/local-upload";
 const LOCAL_OBJECT_NAME_RE = /^uploads\/[0-9a-fA-F-]{36}$/;
 const LOCAL_MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // matches nginx client_max_body_size
+const SALON_AD_VIDEO_PREFIX = "salon-ad-videos/";
+const isSalonAdVideoEntity = (entityId: string) => path.posix.normalize(entityId).startsWith(SALON_AD_VIDEO_PREFIX);
 
 export function getLocalStorageDir(): string {
   const dir = process.env.LOCAL_STORAGE_DIR?.trim();
@@ -173,6 +175,51 @@ function resolveLocalAbsPath(entityId: string): string {
 
 export class ObjectStorageService {
   constructor() {}
+
+  private salonAdVideoObject(key: string): StoredObject {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
+      throw new ObjectNotFoundError();
+    }
+    const entityId = `${SALON_AD_VIDEO_PREFIX}${key}.mp4`;
+    const provider = getStorageProvider();
+    if (provider === "local") return { provider, entityId, absPath: resolveLocalAbsPath(entityId) };
+    const { bucketName, objectName } = parseObjectPath(`${this.getPrivateObjectDir().replace(/\/+$/, "")}/${entityId}`);
+    return { provider, file: objectStorageClient.bucket(bucketName).file(objectName) };
+  }
+
+  async putSalonAdVideo(key: string, body: Buffer): Promise<void> {
+    const object = this.salonAdVideoObject(key);
+    if (object.provider === "local") {
+      await fs.promises.mkdir(path.dirname(object.absPath), { recursive: true });
+      await fs.promises.writeFile(object.absPath, body, { flag: "wx" });
+    } else {
+      await object.file.save(body, {
+        resumable: false,
+        metadata: { contentType: "video/mp4", cacheControl: "private, no-store" },
+        preconditionOpts: { ifGenerationMatch: 0 },
+      });
+    }
+  }
+
+  async openSalonAdVideo(key: string, start: number, end: number): Promise<Readable> {
+    const object = this.salonAdVideoObject(key);
+    if (object.provider === "local") {
+      const file = await fs.promises.open(object.absPath, "r").catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") throw new ObjectNotFoundError();
+        throw error;
+      });
+      return file.createReadStream({ start, end });
+    }
+    const [exists] = await object.file.exists();
+    if (!exists) throw new ObjectNotFoundError();
+    return object.file.createReadStream({ start, end });
+  }
+
+  async removeSalonAdVideo(key: string): Promise<void> {
+    const object = this.salonAdVideoObject(key);
+    if (object.provider === "local") await fs.promises.rm(object.absPath, { force: true });
+    else await object.file.delete({ ignoreNotFound: true });
+  }
 
   getPublicObjectSearchPaths(): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";
@@ -268,6 +315,8 @@ export class ObjectStorageService {
 
     for (const searchPath of this.getPublicObjectSearchPaths()) {
       const fullPath = `${searchPath}/${filePath}`;
+      // A misconfigured public search prefix must not expose private video ads.
+      if (path.posix.normalize(fullPath).split("/").includes("salon-ad-videos")) continue;
 
       const { bucketName, objectName } = parseObjectPath(fullPath);
       const bucket = objectStorageClient.bucket(bucketName);
@@ -379,6 +428,8 @@ export class ObjectStorageService {
     }
 
     const entityId = parts.slice(1).join("/");
+    // Only the ad router can open these files. Never reclassify them as photos.
+    if (isSalonAdVideoEntity(entityId)) throw new ObjectNotFoundError();
 
     if (getStorageProvider() === "local") {
       const absPath = resolveLocalAbsPath(entityId);

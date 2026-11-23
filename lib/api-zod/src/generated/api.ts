@@ -9,6 +9,138 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List active video ads for approved salons
+ */
+export const ListSalonAdsResponseItem = zod.object({
+  "id": zod.number(),
+  "salonId": zod.number(),
+  "salonName": zod.string(),
+  "videoPath": zod.string(),
+  "posterPath": zod.string().optional()
+})
+export const ListSalonAdsResponse = zod.array(ListSalonAdsResponseItem)
+
+
+/**
+ * @summary List video ads including inactive ads
+ */
+export const ListAdminSalonAdsResponseItem = zod.object({
+  "id": zod.number(),
+  "salonId": zod.number(),
+  "salonName": zod.string(),
+  "videoPath": zod.string(),
+  "active": zod.boolean(),
+  "salonPublic": zod.boolean()
+})
+export const ListAdminSalonAdsResponse = zod.array(ListAdminSalonAdsResponseItem)
+
+
+/**
+ * @summary Upload an MP4 under 20 MiB and save it as inactive
+ */
+
+
+
+export const CreateSalonAdQueryParams = zod.object({
+  "salonId": zod.coerce.number().min(1)
+})
+
+
+/**
+ * @summary Change the linked salon or activation without replacing the video
+ */
+
+
+
+export const SetSalonAdVisibilityParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const setSalonAdVisibilityBodySalonIdMax = 2147483647;
+
+
+
+export const SetSalonAdVisibilityBody = zod.object({
+  "active": zod.boolean().optional(),
+  "salonId": zod.number().min(1).max(setSalonAdVisibilityBodySalonIdMax).optional()
+})
+
+export const SetSalonAdVisibilityResponse = zod.object({
+  "id": zod.number(),
+  "salonId": zod.number(),
+  "salonName": zod.string(),
+  "videoPath": zod.string(),
+  "active": zod.boolean(),
+  "salonPublic": zod.boolean()
+})
+
+
+/**
+ * @summary Replace a video and optionally link a different salon
+ */
+
+
+
+export const ReplaceSalonAdVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const replaceSalonAdVideoQuerySalonIdMax = 2147483647;
+
+
+
+export const ReplaceSalonAdVideoQueryParams = zod.object({
+  "salonId": zod.coerce.number().min(1).max(replaceSalonAdVideoQuerySalonIdMax).optional()
+})
+
+export const ReplaceSalonAdVideoResponse = zod.object({
+  "id": zod.number(),
+  "salonId": zod.number(),
+  "salonName": zod.string(),
+  "videoPath": zod.string(),
+  "active": zod.boolean(),
+  "salonPublic": zod.boolean()
+})
+
+
+/**
+ * @summary Remove the advertisement and release its stored video
+ */
+
+
+
+export const DeleteSalonAdParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const DeleteSalonAdResponse = zod.object({
+  "cleanupPending": zod.boolean()
+})
+
+
+/**
+ * @summary Play the video of a currently public ad with optional single byte range
+ */
+
+
+
+export const StreamSalonAdVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+/**
+ * @summary Preview a video even when the ad is inactive
+ */
+
+
+
+export const PreviewAdminSalonAdVideoParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -342,6 +474,21 @@ export const ActivateUserResponse = zod.object({
 /**
  * @summary List barbers
  */
+export const listBarbersQueryCountryMax = 200;
+
+export const listBarbersQueryMinPriceMin = 0;
+
+export const listBarbersQueryMaxPriceMin = 0;
+
+export const listBarbersQueryLatitudeMin = -90;
+export const listBarbersQueryLatitudeMax = 90;
+
+export const listBarbersQueryLongitudeMin = -180;
+export const listBarbersQueryLongitudeMax = 180;
+
+export const listBarbersQueryRadiusKmMin = 0.1;
+export const listBarbersQueryRadiusKmMax = 500;
+
 
 export const listBarbersQueryLimitMax = 100;
 
@@ -354,6 +501,12 @@ export const ListBarbersQueryParams = zod.object({
   "service": zod.coerce.string().optional(),
   "status": zod.enum(['pending', 'awaiting_document', 'approved', 'rejected', 'suspended']).optional(),
   "city": zod.coerce.string().optional(),
+  "country": zod.coerce.string().max(listBarbersQueryCountryMax).optional(),
+  "minPrice": zod.coerce.number().min(listBarbersQueryMinPriceMin).optional().describe('At least one active service meets both price bounds (inclusive).'),
+  "maxPrice": zod.coerce.number().min(listBarbersQueryMaxPriceMin).optional(),
+  "latitude": zod.coerce.number().min(listBarbersQueryLatitudeMin).max(listBarbersQueryLatitudeMax).optional(),
+  "longitude": zod.coerce.number().min(listBarbersQueryLongitudeMin).max(listBarbersQueryLongitudeMax).optional(),
+  "radiusKm": zod.coerce.number().min(listBarbersQueryRadiusKmMin).max(listBarbersQueryRadiusKmMax).optional().describe('Radius from latitude and longitude; nearest results first.'),
   "page": zod.coerce.number().min(1).optional(),
   "limit": zod.coerce.number().min(1).max(listBarbersQueryLimitMax).optional()
 })
@@ -410,6 +563,16 @@ export const CreateBarberBody = zod.object({
   "latitude": zod.number().nullish(),
   "longitude": zod.number().nullish()
 })
+
+
+/**
+ * @summary Distinct countries and cities of approved salons
+ */
+export const ListSalonCatalogLocationsResponseItem = zod.object({
+  "country": zod.string().nullable(),
+  "city": zod.string()
+})
+export const ListSalonCatalogLocationsResponse = zod.array(ListSalonCatalogLocationsResponseItem)
 
 
 /**

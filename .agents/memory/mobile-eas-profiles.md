@@ -15,7 +15,12 @@ The whole mobile app derives its backend from ONE value, `EXPO_PUBLIC_DOMAIN` (a
 
 ## Clerk gotcha (silently breaks auth in builds)
 **Why:** the Clerk Frontend-API proxy (`clerkProxyMiddleware`, path `/api/__clerk`) is **production-only** — it no-ops for Clerk dev instances (`pk_test_`/`sk_test_`). So every store/internal build must use a real Clerk **production** publishable key, and a `pk_test_` in any backend env (e.g. `api-test.env`) breaks test-build auth even though it "works" in Replit dev (where NODE_ENV≠production bypasses the proxy).
-**How to apply:** the `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` values committed in `eas.json` are placeholders (`pk_live_REPLACE_...`). They MUST be replaced before any real build or sign-in fails at runtime with no obvious server error.
+**How to apply:** verify that the build uses the correct live publishable key; older revisions used placeholders. For OTA, the Expo environment must provide the same public key as the target build, not a Clerk secret.
+
+## OTA channel and runtime separation
+Do not set `updates.requestHeaders` globally to choose the channel; let the native build profile choose it. Keep the OTA runtime stable for compatible JavaScript changes and assign a new runtime for incompatible native changes.
+**Why:** older test builds could inherit the globally forced `production` channel. A separate runtime baseline prevents them from receiving updates intended for the newly isolated builds.
+**How to apply:** verify the two Expo channels point at separate update branches; validate the release on `test` before manually publishing the same Git revision to `production`.
 
 ## Test env reuses the PROD Clerk app (Option A)
 **Why:** the test environment has no dedicated Clerk app. To avoid standing up a second Clerk production instance + proxy URL, every native build authenticates against the **prod** Clerk app while still hitting its own data API.
