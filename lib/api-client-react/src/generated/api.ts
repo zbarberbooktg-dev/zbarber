@@ -328,7 +328,7 @@ export const createSalonAd = async (createSalonAdBody: Blob,
 
 
 
-export const getCreateSalonAdMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateSalonAdMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSalonAd>>, TError,{data: BodyType<Blob>;params: CreateSalonAdParams}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createSalonAd>>, TError,{data: BodyType<Blob>;params: CreateSalonAdParams}, TContext> => {
 
@@ -357,12 +357,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateSalonAdMutationResult = NonNullable<Awaited<ReturnType<typeof createSalonAd>>>
     export type CreateSalonAdMutationBody = BodyType<Blob>
-    export type CreateSalonAdMutationError = ErrorType<unknown>
+    export type CreateSalonAdMutationError = ErrorType<void>
 
     /**
  * @summary Upload an MP4 under 20 MiB and save it as inactive
  */
-export const useCreateSalonAd = <TError = ErrorType<unknown>,
+export const useCreateSalonAd = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSalonAd>>, TError,{data: BodyType<Blob>;params: CreateSalonAdParams}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createSalonAd>>,
@@ -400,7 +400,7 @@ export const setSalonAdVisibility = async (id: number,
 
 
 
-export const getSetSalonAdVisibilityMutationOptions = <TError = ErrorType<unknown>,
+export const getSetSalonAdVisibilityMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSalonAdVisibility>>, TError,{id: number;data: BodyType<SalonAdVisibility>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof setSalonAdVisibility>>, TError,{id: number;data: BodyType<SalonAdVisibility>}, TContext> => {
 
@@ -429,12 +429,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type SetSalonAdVisibilityMutationResult = NonNullable<Awaited<ReturnType<typeof setSalonAdVisibility>>>
     export type SetSalonAdVisibilityMutationBody = BodyType<SalonAdVisibility>
-    export type SetSalonAdVisibilityMutationError = ErrorType<unknown>
+    export type SetSalonAdVisibilityMutationError = ErrorType<void>
 
     /**
  * @summary Change the linked salon or activation without replacing the video
  */
-export const useSetSalonAdVisibility = <TError = ErrorType<unknown>,
+export const useSetSalonAdVisibility = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSalonAdVisibility>>, TError,{id: number;data: BodyType<SalonAdVisibility>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof setSalonAdVisibility>>,
@@ -481,7 +481,7 @@ export const replaceSalonAdVideo = async (id: number,
 
 
 
-export const getReplaceSalonAdVideoMutationOptions = <TError = ErrorType<unknown>,
+export const getReplaceSalonAdVideoMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceSalonAdVideo>>, TError,{id: number;data: BodyType<Blob>;params?: ReplaceSalonAdVideoParams}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof replaceSalonAdVideo>>, TError,{id: number;data: BodyType<Blob>;params?: ReplaceSalonAdVideoParams}, TContext> => {
 
@@ -510,12 +510,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ReplaceSalonAdVideoMutationResult = NonNullable<Awaited<ReturnType<typeof replaceSalonAdVideo>>>
     export type ReplaceSalonAdVideoMutationBody = BodyType<Blob>
-    export type ReplaceSalonAdVideoMutationError = ErrorType<unknown>
+    export type ReplaceSalonAdVideoMutationError = ErrorType<void>
 
     /**
  * @summary Replace a video and optionally link a different salon
  */
-export const useReplaceSalonAdVideo = <TError = ErrorType<unknown>,
+export const useReplaceSalonAdVideo = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof replaceSalonAdVideo>>, TError,{id: number;data: BodyType<Blob>;params?: ReplaceSalonAdVideoParams}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof replaceSalonAdVideo>>,

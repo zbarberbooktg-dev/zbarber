@@ -14,14 +14,17 @@ import { ObjectStorageService } from "../src/lib/objectStorage";
 import { MAX_SALON_AD_BYTES } from "../src/lib/salonAdMedia";
 import { removeQueuedSalonAdVideo } from "../src/lib/salonAdVideoCleanup";
 import adsRouter from "../src/routes/salon-ads";
+import barbersRouter from "../src/routes/barbers";
 
 const id = randomUUID();
-const app = express().use(cookieParser(), express.json()).use("/api", adsRouter);
+const app = express().use(cookieParser(), express.json()).use("/api", adsRouter, barbersRouter);
 const base = "/api/admin/salon-ads";
 const publicBase = "/api/salon-ads";
 let salonId: number;
 let otherSalonId: number;
 let hiddenSalonId: number;
+let deletedSalonId: number;
+const testCity = `Test ${id}`;
 let ownerId: number;
 let adminIds: number[] = [];
 let dir: string;
@@ -49,14 +52,16 @@ beforeAll(async () => {
   vi.stubEnv("LOCAL_STORAGE_DIR", dir);
   const [owner] = await db.insert(usersTable).values({ name: "Ads salon owner", email: `${id}@example.com`, role: "barber" }).returning();
   ownerId = owner!.id;
-  const [salon, other, hidden] = await db.insert(barbersTable).values([
+  const [salon, other, hidden, deleted] = await db.insert(barbersTable).values([
     { userId: ownerId, salonName: `Video salon ${id}`, city: "Lomé", status: "approved" },
     { userId: ownerId, salonName: `Other video salon ${id}`, city: "Kara", status: "approved" },
-    { userId: ownerId, salonName: `Hidden video salon ${id}`, city: "Kara", status: "pending" },
+    { userId: ownerId, salonName: `Hidden video salon ${id}`, city: testCity, status: "pending" },
+    { userId: ownerId, salonName: "Salon supprimé", city: testCity, status: "suspended", suspensionReason: "Compte supprimé" },
   ]).returning();
   salonId = salon!.id;
   otherSalonId = other!.id;
   hiddenSalonId = hidden!.id;
+  deletedSalonId = deleted!.id;
   const admins = await db.insert(adminAccountsTable).values([
     { email: `${id}-admin@example.com`, name: "Video admin", passwordHash: "unused", mustChangePassword: false },
     { email: `${id}-locked@example.com`, name: "Locked admin", passwordHash: "unused", mustChangePassword: true },
@@ -66,7 +71,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (salonId) await db.delete(barbersTable).where(inArray(barbersTable.id, [salonId, otherSalonId, hiddenSalonId]));
+  if (salonId) await db.delete(barbersTable).where(inArray(barbersTable.id, [salonId, otherSalonId, hiddenSalonId, deletedSalonId]));
   if (ownerId) await db.delete(usersTable).where(eq(usersTable.id, ownerId));
   if (adminIds.length) await db.delete(adminAccountsTable).where(inArray(adminAccountsTable.id, adminIds));
   if (dir) await rm(dir, { recursive: true, force: true });
@@ -75,6 +80,17 @@ afterAll(async () => {
 });
 
 describe("salon video advertisements", () => {
+  it("excludes deleted salons before counting and paginating the ad picker results", async () => {
+    const list = (excludeDeleted?: boolean) => request(app).get("/api/barbers").set("Cookie", cookie)
+      .query({ city: testCity, limit: 1, sort: "newest", ...(excludeDeleted ? { excludeDeleted } : {}) });
+    const unfiltered = await list();
+    expect(unfiltered.body).toMatchObject({ total: 2, data: [{ id: deletedSalonId }] });
+    const filtered = await list(true);
+    expect(filtered.status).toBe(200);
+    expect(filtered.body).toMatchObject({ total: 1, data: [{ id: hiddenSalonId, status: "pending" }] });
+    expect((await upload(video, deletedSalonId)).status).toBe(404);
+  });
+
   it("requires an unlocked admin and rejects invalid uploads", async () => {
     expect((await request(app).get(base)).status).toBe(401);
     expect((await request(app).get(base).set("Cookie", locked)).status).toBe(403);
@@ -145,6 +161,9 @@ describe("salon video advertisements", () => {
     const folder = join(dir, "salon-ad-videos");
     const onDisk = (key: string) => join(folder, `${key}.mp4`);
     const before = (await readdir(folder)).sort();
+    expect((await patch({ salonId: deletedSalonId })).status).toBe(404);
+    expect((await put(video, deletedSalonId)).status).toBe(404);
+    expect((await row()).salonId).toBe(salonId);
     expect((await patch({ active: true })).status).toBe(200);
     expect((await patch({ salonId: hiddenSalonId })).status).toBe(409);
     expect((await patch({})).status).toBe(400);

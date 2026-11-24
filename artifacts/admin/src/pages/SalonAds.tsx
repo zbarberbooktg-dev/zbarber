@@ -35,7 +35,7 @@ export default function SalonAds() {
   const [feedback, setFeedback] = useState<{ error: boolean; text: string } | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
-  const salons = useListBarbers({ search: search.trim() || undefined, page, limit: PAGE_SIZE });
+  const salons = useListBarbers({ search: search.trim() || undefined, page, limit: PAGE_SIZE, excludeDeleted: true });
   const invalidate = () => qc.invalidateQueries({ queryKey: getListAdminSalonAdsQueryKey() });
   const busy = uploading || visibility.isPending || deletion.isPending;
   const changed = !!salon && (editing ? !!file || salon.id !== editing.salonId : !!file);
@@ -140,7 +140,7 @@ export default function SalonAds() {
               <Input id="ad-salon-search" ref={searchInput} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 placeholder={txt("Rechercher par nom ou ville", "Search by name or city")} />
               {salons.isError ? <Button type="button" variant="outline" size="sm" onClick={() => void salons.refetch()}>{txt("Réessayer de charger les salons", "Retry loading salons")}</Button>
-                : <select className="w-full rounded-md border bg-background p-2 text-sm" aria-label={txt("Salon associé", "Linked salon")}
+                : <select className="w-full rounded-md border bg-background p-2 text-sm" aria-label={txt("Salon associé", "Linked salon")} data-testid="select-ad-salon"
                     value={salon?.id ?? ""} onChange={(e) => {
                       const selected = salons.data?.data.find((s) => String(s.id) === e.target.value);
                       setSalon(selected ? { id: selected.id, name: selected.salonName } : null);

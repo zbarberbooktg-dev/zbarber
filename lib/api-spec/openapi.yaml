@@ -87,6 +87,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+        "404":
+          description: The target salon does not exist or was deleted
   /admin/salon-ads/{id}:
     parameters:
       - in: path
@@ -108,6 +110,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+        "404":
+          description: The ad or its new target salon does not exist or was deleted
     put:
       operationId: replaceSalonAdVideo
       tags: [admin]
@@ -127,6 +131,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminSalonVideoAd" }
+        "404":
+          description: The ad or its new target salon does not exist or was deleted
     delete:
       operationId: deleteSalonAd
       tags: [admin]
@@ -437,6 +443,10 @@ paths:
       tags: [barbers]
       summary: List barbers
       parameters:
+        - in: query
+          name: excludeDeleted
+          description: Exclude salons anonymized after account deletion before counting and paginating.
+          schema: { type: boolean }
         - in: query
           name: search
           description: Search all approved salons by name, city or neighborhood before pagination

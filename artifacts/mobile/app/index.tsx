@@ -21,7 +21,6 @@ import {
   Animated,
   Easing,
   ImageBackground,
-  ImageSourcePropType,
   Linking,
   Platform,
   Pressable,
@@ -45,15 +44,10 @@ import { ShimmerImage } from "@/components/ShimmerImage";
 import { GalleryLightbox, LightboxItem } from "@/components/GalleryLightbox";
 import { SalonAdsCarousel } from "@/components/SalonAdsCarousel";
 import { SalonListRow } from "@/components/SalonListRow";
+import { SalonCardImage } from "@/components/SalonCardImage";
 import { ONBOARDING_KEY } from "./onboarding";
-import { salonImageSource } from "@/lib/salonDiscovery";
 
 const heroImage = require("../assets/images/client-home/hero.png");
-const salonFallbacks: ImageSourcePropType[] = [
-  require("../assets/images/client-home/salon1.png"),
-  require("../assets/images/client-home/salon2.png"),
-  require("../assets/images/client-home/salon3.png"),
-];
 const styleImages = [
   { src: require("../assets/images/client-home/style1.png"), label: "Le Dégradé" },
   { src: require("../assets/images/client-home/style2.png"), label: "La Barbe" },
@@ -603,12 +597,10 @@ export default function PublicHome() {
             ) : (
               <ScrollView horizontal testID="new-salons-carousel" showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
-                {newest.data.map((b, idx) => (
+                {newest.data.map((b) => (
                   <Pressable key={b.id} accessibilityRole="button" accessibilityLabel={fr ? `Ouvrir ${b.salonName}` : `Open ${b.salonName}`}
                     onPress={() => router.push(`/salon/${b.id}` as never)} style={({ pressed }) => ({ width: 190, opacity: pressed ? 0.85 : 1 })}>
-                    <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"}
-                      source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])}
-                      style={{ width: "100%", height: 135, borderRadius: 18, overflow: "hidden" }} contentFit="cover" />
+                    <SalonCardImage salon={b} style={{ width: "100%", height: 135, borderRadius: 18 }} />
                     <View style={homeStyles.salonDetails}>
                       <Text numberOfLines={1} style={{ color: PALETTE.text, fontFamily: serif, fontSize: 17 }}>{b.salonName}</Text>
                       <Text numberOfLines={1} style={{ color: PALETTE.textMuted, fontSize: 12, marginTop: 4 }}>{[b.neighborhood, b.city].filter(Boolean).join(" • ")}</Text>
@@ -670,7 +662,7 @@ export default function PublicHome() {
             ) : (
               <ScrollView horizontal testID="nearby-salons-carousel" showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 20, gap: 14, paddingBottom: 6 }}>
-                {nearestSalons.map((b, idx) => {
+                {nearestSalons.map((b) => {
                   if (b._km == null) return null;
                   const distanceLabel = b._km < 1 ? `${Math.round(b._km * 1000)} m` : `${b._km.toFixed(1)} km`;
                   return (
@@ -678,9 +670,7 @@ export default function PublicHome() {
                       accessibilityLabel={`${b.salonName}, ${distanceLabel}`}
                       onPress={() => router.push(`/salon/${b.id}` as never)} style={({ pressed }) => ({ width: 210, opacity: pressed ? 0.85 : 1 })}>
                       <View style={{ width: "100%", height: 138, borderRadius: 18, overflow: "hidden" }}>
-                        <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"}
-                          source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])}
-                          style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                        <SalonCardImage salon={b} style={{ width: "100%", height: "100%", borderRadius: 18 }} />
                         <View style={{ position: "absolute", top: 9, right: 9, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 6, borderRadius: 14, backgroundColor: PALETTE.bg }}>
                           <Feather name="navigation" size={12} color={PALETTE.gold} />
                           <Text style={{ color: PALETTE.text, fontFamily: "Inter_700Bold", fontSize: 11 }}>{distanceLabel}</Text>
@@ -730,11 +720,11 @@ export default function PublicHome() {
             contentContainerStyle={{ paddingHorizontal: 20, gap: 16, paddingBottom: 16 }}
             style={{ marginBottom: 36 }}
           >
-            {featured.map((b, idx) => (
+            {featured.map((b) => (
               <Pressable key={b.id} accessibilityRole="button" onPress={() => router.push(`/salon/${b.id}` as never)}
                 style={({ pressed }) => ({ width: 230, opacity: pressed ? 0.85 : 1 })}>
                 <View style={{ aspectRatio: 4 / 3, borderRadius: 18, overflow: "hidden" }}>
-                  <ShimmerImage key={b.logoUrl || b.cardImageUrl || "default"} source={salonImageSource(b, salonFallbacks[idx % salonFallbacks.length])} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                  <SalonCardImage salon={b} style={{ width: "100%", height: "100%", borderRadius: 18 }} />
                   {b.rating && Number(b.rating) > 0 ? (
                     <View style={{ position: "absolute", bottom: 12, left: 12, flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }}>
                       <Feather name="star" size={11} color={PALETTE.gold} />
@@ -801,8 +791,8 @@ export default function PublicHome() {
               <SectionHeader title={fr ? "Explorer les salons" : "Explore salons"} action="" serifFont={serif}
                 textColor={PALETTE.text} accentColor={PALETTE.gold} />
               <View style={{ paddingHorizontal: 20, gap: 5 }}>
-                {(newest?.data.length ? newest.data : list).slice(0, 5).map((salon, index) => (
-                  <SalonListRow key={salon.id} salon={salon} index={index} onPress={() => router.push(`/salon/${salon.id}`)} />
+                {(newest?.data.length ? newest.data : list).slice(0, 5).map((salon) => (
+                  <SalonListRow key={salon.id} salon={salon} onPress={() => router.push(`/salon/${salon.id}`)} />
                 ))}
                 <Pressable accessibilityRole="button" onPress={() => router.push("/salons")}
                   style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 48, borderRadius: 14,

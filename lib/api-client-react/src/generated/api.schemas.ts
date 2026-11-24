@@ -1326,6 +1326,10 @@ export const ListUsersStatus = {
 
 export type ListBarbersParams = {
 /**
+ * Exclude salons anonymized after account deletion before counting and paginating.
+ */
+excludeDeleted?: boolean;
+/**
  * Search all approved salons by name, city or neighborhood before pagination
  */
 search?: string;

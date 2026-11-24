@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAuth, requireApprovedBarber, type AuthedRequest } from "../lib/clerkAuth";
 import { requireAdminAuth, resolveAdminFromCookie } from "../lib/adminAuth";
 import { anonymizeUserAccount } from "../lib/accountAnonymize";
+import { notDeletedSalon } from "../lib/deletedSalon";
 import { resolveAndPersistLocation, UnknownCountryError } from "./locations";
 import { notifyAdmin, renderEmail, sendEmail } from "../lib/email";
 import { sendPush } from "../lib/push";
@@ -180,6 +181,7 @@ router.get("/barbers", async (req, res) => {
     limit: z.coerce.number().int().min(1).max(100).default(20),
     search: z.string().trim().max(200).default(""),
     status: z.enum(["pending", "awaiting_document", "approved", "rejected", "suspended"]).optional(),
+    excludeDeleted: z.enum(["true", "false"]).optional(),
     city: z.string().trim().max(200).optional(), country: z.string().trim().max(200).optional(),
     categoryId: z.coerce.number().int().positive().optional(),
     minPrice: optionalNumber(0, Number.MAX_SAFE_INTEGER), maxPrice: optionalNumber(0, Number.MAX_SAFE_INTEGER),
@@ -200,6 +202,7 @@ router.get("/barbers", async (req, res) => {
   }
   const conditions = [];
   if (!admin || q.status) conditions.push(eq(barbersTable.status, q.status ?? "approved"));
+  if (q.excludeDeleted === "true") conditions.push(notDeletedSalon);
   const pattern = (v: string) => `%${v.replace(/[\\%_]/g, "\\$&")}%`;
   if (q.search) conditions.push(or(
     ilike(barbersTable.salonName, pattern(q.search)),

@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Card, EmptyState, Pill, SectionTitle, StatBlock } from "@/components/UI";
 import { CreateSalonModal } from "@/components/CreateSalonModal";
@@ -32,7 +32,8 @@ const PERIOD_LABEL: Record<Period, string> = {
 export default function BarberDashboard() {
   const c = useColors();
   const router = useRouter();
-  const { t, locale, barberProfile } = useApp();
+  const { t, lang, locale, barberProfile } = useApp();
+  const fr = lang === "fr";
   const { selectedSalonId, setSelectedSalonId } = useApp();
   const fetcher = useAuthedFetch();
   const [period, setPeriod] = useState<Period>("today");
@@ -141,10 +142,10 @@ export default function BarberDashboard() {
       style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 16 }}
     >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+      <Card style={styles.salonHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 13 }}>{t.hello} 👋</Text>
-          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 24, marginTop: 4 }}>{barber.salonName}</Text>
+          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 0.8, textTransform: "uppercase" }}>{fr ? "Espace professionnel" : "Barber workspace"}</Text>
+          <Text accessibilityRole="header" style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 24, marginTop: 4 }}>{barber.salonName}</Text>
           <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
             <Pill
               label={barber.status === "approved" ? t.salonApproved : t.salonPending}
@@ -158,17 +159,16 @@ export default function BarberDashboard() {
             setBrowsing(true);
             router.push("/browse");
           }}
-          hitSlop={8}
-          accessibilityLabel={(t as any).home ?? "Accueil"}
+          accessibilityRole="button"
+          accessibilityLabel={fr ? "Accueil" : "Home"}
           style={{
-            width: 42, height: 42, borderRadius: 21,
-            backgroundColor: c.muted, borderWidth: 1, borderColor: c.border,
+            width: 44, height: 44, borderRadius: 14, backgroundColor: c.accent,
             alignItems: "center", justifyContent: "center",
           }}
         >
           <Feather name="home" size={18} color={c.primary} />
         </Pressable>
-      </View>
+      </Card>
 
       {/* Multi-salon selector — shown when barber owns more than one salon */}
       {salons && salons.length > 1 && (
@@ -200,7 +200,7 @@ export default function BarberDashboard() {
         </View>
       )}
 
-      {/* Period selector */}
+      <Text accessibilityRole="header" style={[styles.sectionLabel, { color: c.foreground }]}>{fr ? "Vue d’ensemble" : "Overview"}</Text>
       <View style={{ flexDirection: "row", gap: 6 }}>
         {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => {
           const active = period === p;
@@ -208,6 +208,8 @@ export default function BarberDashboard() {
             <Pressable
               key={p}
               onPress={() => setPeriod(p)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               style={{
                 flex: 1, paddingVertical: 8, borderRadius: 999,
                 backgroundColor: active ? c.primary : c.muted,
@@ -251,28 +253,23 @@ export default function BarberDashboard() {
         <StatBlock label="Total rdv" value={allTime?.totalCount ?? 0} icon="calendar" />
       </View>
 
-      {/* Shortcuts */}
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Shortcut c={c} icon="clock" label="Horaires" onPress={() => router.push("/(barber)/hours")} />
-        <Shortcut c={c} icon="calendar" label="Créneaux" onPress={() => router.push("/(barber)/slots")} />
-      </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Shortcut c={c} icon="scissors" label="Services" onPress={() => router.push("/(barber)/services")} />
-        <Shortcut c={c} icon="image" label="Galerie" onPress={() => router.push("/(barber)/gallery")} />
-      </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Shortcut c={c} vertical icon="layers" label="Avant / Après" onPress={() => router.push("/(barber)/realisations")} />
-        <Shortcut c={c} vertical icon="compass" label="Visite 360°" onPress={() => router.push("/(barber)/panoramas")} />
-        <Shortcut c={c} vertical icon="dollar-sign" label={`${t.financingTitle} · ${t.comingSoon}`} onPress={() => router.push("/(barber)/financing")} />
-      </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Shortcut c={c} icon="bar-chart-2" label="Statistiques" onPress={() => router.push("/(barber)/stats")} />
-        <Shortcut c={c} icon="users" label="File d'attente" onPress={() => router.push("/(barber)/queue")} />
-      </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Shortcut c={c} icon="home" label={t.hsBarberNav} onPress={() => router.push("/(barber)/home-service")} />
-        <Shortcut c={c} icon="plus-circle" label="Nouveau salon" onPress={() => setCreateOpen(true)} />
-      </View>
+      <ShortcutGroup c={c} title={fr ? "Réservations et services" : "Bookings and services"} items={[
+        { icon: "clock", label: fr ? "Horaires" : "Opening hours", detail: fr ? "Jours et heures d’ouverture" : "Opening days and times", onPress: () => router.push("/(barber)/hours") },
+        { icon: "calendar", label: fr ? "Créneaux" : "Time slots", detail: fr ? "Disponibilités pour les rendez-vous" : "Appointment availability", onPress: () => router.push("/(barber)/slots") },
+        { icon: "scissors", label: "Services", detail: fr ? "Prestations, tarifs et durées" : "Services, prices and durations", onPress: () => router.push("/(barber)/services") },
+        { icon: "users", label: fr ? "File d’attente" : "Waitlist", onPress: () => router.push("/(barber)/queue") },
+        { icon: "home", label: t.hsBarberNav, onPress: () => router.push("/(barber)/home-service") },
+      ]} />
+      <ShortcutGroup c={c} title={fr ? "Vitrine du salon" : "Salon showcase"} items={[
+        { icon: "image", label: fr ? "Galerie" : "Gallery", detail: fr ? "Photos visibles par les clients" : "Photos shown to clients", onPress: () => router.push("/(barber)/gallery") },
+        { icon: "layers", label: fr ? "Avant / Après" : "Before / After", onPress: () => router.push("/(barber)/realisations") },
+        { icon: "compass", label: fr ? "Visite 360°" : "360° tour", onPress: () => router.push("/(barber)/panoramas") },
+      ]} />
+      <ShortcutGroup c={c} title={fr ? "Gestion du salon" : "Salon management"} items={[
+        { icon: "bar-chart-2", label: fr ? "Statistiques" : "Statistics", onPress: () => router.push("/(barber)/stats") },
+        { icon: "dollar-sign", label: t.financingTitle, detail: t.comingSoon, onPress: () => router.push("/(barber)/financing") },
+        { icon: "plus-circle", label: fr ? "Nouveau salon" : "New salon", onPress: () => setCreateOpen(true) },
+      ]} />
       <CreateSalonModal visible={createOpen} onClose={() => setCreateOpen(false)} />
 
       <View>
@@ -318,51 +315,51 @@ export default function BarberDashboard() {
   );
 }
 
-function Shortcut({ c, icon, label, onPress, vertical }: {
-  c: ReturnType<typeof useColors>;
+type ShortcutItem = {
   icon: keyof typeof Feather.glyphMap;
   label: string;
+  detail?: string;
   onPress: () => void;
-  vertical?: boolean;
+};
+
+function ShortcutGroup({ c, title, items }: {
+  c: ReturnType<typeof useColors>;
+  title: string;
+  items: ShortcutItem[];
 }) {
-  const iconCircle = (
-    <View style={{
-      width: 36, height: 36, borderRadius: 18, backgroundColor: c.accent,
-      alignItems: "center", justifyContent: "center",
-    }}>
-      <Feather name={icon} size={16} color={c.primary} />
+  return (
+    <View style={styles.shortcutGroup}>
+      <Text accessibilityRole="header" style={[styles.sectionLabel, { color: c.foreground }]}>{title}</Text>
+      <Card style={styles.shortcutCard}>
+        {items.map(({ icon, label, detail, onPress }, index) => (
+          <Pressable key={icon} accessibilityRole="button" onPress={onPress}
+            style={({ pressed }) => [styles.shortcutRow, {
+              backgroundColor: pressed ? c.muted : c.card,
+              borderTopWidth: index ? StyleSheet.hairlineWidth : 0,
+              borderColor: c.border,
+            }]}>
+            <View style={[styles.shortcutIcon, { backgroundColor: c.accent }]}>
+              <Feather name={icon} size={18} color={c.accentForeground} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.shortcutLabel, { color: c.foreground }]}>{label}</Text>
+              {detail && <Text style={[styles.shortcutDetail, { color: c.mutedForeground }]}>{detail}</Text>}
+            </View>
+            <Feather name="chevron-right" size={16} color={c.mutedForeground} />
+          </Pressable>
+        ))}
+      </Card>
     </View>
   );
-
-  return (
-    <Pressable onPress={onPress} style={{ flex: 1 }}>
-      {({ pressed }) => (
-        <Card style={{ opacity: pressed ? 0.85 : 1, flex: 1 }}>
-          {vertical ? (
-            // Narrow (3-per-row) tiles stack the icon over a centered, wrapping
-            // label so long words like "Financement" never overflow the card.
-            <View style={{ alignItems: "center", justifyContent: "center", gap: 8, flex: 1 }}>
-              {iconCircle}
-              <Text
-                numberOfLines={2}
-                style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 12, lineHeight: 16, textAlign: "center" }}
-              >
-                {label}
-              </Text>
-            </View>
-          ) : (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              {iconCircle}
-              <Text
-                numberOfLines={2}
-                style={{ flex: 1, color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}
-              >
-                {label}
-              </Text>
-            </View>
-          )}
-        </Card>
-      )}
-    </Pressable>
-  );
 }
+
+const styles = StyleSheet.create({
+  salonHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  sectionLabel: { fontFamily: "Inter_700Bold", fontSize: 18 },
+  shortcutGroup: { gap: 9 },
+  shortcutCard: { padding: 0, overflow: "hidden" },
+  shortcutRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 13, paddingVertical: 9, minHeight: 56 },
+  shortcutIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  shortcutLabel: { fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  shortcutDetail: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17, marginTop: 2 },
+});

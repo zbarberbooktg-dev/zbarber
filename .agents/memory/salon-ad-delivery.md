@@ -18,3 +18,9 @@ On mobile home, place the ad carousel after L’Édito and before the new salons
 Replacing or deleting a video should detach it before removing the old file, with a durable retry if storage is unavailable. Version public and admin video URLs on replacement.
 
 **Why:** deleting the file first can leave a published ad pointing at a missing file; stable video URLs can mix byte ranges from two versions during playback.
+
+Exclude anonymized salons from ad target selection and reject new links to them. Do not treat every non-approved salon as deleted.
+
+**Why:** account deletion preserves anonymized rows for historical records, and non-deleted salons can still have inactive draft ads.
+
+**How to apply:** filter the ad picker before pagination, using the account-deletion markers rather than a display-name test alone. Preserve the ability to manage ads already linked to a deleted salon.
