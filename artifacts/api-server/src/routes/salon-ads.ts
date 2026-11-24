@@ -11,6 +11,7 @@ import { requireAdminAuth, type AdminAuthedRequest } from "../lib/adminAuth";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { isMp4Video, MAX_SALON_AD_BYTES, salonAdRange } from "../lib/salonAdMedia";
 import { removeQueuedSalonAdVideo } from "../lib/salonAdVideoCleanup";
+import { notDeletedSalon } from "../lib/deletedSalon";
 
 const router = Router();
 const storage = new ObjectStorageService();
@@ -78,7 +79,7 @@ router.post("/admin/salon-ads", admin, readVideo, async (req: Request, res: Resp
   }
   const { salonId } = query.data;
   const [salon] = await db.select({ name: barbersTable.salonName, status: barbersTable.status })
-    .from(barbersTable).where(eq(barbersTable.id, salonId));
+    .from(barbersTable).where(and(eq(barbersTable.id, salonId), notDeletedSalon));
   if (!salon) { res.status(404).json({ error: "Salon not found" }); return; }
   const videoKey = randomUUID();
   let saved;
@@ -104,7 +105,8 @@ async function changeAd(id: number, changes: { active?: boolean; salonId?: numbe
     const salonId = changes.salonId ?? current.salonId;
     const active = changes.active ?? current.active;
     const [salon] = await tx.select({ salonName: barbersTable.salonName, salonStatus: barbersTable.status })
-      .from(barbersTable).where(eq(barbersTable.id, salonId)).for("share");
+      .from(barbersTable).where(and(eq(barbersTable.id, salonId),
+        salonId !== current.salonId ? notDeletedSalon : undefined)).for("share");
     if (!salon) throw new AdEditError(404, "Salon not found");
     if (active && (changes.active === true || salonId !== current.salonId) && salon.salonStatus !== "approved") {
       throw new AdEditError(409, "Only approved salons can appear in public ads");

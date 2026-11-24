@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { clerkClient } from "@clerk/express";
 import { db, usersTable, barbersTable } from "@workspace/db";
+import { DELETED_SALON_NAME, DELETED_SALON_REASON } from "./deletedSalon";
 
 type Logger = { warn?: (obj: unknown, msg?: string) => void };
 
@@ -53,7 +54,7 @@ export async function anonymizeUserAccount(userId: number, log?: Logger): Promis
     await tx
       .update(barbersTable)
       .set({
-        salonName: "Salon supprimé",
+        salonName: DELETED_SALON_NAME,
         bio: null,
         logoUrl: null,
         phone: null,
@@ -63,7 +64,7 @@ export async function anonymizeUserAccount(userId: number, log?: Logger): Promis
         latitude: null,
         longitude: null,
         status: "suspended",
-        suspensionReason: "Compte supprimé",
+        suspensionReason: DELETED_SALON_REASON,
       })
       .where(eq(barbersTable.userId, user.id));
   });

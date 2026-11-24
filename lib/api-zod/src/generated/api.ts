@@ -495,6 +495,7 @@ export const listBarbersQueryLimitMax = 100;
 
 
 export const ListBarbersQueryParams = zod.object({
+  "excludeDeleted": zod.coerce.boolean().optional().describe('Exclude salons anonymized after account deletion before counting and paginating.'),
   "search": zod.coerce.string().optional().describe('Search all approved salons by name, city or neighborhood before pagination'),
   "sort": zod.enum(['newest']).optional().describe('Newest registrations first by createdAt descending, then id descending; approval date does not affect this order.'),
   "categoryId": zod.coerce.number().optional(),
