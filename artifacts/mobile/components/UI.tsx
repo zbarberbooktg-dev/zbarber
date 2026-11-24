@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from "react-native";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 type ButtonProps = {
   label: string;

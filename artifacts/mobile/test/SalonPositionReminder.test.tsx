@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import { coordinates } from "../lib/salonSearch";
 import { hasSalonPosition } from "../../admin/src/lib/salonLocation";
-import colors from "../constants/colors";
+import { nativeTheme as colors } from "@workspace/zbarber-design/lib/native-theme";
 import { translations } from "../constants/i18n";
 
 const h = vi.hoisted(() => ({
@@ -35,7 +35,7 @@ vi.mock("expo-router", () => ({
   useFocusEffect: (cb: () => void) => React.useEffect(cb, [cb]),
 }));
 vi.mock("@expo/vector-icons", () => ({ Feather: "Icon" }));
-vi.mock("@/hooks/useColors", () => ({ useColors: () => ({ ...colors[h.theme], radius: colors.radius }) }));
+vi.mock("@workspace/zbarber-design/hooks/use-colors", () => ({ useColors: () => ({ ...colors[h.theme], radius: colors.radius }) }));
 vi.mock("react-native", () => ({
   ...Object.fromEntries(["ActivityIndicator", "Image", "Modal", "Pressable", "ScrollView", "Text", "TextInput", "View"].map((s) => [s, s])),
   StyleSheet: { create: (styles: unknown) => styles },

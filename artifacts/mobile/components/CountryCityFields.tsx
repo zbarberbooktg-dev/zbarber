@@ -3,7 +3,7 @@ import { FlatList, Modal, Pressable, Text, TextInput, View } from "react-native"
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { AFRICAN_COUNTRIES } from "@/constants/africanCountries";
 
 type Props = {

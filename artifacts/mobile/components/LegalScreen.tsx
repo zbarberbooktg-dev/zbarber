@@ -1,7 +1,7 @@
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useApp } from "@/contexts/AppContext";
 import { localeMap } from "@/constants/i18n";
 import type { LegalDoc } from "@/constants/legal";

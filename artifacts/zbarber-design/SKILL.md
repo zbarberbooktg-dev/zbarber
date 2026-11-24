@@ -4,7 +4,8 @@
 Generated visual system based on the user's homepage design brief, not an import
 of the app's whole component library. Existing mobile code remains authoritative
 for business behavior and routes. This package's initial web component catalog
-is the scaffold themed with the new tokens; no app migration has been performed.
+uses the same tokens. The approved mobile home now consumes the shared native
+theme, fonts and primitives; product-specific compositions remain in the app.
 
 ## Source-derived composition rules
 - Dark: background #0C0D10, surface #17191E, primary #C9A76A,
@@ -21,6 +22,6 @@ is the scaffold themed with the new tokens; no app migration has been performed.
   and keep an accessible icon-only audio toggle.
 
 ## Continuation
-The initial preview requires user approval before mobile integration. Keep
+The Noir & Champagne direction was approved before mobile integration. Keep
 production data and backend contracts unchanged. The mobile task's acceptance
 criteria, not the component demos, determine completion.

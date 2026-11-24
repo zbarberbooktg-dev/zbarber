@@ -14,7 +14,7 @@ vi.mock("@workspace/api-client-react", () => ({
 vi.mock("expo-router", () => ({ useRouter: () => ({ push: h.push }) }));
 vi.mock("@expo/vector-icons", () => ({ Feather: "Icon" }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ lang: "fr", t: {} }) }));
-vi.mock("@/hooks/useColors", () => ({ useColors: () => ({ radius: 14 }) }));
+vi.mock("@workspace/zbarber-design/hooks/use-colors", () => ({ useColors: () => ({ radius: 14 }) }));
 vi.mock("react-native", () => ({
   View: "View", Text: "Text", Pressable: "Pressable", ActivityIndicator: "ActivityIndicator",
   Alert: { alert: vi.fn() }, Linking: { openURL: h.open },

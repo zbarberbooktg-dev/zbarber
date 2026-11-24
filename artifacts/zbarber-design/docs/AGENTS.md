@@ -7,6 +7,17 @@ on it and import its theme and components directly.
 
 ## What's here
 
+- `src/lib/native-theme.tsx` and `src/hooks/use-colors.tsx` export the shared
+  native palette and theme context. The application supplies its saved mode
+  through `NativeThemeProvider`; a native system preference is the fallback.
+- `src/hooks/use-fonts.tsx` registers Inter and Playfair Display for Expo.
+- `src/components/native/`: Button (same variants as web; 44-point minimum hit
+  area; no DOM `asChild`), Typography (native registered font names), Input
+  (native `TextInputProps`, no HTML form submission), Card and header/content/
+  footer/title/description exports, Badge (web variants), and Skeleton (native
+  animated opacity honoring reduced motion). Product-specific compositions and
+  navigation remain in the app. Preview page: **Composants mobiles**.
+
 - `SKILL.md` — usage rules from the user's Noir & Champagne brief; this is a
   generated system, not a migration of the existing app component library.
 - `docs/references/logos/zbarber-icon.png` — unchanged existing mobile app icon;

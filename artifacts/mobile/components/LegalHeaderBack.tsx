@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable } from "react-native";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 // Legal screens (Terms/Privacy) are reachable from several places (sign-up,
 // client profile, barber profile) that live in different navigators (a plain

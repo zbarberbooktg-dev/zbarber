@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
+import { Typography } from "@workspace/zbarber-design/components/native/typography";
 import React, { useState } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import colors from "@/constants/colors";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ShimmerImage } from "./ShimmerImage";
 
@@ -19,30 +20,27 @@ export function SalonCardImage({ salon, style, iconSize = 36, imageWidth = 700 }
 }
 
 function SalonCardVisual({ logo, gallery, style, iconSize }: {
-  logo: string | null;
-  gallery: string | null;
-  style?: StyleProp<ViewStyle>;
-  iconSize: number;
+  logo: string | null; gallery: string | null; style?: StyleProp<ViewStyle>; iconSize: number;
 }) {
+  const c = useColors();
   const [failed, setFailed] = useState<string[]>([]);
   const uri = [logo, gallery].find((url): url is string => !!url && !failed.includes(url));
   if (uri) {
     return <ShimmerImage key={uri} source={{ uri }} style={style} contentFit="cover"
       onError={() => setFailed((previous) => [...previous, uri])} />;
   }
+  // Unmistakable placeholder: flat surface, thin scissors mark, no fake photo.
   return (
-    <View testID="salon-no-photo" style={[style, styles.placeholder]}>
-      <Feather name="home" size={iconSize} color={colors.light.mutedForeground} />
+    <View testID="salon-no-photo" accessibilityLabel="Photo indisponible" style={[style, styles.placeholder, { backgroundColor: c.card }]}>
+      <Typography variant="display" style={{ position: "absolute", fontSize: iconSize * 3, lineHeight: iconSize * 4, opacity: 0.08 }}>Z</Typography>
+      <View style={[styles.ring, { borderColor: c.border, width: iconSize * 2, height: iconSize * 2, borderRadius: iconSize }]}>
+        <Feather name="scissors" size={iconSize} color={c.mutedForeground} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  placeholder: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.light.card,
-    borderColor: colors.light.border,
-    borderWidth: 1,
-  },
+  placeholder: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  ring: { borderWidth: 1, alignItems: "center", justifyContent: "center" },
 });

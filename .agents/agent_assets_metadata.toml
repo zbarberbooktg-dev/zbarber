@@ -495,3 +495,45 @@ mtime_ms = 1788967392792
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/db247111-6a72-49f6-9b10-513ea810ec31/f454ec4e-8e27-4264-9023-1c275a29c1a2"
 storage_version_token = "1788967414348036"
 content_type = "image/png"
+
+[[outputs]]
+id = "unxROCCmKM8ertx0gRmXn"
+uri = "file://generated-artifacts/home-redesign/rapport-accueil-zbarber.html"
+type = "html"
+title = "Zbarber — captures et bilan de la refonte"
+description = "Rapport autonome avec quatre captures, résultats des tests et limites de vérification."
+logical_id = "ff67b3fa-5b3f-4929-932c-3423ddd43dc1"
+content_hash = "sha256:e3249932c18dc614570508e6653b07021c2ada745f6366ea6ab7988aa1708df3"
+size = 2921531
+mtime_ms = 1795514654453
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/ff67b3fa-5b3f-4929-932c-3423ddd43dc1/b9e1d7e4-f583-4a74-bd41-b679b3556669"
+storage_version_token = "1795514684825749"
+content_type = "text/html"
+
+[[outputs]]
+id = "GLAC9oWC9M8AbFqT0As4-"
+uri = "file://generated-artifacts/home-redesign/iphone-65-dark-home.png"
+type = "image"
+title = "Accueil — iPhone 6,5 pouces, sombre"
+description = "Aperçu web mobile 1242 × 2688 pixels, avec les données de développement."
+logical_id = "954e2070-142f-4a4a-bc73-fd35599cbbe5"
+content_hash = "sha256:b15271e6a767271f1a0de4cfc00e0f07100fcfa4b589111cb761e3641bdf9cba"
+size = 508130
+mtime_ms = 1795514352785
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/954e2070-142f-4a4a-bc73-fd35599cbbe5/17c59c15-a41f-4105-8a46-ec3f7425c732"
+storage_version_token = "1795514685393121"
+content_type = "image/png"
+
+[[outputs]]
+id = "K6LSTpnK-8Eki7rTu5HBO"
+uri = "file://generated-artifacts/home-redesign/android-1080x2400-en.png"
+type = "image"
+title = "Accueil — format Android, anglais"
+description = "Aperçu web mobile 1080 × 2400 pixels. Ce n’est pas une capture d’un appareil physique."
+logical_id = "df1fda8a-96b1-43d5-b72f-2a2ade55fd14"
+content_hash = "sha256:10eb61aae1da9f7908398a4c11d2f8a5190734b5c0a5e88528b72840750c29ff"
+size = 343731
+mtime_ms = 1795514407105
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:c367b1a9-b17c-4c3e-abc5-1856463eecec/df1fda8a-96b1-43d5-b72f-2a2ade55fd14/f9941a40-dde1-4abc-889a-c81825c88b8b"
+storage_version_token = "1795514686146802"
+content_type = "image/png"

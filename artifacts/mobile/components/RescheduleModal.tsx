@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, Text, View } from "react-na
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { useApp } from "@/contexts/AppContext";
 import { useAuthedFetch } from "@/lib/api";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 type Props = {
   visible: boolean;

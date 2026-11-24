@@ -14,7 +14,7 @@ import { EditSalonLocationModal } from "@/components/EditSalonLocationModal";
 import { ProfileIdentity, ProfilePreferences, ProfileSectionTitle } from "@/components/ProfileSections";
 import { Button, Card } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { setBrowsing } from "@/lib/browseIntent";
 import { coordinates } from "@/lib/salonSearch";
 

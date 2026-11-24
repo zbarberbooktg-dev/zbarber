@@ -1,7 +1,8 @@
 import React from "react";
 import TestRenderer, { act, type ReactTestInstance, type ReactTestRenderer } from "react-test-renderer";
 import { afterAll, afterEach, beforeEach, expect, test, vi } from "vitest";
-import colors from "../constants/colors";
+import { nativeTheme as colors } from "@workspace/zbarber-design/lib/native-theme";
+import { NativeThemeProvider } from "@workspace/zbarber-design/hooks/use-colors";
 
 const h = vi.hoisted(() => ({
   preference: "light" as "light" | "dark" | "system",
@@ -93,8 +94,9 @@ import SalonDetail from "../app/salon/[id]";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: ReactTestRenderer;
 async function mount() {
-  await act(async () => { root = TestRenderer.create(<SalonDetail />); });
+  await act(async () => { root = TestRenderer.create(themedScreen()); });
 }
+const themedScreen = () => <NativeThemeProvider mode={h.preference === "system" ? h.system ?? "light" : h.preference}><SalonDetail /></NativeThemeProvider>;
 const nodes = (type: string) => root.root.findAllByType(type as never);
 const text = (value: string) => nodes("Text").find(n => n.children.join("") === value)!;
 function button(label: string): ReactTestInstance {
@@ -151,7 +153,7 @@ test("system and explicit theme changes preserve the salon page and booking navi
     ["system", "dark", "dark"], ["light", "dark", "light"], ["dark", "light", "dark"],
   ] as const) {
     h.preference = preference; h.system = system;
-    await act(async () => root.update(<SalonDetail />));
+    await act(async () => root.update(themedScreen()));
     expect(style(nodes("View")[0]).backgroundColor).toBe(colors[expected].background);
     expect(text("Salon témoin")).toBeTruthy();
   }

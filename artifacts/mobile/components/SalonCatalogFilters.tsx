@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import type { SalonCatalogLocation } from "@workspace/api-client-react";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import type { Coordinates } from "@/lib/salonSearch";
 import * as Location from "expo-location";
 
@@ -100,7 +100,7 @@ export function SalonCatalogFilters({ filter, onChange, locations, locationError
       {choices(fr ? "Pays" : "Country", countries, filter.country, (v) => onChange({ ...filter, country: v || undefined, city: undefined }))}
       {choices(fr ? "Ville" : "City", cities, filter.city, (v) => onChange({ ...filter, city: v || undefined }), "", fr ? "Toutes" : "All")}
       {choices(fr ? "Distance à vol d’oiseau" : "Straight-line distance", radii, filter.radiusKm?.toString(), (v) => void distance(v), " km", fr ? "Sans limite" : "Any distance")}
-      {(locating || gpsError) && <Text accessibilityLiveRegion="polite" style={{ color: c.mutedForeground, fontSize: 12 }}>
+      {!!(locating || gpsError) && <Text accessibilityLiveRegion="polite" style={{ color: c.mutedForeground, fontSize: 12 }}>
         {locating ? (fr ? "Recherche de votre position…" : "Finding your location…") : gpsError}
       </Text>}
       <Text style={[styles.label, { color: c.foreground }]}>{fr ? "Prix d’un service (FC)" : "Service price (FC)"}</Text>

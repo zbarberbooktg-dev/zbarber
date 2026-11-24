@@ -14,6 +14,7 @@ const AccordionDemo = lazyPage(() =>
   import('./demos/accordion').then(({ AccordionDemo }) => AccordionDemo),
 );
 const BrandPage = lazyPage(() => import('./brand').then(({ BrandPage }) => BrandPage));
+const NativeComponentsPage = lazyPage(() => import('./native').then(({ NativeComponentsPage }) => NativeComponentsPage));
 const AlertDemo = lazyPage(() =>
   import('./demos/alert').then(({ AlertDemo }) => AlertDemo),
 );
@@ -206,6 +207,7 @@ export const OVERVIEW_ENTRY: PreviewEntry = {
 export const NAV_GROUPS: NavGroup[] = [
   { name: 'Brand', entries: [
     { id: 'brand-logo', name: 'Identité Zbarber', description: 'Logo existant et principes Noir & Champagne.', Page: BrandPage },
+    { id: 'native-components', name: 'Composants mobiles', description: 'Button, Typography, Input, Card, Badge et Skeleton natifs.', Page: NativeComponentsPage },
   ] },
   {
     name: 'Colors',

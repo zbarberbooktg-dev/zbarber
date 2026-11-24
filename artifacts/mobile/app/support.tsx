@@ -19,7 +19,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { AppHeaderBack } from "@/components/AppHeaderBack";
 import { Button, Card } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 type View_ = { kind: "list" } | { kind: "new" } | { kind: "thread"; id: number };
 

@@ -15,13 +15,13 @@ Home autoplay must start muted and only one visible ad should play. Keep the acc
 
 **How to apply:** keep playback visibility-checked, default the active ad to muted, and expose an accessible icon-only audio toggle per video. Do not change admin preview behavior.
 
-The expanded ad view should keep one player and one video surface. On web, capture playback time before moving the surface and restore it once the replacement element has loaded its first frame.
+The expanded ad view should keep one native player and one video surface. On web, keep only one HTML video element, capture playback time before moving the surface, and restore it once the replacement element has loaded metadata. Catch playback promises at the media adapter: ignore expected AbortError cancellations, but expose autoplay denial or actual playback failures.
 
-**Why:** Expo Video retains the player object but not the HTML video element's playback position when moving between the card and a modal.
+**Why:** Expo Video's web player discards the HTML play promise. Removing a playing element during expansion or viewport changes can otherwise cause an unhandled rejection; remounting also loses playback position.
 
-On mobile home, place the ad carousel after L’Édito and before the new salons. Its heading is « Salon du mois », with the film icon.
+On the redesigned mobile home, place the ad carousel after categories and before proximity. Keep Journal Zbarber lower, after Inspiration. The ad heading is « Salon du mois », with the film icon.
 
-**Why:** automatic playback should not start background playback when the home screen is not visible or override an explicit pause.
+**Why:** the approved full-home brief superseded the earlier placement after L’Édito. Visibility checks must still prevent background playback or overriding an explicit pause.
 
 Replacing or deleting a video should detach it before removing the old file, with a durable retry if storage is unavailable. Version public and admin video URLs on replacement.
 

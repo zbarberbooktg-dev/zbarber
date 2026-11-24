@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { consumeAuthIntent } from "@/lib/authIntent";
 import { setBrowsing } from "@/lib/browseIntent";
 import { ActiveSessionGate, SessionTransition, SessionTransitionBoundary } from "@/components/ActiveSessionGate";
@@ -37,30 +37,6 @@ export default function ClientTabs() {
     }
     void syncAuth().catch(() => {});
   };
-
-  const HomeHeaderButton = () => (
-    <Pressable
-      onPress={() => {
-        setBrowsing(true);
-        router.push("/browse");
-      }}
-      hitSlop={8}
-      accessibilityLabel={(t as any).home ?? "Accueil"}
-      style={{
-        marginRight: 16,
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: c.muted,
-        borderWidth: 1,
-        borderColor: c.border,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Feather name="home" size={17} color={c.primary} />
-    </Pressable>
-  );
 
   if (signingOut && !user) return <SessionTransition signingOut />;
   if (suspendedNotice && isSignedIn) return <ActiveSessionGate />;
@@ -106,6 +82,7 @@ export default function ClientTabs() {
   return (
     <SessionTransitionBoundary busy={signingOut}>
     <Tabs
+      initialRouteName="bookings"
       screenOptions={{
         tabBarActiveTintColor: c.primary,
         tabBarInactiveTintColor: c.mutedForeground,
@@ -116,18 +93,33 @@ export default function ClientTabs() {
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
-        tabBarLabelStyle: { fontFamily: "Inter_500Medium", fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: "Inter_500Medium", fontSize: 10 },
         headerStyle: { backgroundColor: c.background },
         headerTitleStyle: { fontFamily: "Inter_700Bold", color: c.foreground },
         headerShadowVisible: false,
       }}
     >
       <Tabs.Screen
+        name="index"
+        options={{
+          title: lang === "fr" ? "Accueil" : "Home",
+          tabBarIcon: ({ color, size }) => <Feather name="home" size={size - 2} color={color} />,
+        }}
+        listeners={{ tabPress: (e) => { e.preventDefault(); setBrowsing(true); router.push("/browse"); } }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: lang === "fr" ? "Explorer" : "Explore",
+          tabBarIcon: ({ color, size }) => <Feather name="compass" size={size - 2} color={color} />,
+        }}
+        listeners={{ tabPress: (e) => { e.preventDefault(); router.push("/salons"); } }}
+      />
+      <Tabs.Screen
         name="bookings"
         options={{
           title: t.tabBookings,
           tabBarIcon: ({ color, size }) => <Feather name="calendar" size={size - 2} color={color} />,
-          headerRight: () => <HomeHeaderButton />,
         }}
       />
       <Tabs.Screen
@@ -144,7 +136,6 @@ export default function ClientTabs() {
           tabBarIcon: ({ color, size }) => <Feather name="user" size={size - 2} color={color} />,
         }}
       />
-      <Tabs.Screen name="index" options={{ href: null }} />
     </Tabs>
     </SessionTransitionBoundary>
   );

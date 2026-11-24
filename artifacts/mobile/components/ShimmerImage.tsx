@@ -48,7 +48,7 @@ export function ShimmerImage({
       style={[style, styles.container]}
       onLayout={(e) => setW(e.nativeEvent.layout.width)}
     >
-      <Image {...props} style={styles.fill} onLoad={handleLoad} />
+      <Image cachePolicy="memory-disk" transition={180} {...props} style={styles.fill} onLoad={handleLoad} />
       {!loaded && (
         <Animated.View
           style={[StyleSheet.absoluteFillObject, { opacity: fade, backgroundColor: shimmerBase }]}

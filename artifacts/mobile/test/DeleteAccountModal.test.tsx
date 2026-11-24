@@ -6,7 +6,7 @@ import { translations } from "../constants/i18n";
 const h = vi.hoisted(() => ({ fetcher: vi.fn(), signOut: vi.fn(), app: {} }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => h.app }));
 vi.mock("@/lib/api", () => ({ useAuthedFetch: () => h.fetcher }));
-vi.mock("@/hooks/useColors", () => ({ useColors: () => ({ radius: 8 }) }));
+vi.mock("@workspace/zbarber-design/hooks/use-colors", () => ({ useColors: () => ({ radius: 8 }) }));
 vi.mock("@expo/vector-icons", () => ({ Feather: "Icon" }));
 vi.mock("@/components/KeyboardAwareScrollViewCompat", () => ({ KeyboardAwareScrollViewCompat: "ScrollView" }));
 vi.mock("react-native", () => Object.fromEntries(["ActivityIndicator", "Modal", "Pressable", "Text", "TextInput", "View"].map((name) => [name, name])));

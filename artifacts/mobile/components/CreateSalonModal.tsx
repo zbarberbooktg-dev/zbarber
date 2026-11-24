@@ -12,7 +12,7 @@ import {
 } from "react-native";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch } from "@/lib/api";
 import { formatApiError } from "@/lib/errors";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";

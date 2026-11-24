@@ -2,7 +2,7 @@ import { Redirect } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { SignOutButton } from "@/components/SignOutButton";
 import { salonReservationHref } from "@/lib/reservationRoute";
 

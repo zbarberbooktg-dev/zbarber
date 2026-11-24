@@ -54,6 +54,7 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  resolve: { alias: { "react-native": "react-native-web" } },
   plugins: [
     designTokensPlugin(),
     react(),

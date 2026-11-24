@@ -13,7 +13,7 @@ import {
 
 import { Button, Card, Pill } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type Slot = { time: string; iso: string; available: boolean; reason?: string | null };

@@ -11,7 +11,7 @@ import { Feather } from "@expo/vector-icons";
 
 import { useApp } from "@/contexts/AppContext";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch } from "@/lib/api";
 
 type Props = { visible: boolean; onClose: () => void };

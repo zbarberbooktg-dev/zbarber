@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 export type AvailabilityDay = {
   date: string; // YYYY-MM-DD

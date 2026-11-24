@@ -469,7 +469,7 @@ export default function MapScreen() {
             {showAll ? "Tous" : `${radius} km`}
           </Text>
         </View>
-        {locationError && center && <Text style={{ color: PALETTE.textMuted }}>{locationError}</Text>}
+        {!!locationError && !!center && <Text style={{ color: PALETTE.textMuted }}>{locationError}</Text>}
         {permission && !permission.granted && !permission.canAskAgain && Platform.OS !== "web" && (
           <Pressable testID="map-location-settings" onPress={() => { void Linking.openSettings().catch(() => setLocationError("Ouvrez les réglages de votre téléphone pour autoriser la localisation.")); }}>
             <Text style={{ color: PALETTE.gold, paddingVertical: 8 }}>Autoriser la localisation dans les réglages</Text>
