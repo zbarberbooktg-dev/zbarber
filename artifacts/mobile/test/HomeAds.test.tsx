@@ -50,14 +50,17 @@ async function visibleAd() {
 beforeEach(() => { vi.clearAllMocks(); h.players.length = 0; });
 afterEach(async () => { if (root) await act(async () => root.unmount()); });
 
-test("autoplays only the visible ad, muted by default, with icon-only sound control", async () => {
+test("autoplays only the visible ad, with sound on by default and icon-only sound control", async () => {
   await visibleAd();
   expect(h.players).toHaveLength(1);
-  expect(h.players[0].muted).toBe(true);
+  expect(h.players[0].muted).toBe(false);
   expect(h.players[0].play).toHaveBeenCalled();
   const sound = root.root.findByProps({ testID: "ad-toggle-sound" });
-  expect(sound.props.accessibilityLabel).toBe("Activer le son");
+  expect(sound.props.accessibilityLabel).toBe("Couper le son");
   expect(sound.findAllByType("Text" as never)).toHaveLength(0);
+  await act(async () => sound.props.onPress());
+  expect(h.players[0].muted).toBe(true);
+  expect(root.root.findByProps({ testID: "ad-toggle-sound" }).props.accessibilityLabel).toBe("Activer le son");
   await act(async () => sound.props.onPress());
   expect(h.players[0].muted).toBe(false);
   await act(async () => root.update(<SalonAdsCarousel visible={false} onLayout={vi.fn()} />));

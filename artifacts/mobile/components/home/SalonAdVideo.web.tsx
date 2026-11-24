@@ -14,7 +14,7 @@ export function SalonAdVideo({ path, salonName, fr, paused, onTogglePause }: Sal
   const c = useColors(), dark = useColors("dark"), insets = useSafeAreaInsets();
   const video = useRef<HTMLVideoElement>(null);
   const resumeTime = useRef(0);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [ready, setReady] = useState(false);
   const [blocked, setBlocked] = useState(false);

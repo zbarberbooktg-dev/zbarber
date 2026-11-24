@@ -14,10 +14,10 @@ import type { SalonAdVideoProps } from "./SalonAdVideo.types";
 export function SalonAdVideo({ path, salonName, fr, paused, onTogglePause }: SalonAdVideoProps) {
   const c = useColors(), dark = useColors("dark");
   const insets = useSafeAreaInsets();
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const player = useVideoPlayer({ uri: apiUrl(path), useCaching: false }, video => {
-    video.muted = true;
+    video.muted = false;
     video.loop = true;
   });
   const { status } = useEvent(player, "statusChange", { status: player.status });
