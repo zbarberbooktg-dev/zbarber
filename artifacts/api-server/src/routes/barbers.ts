@@ -204,11 +204,16 @@ router.get("/barbers", async (req, res) => {
   if (!admin || q.status) conditions.push(eq(barbersTable.status, q.status ?? "approved"));
   if (q.excludeDeleted === "true") conditions.push(notDeletedSalon);
   const pattern = (v: string) => `%${v.replace(/[\\%_]/g, "\\$&")}%`;
-  if (q.search) conditions.push(or(
-    ilike(barbersTable.salonName, pattern(q.search)),
-    ilike(barbersTable.city, pattern(q.search)),
-    ilike(barbersTable.neighborhood, pattern(q.search)),
-  )!);
+  if (q.search) {
+    // Match across fields, independent of accents and word order, before pagination.
+    // PostgreSQL's built-in Unicode normalization needs no database extension.
+    const accents = "[\u0300-\u036f]";
+    const searchable = sql`regexp_replace(normalize(concat_ws(' ',
+      ${barbersTable.salonName}, ${barbersTable.city}, ${barbersTable.neighborhood}
+    ), NFD), ${accents}, '', 'g')`;
+    const terms = q.search.normalize("NFD").replace(new RegExp(accents, "g"), "").split(/\s+/u).filter(Boolean);
+    for (const term of terms) conditions.push(ilike(searchable, pattern(term)));
+  }
   if (q.city) conditions.push(eq(barbersTable.city, q.city));
   if (q.country) conditions.push(eq(barbersTable.country, q.country));
   const byPrice = q.minPrice !== undefined || q.maxPrice !== undefined;

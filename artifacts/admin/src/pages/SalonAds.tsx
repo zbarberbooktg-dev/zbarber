@@ -36,6 +36,8 @@ export default function SalonAds() {
   const input = useRef<HTMLInputElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const salons = useListBarbers({ search: search.trim() || undefined, page, limit: PAGE_SIZE, excludeDeleted: true });
+  const salonResults = salons.data?.data ?? [];
+  const salonTotal = salons.data?.total ?? 0;
   const invalidate = () => qc.invalidateQueries({ queryKey: getListAdminSalonAdsQueryKey() });
   const busy = uploading || visibility.isPending || deletion.isPending;
   const changed = !!salon && (editing ? !!file || salon.id !== editing.salonId : !!file);
@@ -137,21 +139,31 @@ export default function SalonAds() {
           <fieldset disabled={busy} className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="block text-sm font-medium" htmlFor="ad-salon-search">{txt("1. Choisir un salon", "1. Choose a salon")}</label>
-              <Input id="ad-salon-search" ref={searchInput} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder={txt("Rechercher par nom ou ville", "Search by name or city")} />
+              <Input id="ad-salon-search" data-testid="input-ad-salon-search" ref={searchInput} type="search" maxLength={200}
+                aria-describedby="ad-salon-search-hint" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                placeholder={txt("Nom, ville ou quartier", "Name, city or neighborhood")} />
+              <p id="ad-salon-search-hint" className="text-xs text-muted-foreground">
+                {txt("La recherche couvre tous les salons disponibles, pas seulement cette page.", "Search covers all available salons, not just this page.")}
+              </p>
               {salons.isError ? <Button type="button" variant="outline" size="sm" onClick={() => void salons.refetch()}>{txt("Réessayer de charger les salons", "Retry loading salons")}</Button>
                 : <select className="w-full rounded-md border bg-background p-2 text-sm" aria-label={txt("Salon associé", "Linked salon")} data-testid="select-ad-salon"
                     value={salon?.id ?? ""} onChange={(e) => {
-                      const selected = salons.data?.data.find((s) => String(s.id) === e.target.value);
+                      const selected = salonResults.find((s) => String(s.id) === e.target.value);
                       setSalon(selected ? { id: selected.id, name: selected.salonName } : null);
                     }}>
-                  <option value="">{salons.isLoading ? txt("Chargement…", "Loading…") : salons.data?.data.length ? txt("Sélectionner un salon", "Select a salon") : txt("Aucun salon trouvé", "No salons found")}</option>
-                  {salon && !salons.data?.data.some((s) => salon.id === s.id) && <option value={salon.id}>{salon.name}</option>}
-                  {salons.data?.data.map((s) => <option value={s.id} key={s.id}>{s.salonName}{s.city ? ` · ${s.city}` : ""}</option>)}
+                  <option value="">{salons.isLoading ? txt("Chargement…", "Loading…") : salonResults.length ? txt("Sélectionner un salon", "Select a salon") : txt("Aucun salon trouvé", "No salons found")}</option>
+                  {salon && !salonResults.some((s) => salon.id === s.id) && <option value={salon.id}>{salon.name}</option>}
+                  {salonResults.map((s) => <option value={s.id} key={s.id}>{[s.salonName, s.neighborhood, s.city].filter(Boolean).join(" · ")}</option>)}
                 </select>}
-              {(page > 1 || (salons.data?.total ?? 0) > page * PAGE_SIZE) && <div className="flex flex-wrap gap-2">
+              {salons.data && !salons.isError && <p role="status" className="text-xs text-muted-foreground" data-testid="status-ad-salon-results">
+                {salonResults.length > 0
+                  ? txt(`Résultats ${(page - 1) * PAGE_SIZE + 1}–${(page - 1) * PAGE_SIZE + salonResults.length} sur ${salonTotal}`,
+                    `Results ${(page - 1) * PAGE_SIZE + 1}–${(page - 1) * PAGE_SIZE + salonResults.length} of ${salonTotal}`)
+                  : txt("Aucun salon trouvé.", "No salons found.")}
+              </p>}
+              {(page > 1 || salonTotal > page * PAGE_SIZE) && <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>{txt("Précédent", "Previous")}</Button>
-                <Button type="button" variant="outline" size="sm" disabled={(salons.data?.total ?? 0) <= page * PAGE_SIZE} onClick={() => setPage(page + 1)}>{txt("Suivant", "Next")}</Button>
+                <Button type="button" variant="outline" size="sm" disabled={salonTotal <= page * PAGE_SIZE} onClick={() => setPage(page + 1)}>{txt("Suivant", "Next")}</Button>
               </div>}
             </div>
             <div className="space-y-2">
