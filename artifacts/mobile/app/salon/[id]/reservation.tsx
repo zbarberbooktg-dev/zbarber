@@ -3,12 +3,13 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getListReservationsQueryKey, useGetBarber, useListBarberServices } from "@workspace/api-client-react";
 import * as Location from "expo-location";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DateTimePicker, type AvailabilityDay } from "@/components/DateTimePicker";
+import { AppHeaderBack } from "@/components/AppHeaderBack";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { LocationPickerMap } from "@/components/LocationPickerMap";
 import { useApp } from "@/contexts/AppContext";
@@ -26,14 +27,29 @@ export default function ReservationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const barberId = Number(id);
   const { userId } = useAuth();
+  const router = useRouter();
   const c = useColors();
   const { lang } = useApp();
+  const fr = lang === "fr";
   if (!salonReservationHref(id)) {
-    return <View style={{ flex: 1, backgroundColor: c.background, padding: 20 }}>
-      <Text style={{ color: c.foreground }}>{lang === "fr" ? "Salon introuvable." : "Salon not found."}</Text>
-    </View>;
+    return <>
+      <Stack.Screen options={{
+        headerBackVisible: false,
+        headerLeft: () => <AppHeaderBack lang={lang} onPress={() => router.replace("/browse")} />,
+      }} />
+      <View style={{ flex: 1, backgroundColor: c.background, padding: 20 }}>
+        <Text style={{ color: c.foreground }}>{fr ? "Salon introuvable." : "Salon not found."}</Text>
+      </View>
+    </>;
   }
-  return <BookingForm key={`${barberId}:${userId ?? "guest"}`} barberId={barberId} />;
+  return <>
+    <Stack.Screen options={{
+      title: fr ? "Réservation" : "Booking",
+      headerBackVisible: false,
+      headerLeft: () => <AppHeaderBack lang={lang} onPress={() => router.replace(`/salon/${barberId}`)} />,
+    }} />
+    <BookingForm key={`${barberId}:${userId ?? "guest"}`} barberId={barberId} />
+  </>;
 }
 
 function BookingForm({ barberId }: { barberId: number }) {

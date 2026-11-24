@@ -11,11 +11,12 @@ import {
   type SupportTicketDraftCategory,
   type SupportTicketSummary,
 } from "@workspace/api-client-react";
-import { Redirect, useFocusEffect } from "expo-router";
+import { Redirect, Stack, useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from "react-native";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { AppHeaderBack } from "@/components/AppHeaderBack";
 import { Button, Card } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -36,6 +37,7 @@ function useFocused() {
 }
 
 export default function SupportScreen() {
+  const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const { ready, user, authSyncError, syncAuth, syncing, lang } = useApp();
   const c = useColors();
@@ -53,7 +55,15 @@ export default function SupportScreen() {
     return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.background }}><ActivityIndicator color={c.primary} /></View>;
   }
   if (!isSignedIn || !user) return <Redirect href="/" />;
-  return <SupportInner key={user.id} userId={user.id} />;
+  const profilePath = user.role === "barber" ? "/(barber)/profile" : "/(client)/profile";
+  return <>
+    <Stack.Screen options={{
+      title: lang === "fr" ? "Assistance" : "Support",
+      headerBackVisible: false,
+      headerLeft: () => <AppHeaderBack lang={lang} onPress={() => router.replace(profilePath)} />,
+    }} />
+    <SupportInner key={user.id} userId={user.id} />
+  </>;
 }
 
 function SupportInner({ userId }: { userId: number }) {
