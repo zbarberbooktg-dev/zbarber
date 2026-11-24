@@ -171,6 +171,7 @@ export default function SalonAds() {
               <Input id="ad-video-file" type="file" ref={input} accept="video/mp4,.mp4" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
               <p className="text-xs text-muted-foreground">{editing ? txt("MP4, 20 Mo maximum. Sans nouveau fichier, la vidéo actuelle sera conservée. Si vous la remplacez, l’ancien fichier sera supprimé.", "MP4, up to 20 MiB. Leave empty to keep the current video. Replacing it deletes the old file.")
                 : txt("MP4 (H.264 recommandé), 20 Mo maximum. La publicité est inactive à sa création.", "MP4 (H.264 recommended), up to 20 MiB. The ad starts inactive.")}</p>
+              <p className="text-xs text-muted-foreground">{txt("Pour une vidéo avec du son, exportez le MP4 avec une piste audio AAC.", "For a video with sound, export the MP4 with an AAC audio track.")}</p>
             </div>
           </fieldset>
           <div className="flex flex-wrap gap-2">
@@ -217,7 +218,7 @@ export default function SalonAds() {
                   </Button>
                 </div>
               </div>
-              {preview === ad.id && <video key={ad.videoPath} src={ad.videoPath} aria-label={ad.salonName} className="max-h-80 w-full rounded-lg bg-black" controls muted playsInline preload="metadata" />}
+              {preview === ad.id && <video key={ad.videoPath} src={ad.videoPath} aria-label={ad.salonName} className="max-h-80 w-full rounded-lg bg-black" controls playsInline preload="metadata" />}
             </Card>
           );
         })}

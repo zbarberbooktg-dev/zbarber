@@ -9,7 +9,7 @@ Serve ad videos through a dedicated route that checks both the ad status and the
 
 **How to apply:** Preserve byte-range support without shared caching. When adding or changing native playback dependencies, use a new Expo runtime and build both profiles before publishing OTA updates for that runtime.
 
-Autoplay must stay muted and only one visible ad should play. Preserve a viewer’s pause choice when they scroll away and come back.
+Autoplay starts muted and only one visible ad should play. Let the viewer enable sound for the current video explicitly; don't carry that choice into autoplay for another video or when returning to the carousel. Preserve a viewer’s pause choice when they scroll away and come back. Admin preview is manual and should not mute its audio by default.
 
 On mobile home, place the ad carousel after L’Édito and before the new salons. Its heading is « Salon du mois », with the film icon.
 

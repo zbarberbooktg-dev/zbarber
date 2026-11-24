@@ -13,7 +13,9 @@ import { ShimmerImage } from "@/components/ShimmerImage";
 
 function AdVideo({ path, fr, paused }: { path: string; fr: boolean; paused: boolean }) {
   const c = useColors();
+  const [muted, setMuted] = useState(true);
   const player = useVideoPlayer({ uri: apiUrl(path), useCaching: false }, (video) => {
+    // Autoplay starts silently; only a tap on this player's control enables sound.
     video.muted = true;
     video.loop = true;
   });
@@ -31,6 +33,20 @@ function AdVideo({ path, fr, paused }: { path: string; fr: boolean; paused: bool
     <>
       <VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} playsInline contentFit="contain" surfaceType="textureView" />
       {(status === "idle" || status === "loading") && <View pointerEvents="none" style={styles.center}><ActivityIndicator color={c.primary} /></View>}
+      {status === "readyToPlay" && (
+        <Pressable testID="ad-toggle-sound" accessibilityRole="button"
+          onPress={() => {
+            const next = !player.muted;
+            player.muted = next;
+            setMuted(next);
+          }}
+          style={({ pressed }) => [styles.sound, { backgroundColor: c.card, opacity: pressed ? 0.85 : 1 }]}>
+          <Feather name={muted ? "volume-x" : "volume-2"} size={17} color={c.foreground} />
+          <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+            {muted ? (fr ? "Activer le son" : "Turn sound on") : (fr ? "Couper le son" : "Mute")}
+          </Text>
+        </Pressable>
+      )}
     </>
   );
 }
@@ -142,5 +158,6 @@ const styles = StyleSheet.create({
   sponsored: { position: "absolute", top: 10, left: 10, borderRadius: 12, paddingVertical: 5, paddingHorizontal: 8 },
   play: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   stop: { position: "absolute", right: 8, top: 8, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  sound: { position: "absolute", right: 8, bottom: 8, minHeight: 44, borderRadius: 22, paddingHorizontal: 12, gap: 7, flexDirection: "row", alignItems: "center" },
   cta: { flexDirection: "row", alignItems: "center", minHeight: 48, paddingVertical: 7, paddingHorizontal: 2, gap: 8 },
 });
