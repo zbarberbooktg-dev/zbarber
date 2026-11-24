@@ -9,11 +9,11 @@ Serve ad videos through a dedicated route that checks both the ad status and the
 
 **How to apply:** Preserve byte-range support without shared caching. When adding or changing native playback dependencies, use a new Expo runtime and build both profiles before publishing OTA updates for that runtime.
 
-Autoplay starts with sound enabled and only one visible ad should play. Show a speaker icon toggle without text; a viewer can mute the current video, but don't carry that choice into another video or when returning to the carousel. Preserve a viewer’s pause choice when they scroll away and come back. Admin preview is manual and should not mute its audio by default.
+Home autoplay must start muted and only one visible ad should play. Keep the accessible speaker icon toggle without visible text. Preserve a viewer’s pause choice when they scroll away and come back. Admin preview is manual and should not mute its audio by default.
 
-**Why:** the user wants home advertisements audible by default while retaining a quick mute control; scrolling or leaving home must not start background playback or override an explicit pause.
+**Why:** the user's full homepage redesign brief superseded the earlier request for sound on by default and explicitly requires silent previews that do not slow down home.
 
-**How to apply:** keep playback visibility-checked, default the active ad to audible, and expose an accessible icon-only audio toggle per video.
+**How to apply:** keep playback visibility-checked, default the active ad to muted, and expose an accessible icon-only audio toggle per video. Do not change admin preview behavior.
 
 The expanded ad view should keep one player and one video surface. On web, capture playback time before moving the surface and restore it once the replacement element has loaded its first frame.
 
