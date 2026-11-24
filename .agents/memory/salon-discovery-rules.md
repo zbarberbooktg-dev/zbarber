@@ -9,11 +9,11 @@ Mobile image cards should keep the entire image rounded and place the caption be
 
 **How to apply:** keep the text and navigation when removing footer styling. Catalog filters operate on the full approved set before pagination. A price range matches a single active service within both bounds; distance uses only actual coordinates after the user grants access.
 
-Salon images on the mobile home must prefer an optional salon logo, otherwise the first gallery image, otherwise a default image. Removing a logo must not remove gallery content.
+Mobile salon cards must prefer an optional salon logo, otherwise the first gallery image, otherwise a gray home icon on a white background, never a generic photo. Removing a logo must not remove gallery content.
 
-**Why:** the user explicitly requested this priority so each salon is represented by its own branding or work.
+**Why:** the user asked to highlight each salon’s own branding or work and make salons without photos immediately recognizable.
 
-**How to apply:** preserve this priority in every home salon-card section and when image references change.
+**How to apply:** use the same visual priority on the home page, in search, in the catalog, and in favorites; keep the white placeholder in both themes.
 
 The mobile home needs a separate horizontal section of up to 20 newly added approved salons, ordered by registration date descending (not approval date), with newest ID first for equal dates. Public name search must cover the whole approved catalog, not only records already loaded on the phone. The map uses saved salon coordinates, never fabricated salon locations.
 

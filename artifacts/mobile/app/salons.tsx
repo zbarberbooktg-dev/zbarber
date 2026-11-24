@@ -94,11 +94,11 @@ export default function AllSalons() {
               : (fr ? "Voir plus de salons" : "Load more salons")}</Text>
           </Pressable>
         ) : null}
-        renderItem={({ item, index }) => {
+        renderItem={({ item }) => {
           const point = coordinates(item.latitude, item.longitude);
           const km = filter.origin && point ? haversineKm(filter.origin, point) : undefined;
           const distance = km === undefined ? undefined : km < 1 ? `${Math.round(km * 1000)} m` : `${km.toLocaleString(fr ? "fr" : "en", { maximumFractionDigits: 1 })} km`;
-          return <SalonListRow salon={item} index={index} showCountry distance={distance} onPress={() => router.push(`/salon/${item.id}`)} />;
+          return <SalonListRow salon={item} showCountry distance={distance} onPress={() => router.push(`/salon/${item.id}`)} />;
         }}
       />
     </KeyboardAvoidingView>

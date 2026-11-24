@@ -146,7 +146,7 @@ export default function BarberProfile() {
         <View style={{ gap: 10 }}>
           <Button
             label={lang === "fr" ? "Accueil" : "Home"}
-            variant="secondary"
+            variant="primary"
             icon="home"
             onPress={() => {
               setBrowsing(true);

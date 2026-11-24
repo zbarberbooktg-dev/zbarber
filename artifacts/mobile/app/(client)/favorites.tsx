@@ -49,7 +49,7 @@ export default function Favorites() {
           </View>
         ) : (
           <View style={{ gap: 12 }}>
-            {items.map((b, index) => <SalonListRow key={b.id} salon={b} index={index} onPress={() => router.push(`/salon/${b.id}`)} />)}
+            {items.map((b) => <SalonListRow key={b.id} salon={b} onPress={() => router.push(`/salon/${b.id}`)} />)}
           </View>
         )}
       </ScrollView>

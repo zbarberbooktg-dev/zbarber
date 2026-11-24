@@ -1,30 +1,23 @@
 import { Feather } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { Pressable, Text, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
-import { salonImageSource } from "@/lib/salonDiscovery";
-
-const fallback = [
-  require("../assets/images/client-home/salon1.png"),
-  require("../assets/images/client-home/salon2.png"),
-  require("../assets/images/client-home/salon3.png"),
-];
+import { SalonCardImage } from "./SalonCardImage";
 
 type Salon = {
   salonName: string; logoUrl?: string | null; cardImageUrl?: string | null;
   neighborhood?: string | null; city?: string | null; country?: string | null; rating?: number | null;
 };
 
-export function SalonListRow({ salon, index, onPress, distance, showCountry }: {
-  salon: Salon; index: number; onPress: () => void; distance?: string; showCountry?: boolean;
+export function SalonListRow({ salon, onPress, distance, showCountry }: {
+  salon: Salon; onPress: () => void; distance?: string; showCountry?: boolean;
 }) {
   const c = useColors();
   const place = [salon.neighborhood, salon.city, showCountry ? salon.country : null].filter(Boolean).join(" · ");
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={[salon.salonName, place, distance].filter(Boolean).join(", ")}
       onPress={onPress} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 13, paddingVertical: 7, opacity: pressed ? 0.65 : 1 })}>
-      <Image source={salonImageSource(salon, fallback[index % fallback.length])}
-        style={{ width: 68, height: 64, borderRadius: 14, backgroundColor: c.muted }} contentFit="cover" recyclingKey={salon.cardImageUrl ?? salon.logoUrl ?? salon.salonName} />
+      <SalonCardImage salon={salon} iconSize={24} imageWidth={210}
+        style={{ width: 68, height: 64, borderRadius: 14 }} />
       <View style={{ flex: 1, gap: 4 }}>
         <Text numberOfLines={1} style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15 }}>{salon.salonName}</Text>
         {!!place && <Text numberOfLines={1} style={{ color: c.mutedForeground, fontSize: 12 }}>{place}</Text>}

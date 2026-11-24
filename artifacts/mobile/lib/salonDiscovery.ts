@@ -1,14 +1,4 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { ImageSourcePropType } from "react-native";
-import { resolveObjectUrl } from "./imageUpload";
-
-export function salonImageSource(
-  salon: { logoUrl?: string | null; cardImageUrl?: string | null },
-  fallback: ImageSourcePropType,
-): ImageSourcePropType {
-  const uri = resolveObjectUrl(salon.logoUrl || salon.cardImageUrl, 700);
-  return uri ? { uri } : fallback;
-}
 
 export async function refreshSalonDiscovery(client: QueryClient, options?: { excludeOwned?: boolean }) {
   await client.invalidateQueries({
