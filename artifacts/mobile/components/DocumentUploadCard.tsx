@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { Alert, Image, Platform, Pressable, Text, View, type ImageSourcePropType } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch } from "@/lib/api";
 import { pickAndUploadImage, resolveObjectUrl } from "@/lib/imageUpload";
 

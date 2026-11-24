@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { Pressable, Text } from "react-native";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 export function AppHeaderBack({ lang, onPress }: { lang: string; onPress: () => void }) {
   const c = useColors();

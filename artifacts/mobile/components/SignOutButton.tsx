@@ -2,7 +2,7 @@ import React from "react";
 import { Text, View } from "react-native";
 import { Button } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 /** Navigation belongs to the session guards, not each logout button. */
 export function SignOutButton() {

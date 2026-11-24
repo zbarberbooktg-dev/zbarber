@@ -15,7 +15,7 @@ import { Card, EmptyState, Pill } from "@/components/UI";
 import { ReviewModal } from "@/components/ReviewModal";
 import { RescheduleModal } from "@/components/RescheduleModal";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 type Status = "pending" | "confirmed" | "completed" | "cancelled";
 

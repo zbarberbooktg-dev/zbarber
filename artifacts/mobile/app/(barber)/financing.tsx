@@ -17,7 +17,7 @@ import {
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { Button, Card, EmptyState, Pill, SectionTitle } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { apiUrl, useAuthedFetch, withSalon } from "@/lib/api";
 
 type Purpose = "renovation" | "tools" | "products" | "other";

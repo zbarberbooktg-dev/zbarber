@@ -15,7 +15,7 @@ import {
 } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { consumeAuthIntent } from "@/lib/authIntent";
 import { PasswordInput } from "@/components/PasswordInput";
 import { ActiveSessionGate, SessionTransition } from "@/components/ActiveSessionGate";

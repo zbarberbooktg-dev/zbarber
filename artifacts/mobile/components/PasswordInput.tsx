@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Pressable, TextInput, View, type TextInputProps } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 export function PasswordInput(props: Omit<TextInputProps, "secureTextEntry">) {
   const c = useColors();

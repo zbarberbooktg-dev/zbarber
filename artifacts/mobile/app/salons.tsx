@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SalonCatalogFilters, type CatalogFilter } from "@/components/SalonCatalogFilters";
 import { SalonListRow } from "@/components/SalonListRow";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { coordinates, haversineKm } from "@/lib/salonSearch";
 
 export default function AllSalons() {

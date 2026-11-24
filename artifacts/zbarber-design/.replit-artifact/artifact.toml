@@ -1,0 +1,19 @@
+kind = "design-system"
+previewPath = "/zbarber-design/"
+title = "Zbarber — Design System"
+description = "Système visuel noir et champagne de Zbarber pour la découverte et la réservation de salons : tokens clair/sombre et composants réutilisables."
+version = "1.0.0"
+id = "artifacts/zbarber-design"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/zbarber-design/" ]
+localPort = 21623
+
+[services.development]
+run = "pnpm --filter @workspace/zbarber-design run dev"
+
+[services.env]
+PORT = "21623"
+BASE_PATH = "/zbarber-design/"

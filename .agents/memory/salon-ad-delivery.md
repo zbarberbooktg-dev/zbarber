@@ -9,15 +9,19 @@ Serve ad videos through a dedicated route that checks both the ad status and the
 
 **How to apply:** Preserve byte-range support without shared caching. When adding or changing native playback dependencies, use a new Expo runtime and build both profiles before publishing OTA updates for that runtime.
 
-Autoplay starts muted and only one visible ad should play. Let the viewer enable sound for the current video explicitly; don't carry that choice into autoplay for another video or when returning to the carousel. Preserve a viewer’s pause choice when they scroll away and come back. Admin preview is manual and should not mute its audio by default.
+Home autoplay must start with sound on and only one visible ad should play. Keep the accessible speaker icon toggle without visible text. Preserve a viewer’s pause choice when they scroll away and come back. Admin preview is manual and should not mute its audio by default.
 
-The expanded ad view should keep one player and one video surface. On web, capture playback time before moving the surface and restore it once the replacement element has loaded its first frame.
+**Why:** the user explicitly requested sound on by default again after the homepage redesign, superseding the silent-preview requirement.
 
-**Why:** Expo Video retains the player object but not the HTML video element's playback position when moving between the card and a modal.
+**How to apply:** keep playback visibility-checked, default the active ad to unmuted, and expose an accessible icon-only audio toggle per video. Browsers may block audible autoplay; keep the manual play control for that case. Do not change admin preview behavior.
 
-On mobile home, place the ad carousel after L’Édito and before the new salons. Its heading is « Salon du mois », with the film icon.
+The expanded ad view should keep one native player and one video surface. On web, keep only one HTML video element, capture playback time before moving the surface, and restore it once the replacement element has loaded metadata. Catch playback promises at the media adapter: ignore expected AbortError cancellations, but expose autoplay denial or actual playback failures.
 
-**Why:** the user asked for automatic playback, but scrolling or leaving home must not start background playback or override an explicit pause.
+**Why:** Expo Video's web player discards the HTML play promise. Removing a playing element during expansion or viewport changes can otherwise cause an unhandled rejection; remounting also loses playback position.
+
+On the redesigned mobile home, place the ad carousel after categories and before proximity. Keep Journal Zbarber lower, after Inspiration. The ad heading is « Salon du mois », with the film icon.
+
+**Why:** the approved full-home brief superseded the earlier placement after L’Édito. Visibility checks must still prevent background playback or overriding an explicit pause.
 
 Replacing or deleting a video should detach it before removing the old file, with a durable retry if storage is unavailable. Version public and admin video URLs on replacement.
 

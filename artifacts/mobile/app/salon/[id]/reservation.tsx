@@ -13,7 +13,7 @@ import { AppHeaderBack } from "@/components/AppHeaderBack";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { LocationPickerMap } from "@/components/LocationPickerMap";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch } from "@/lib/api";
 import { salonReservationHref } from "@/lib/reservationRoute";
 

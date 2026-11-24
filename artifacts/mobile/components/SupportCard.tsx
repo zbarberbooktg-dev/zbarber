@@ -5,7 +5,7 @@ import React from "react";
 import { ActivityIndicator, Alert, Linking, Pressable, Text, View } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 type Row = {
   key: string;

@@ -17,7 +17,7 @@ import {
 } from "react-native";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { CountryCityFields } from "@/components/CountryCityFields";
 
 type Props = {

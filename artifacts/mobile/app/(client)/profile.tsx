@@ -13,7 +13,7 @@ import { SignOutButton } from "@/components/SignOutButton";
 import { ProfileIdentity, ProfilePreferences, ProfileSectionTitle } from "@/components/ProfileSections";
 import { Button, Card } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch } from "@/lib/api";
 import { setBrowsing } from "@/lib/browseIntent";
 

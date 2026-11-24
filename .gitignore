@@ -63,3 +63,4 @@ id_ecdsa
 
 # Debug/scratch uploads (screenshots, pasted terminal output) — not source
 attached_assets/
+/generated-artifacts/

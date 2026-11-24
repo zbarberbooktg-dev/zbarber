@@ -3,7 +3,7 @@ import * as Location from "expo-location";
 import React, { useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, Text, View } from "react-native";
 import { LocationPickerMap } from "./LocationPickerMap";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 export type SalonCoordinates = { latitude: number; longitude: number };
 export function validCoordinates(lat: unknown, lng: unknown): boolean {

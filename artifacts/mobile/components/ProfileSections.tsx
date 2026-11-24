@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Avatar, Card } from "@/components/UI";
 import { useApp, type ThemePref } from "@/contexts/AppContext";
 import type { Lang } from "@/constants/i18n";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 type Icon = keyof typeof Feather.glyphMap;
 

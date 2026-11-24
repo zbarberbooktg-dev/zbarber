@@ -7,7 +7,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Card, EmptyState, Pill, SectionTitle, StatBlock } from "@/components/UI";
 import { CreateSalonModal } from "@/components/CreateSalonModal";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch, withSalon } from "@/lib/api";
 import { setBrowsing } from "@/lib/browseIntent";
 

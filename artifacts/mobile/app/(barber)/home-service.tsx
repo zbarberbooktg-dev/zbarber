@@ -16,7 +16,7 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { Button, Card } from "@/components/UI";
 import { LocationPickerMap } from "@/components/LocationPickerMap";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";

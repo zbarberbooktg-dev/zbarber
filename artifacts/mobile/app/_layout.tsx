@@ -1,10 +1,5 @@
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
-} from "@expo-google-fonts/inter";
+import { useDesignSystemFonts } from "@workspace/zbarber-design/hooks/use-fonts";
+import { NativeThemeProvider } from "@workspace/zbarber-design/hooks/use-colors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { Stack } from "expo-router";
@@ -22,7 +17,7 @@ import * as Updates from "expo-updates";
 
 import { AnimatedSplash } from "@/components/AnimatedSplash";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import colors from "@/constants/colors";
+import { nativeTheme as colors } from "@workspace/zbarber-design/lib/native-theme";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import { useClerkLocalization } from "@/hooks/useClerkLocalization";
 
@@ -67,6 +62,7 @@ function ThemedRoot() {
   }
 
   const stack = (
+    <NativeThemeProvider mode={effective === "dark" ? "dark" : "light"}>
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: palette.background },
@@ -87,6 +83,7 @@ function ThemedRoot() {
       <Stack.Screen name="(barber)" options={{ headerShown: false }} />
       <Stack.Screen name="support" options={{ title: lang === "fr" ? "Assistance" : "Support", headerBackTitle: "" }} />
     </Stack>
+    </NativeThemeProvider>
   );
 
   if (isWeb) {
@@ -127,12 +124,7 @@ const SPLASH_TOTAL_MS = 4000;
 const SPLASH_MIN_HOLD_MS = 1200;
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
+  const { fontsLoaded, fontError } = useDesignSystemFonts();
 
   const mountTimeRef = useRef(Date.now());
   const [showIntro, setShowIntro] = useState(true);

@@ -24,7 +24,6 @@ vi.mock("@tanstack/react-query", () => ({
     const result = queryKey[0] === "availability"
       ? { data: [{ date: "2099-06-15", isWorking: true, isBlocked: false, slots: [{ time: "10:30", iso: "2099-06-15T10:30:00.000Z", available: true }] }], isFetching: false, isError: false }
       : { data: { enabled: false }, isError: false };
-    console.log("mock q", queryKey, result);
     return result;
   },
   useQueryClient: () => ({ invalidateQueries: h.invalidate }),
@@ -36,6 +35,7 @@ vi.mock("@workspace/api-client-react", () => ({
 }));
 vi.mock("expo-location", () => ({}));
 vi.mock("expo-router", () => ({
+  Stack: { Screen: "StackScreen" },
   useLocalSearchParams: () => ({ id: "3" }),
   useRouter: () => ({ push: h.push, replace: h.replace, back: vi.fn() }),
 }));
@@ -53,7 +53,7 @@ vi.mock("@/contexts/AppContext", () => ({
     t: { hsModeSalon: "Au salon", hsModeHome: "À domicile", hsLocating: "Localisation…", hsUseMyLocation: "Ma position", hsMapHint: "Déplacer le repère", hsOutOfRange: "Hors zone", hsQuoteDistance: "Distance", hsQuoteFee: "Frais" },
   }),
 }));
-vi.mock("@/hooks/useColors", () => ({
+vi.mock("@workspace/zbarber-design/hooks/use-colors", () => ({
   useColors: () => ({ foreground: "#111111", background: "#ffffff", card: "#f5f5f5", border: "#cccccc", mutedForeground: "#555555", accent: "#fef3c7", primary: "#b57900", primaryForeground: "#ffffff", destructive: "#cc0000", success: "#008800", secondary: "#eeeeee", radius: 12, isDark: false }),
 }));
 vi.mock("@/lib/api", () => ({ useAuthedFetch: () => h.fetcher }));

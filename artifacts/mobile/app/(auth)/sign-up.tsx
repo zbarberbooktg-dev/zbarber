@@ -14,7 +14,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch } from "@/lib/api";
 import { formatApiError } from "@/lib/errors";
 import { pickImageWithSource, promptImageSource, resolveObjectUrl } from "@/lib/imageUpload";

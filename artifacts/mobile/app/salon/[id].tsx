@@ -39,7 +39,7 @@ import { GalleryLightbox } from "@/components/GalleryLightbox";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { SalonPhotoGallery } from "@/components/SalonPhotoGallery";
 import { PanoramaViewer } from "@/components/PanoramaViewer";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { coordinates } from "@/lib/salonSearch";
 import { salonReservationHref } from "@/lib/reservationRoute";
 

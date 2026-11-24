@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DocumentUploadCard } from "@/components/DocumentUploadCard";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 
 export default function BarberPending() {
   const c = useColors();

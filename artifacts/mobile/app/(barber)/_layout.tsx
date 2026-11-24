@@ -6,7 +6,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { consumeAuthIntent } from "@/lib/authIntent";
 import { ActiveSessionGate, SessionTransition, SessionTransitionBoundary } from "@/components/ActiveSessionGate";
 

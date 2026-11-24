@@ -13,7 +13,7 @@ import {
 
 import { Button, Card, EmptyState, Pill } from "@/components/UI";
 import { useApp } from "@/contexts/AppContext";
-import { useColors } from "@/hooks/useColors";
+import { useColors } from "@workspace/zbarber-design/hooks/use-colors";
 import { useAuthedFetch, withSalon } from "@/lib/api";
 
 type Status = "pending" | "confirmed" | "completed" | "cancelled";
