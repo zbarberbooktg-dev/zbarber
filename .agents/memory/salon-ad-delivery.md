@@ -11,6 +11,10 @@ Serve ad videos through a dedicated route that checks both the ad status and the
 
 Autoplay starts muted and only one visible ad should play. Let the viewer enable sound for the current video explicitly; don't carry that choice into autoplay for another video or when returning to the carousel. Preserve a viewer’s pause choice when they scroll away and come back. Admin preview is manual and should not mute its audio by default.
 
+The expanded ad view should keep one player and one video surface. On web, capture playback time before moving the surface and restore it once the replacement element has loaded its first frame.
+
+**Why:** Expo Video retains the player object but not the HTML video element's playback position when moving between the card and a modal.
+
 On mobile home, place the ad carousel after L’Édito and before the new salons. Its heading is « Salon du mois », with the film icon.
 
 **Why:** the user asked for automatic playback, but scrolling or leaving home must not start background playback or override an explicit pause.

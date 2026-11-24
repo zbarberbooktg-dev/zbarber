@@ -4,16 +4,22 @@ import { useEvent } from "expo";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, FlatList, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type ViewToken } from "react-native";
+import { ActivityIndicator, AppState, FlatList, Modal, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type ViewToken } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { apiUrl } from "@/lib/api";
 import { resolveObjectUrl } from "@/lib/imageUpload";
 import { ShimmerImage } from "@/components/ShimmerImage";
 
-function AdVideo({ path, fr, paused }: { path: string; fr: boolean; paused: boolean }) {
+function AdVideo({ path, salonName, fr, paused, onTogglePause }: {
+  path: string; salonName: string; fr: boolean; paused: boolean; onTogglePause: () => void;
+}) {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const [muted, setMuted] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const webResumeTime = useRef<number | null>(null);
   const player = useVideoPlayer({ uri: apiUrl(path), useCaching: false }, (video) => {
     // Autoplay starts silently; only a tap on this player's control enables sound.
     video.muted = true;
@@ -26,13 +32,40 @@ function AdVideo({ path, fr, paused }: { path: string; fr: boolean; paused: bool
     // On web, wait for the HTML video to attach and become ready.
     else if (readyForPlayback) player.play();
   }, [player, paused, readyForPlayback]);
-  if (status === "error") {
-    return <View style={styles.center}><Text style={{ color: c.mutedForeground }}>{fr ? "Vidéo indisponible" : "Video unavailable"}</Text></View>;
-  }
-  return (
+  const changeView = (next: boolean) => {
+    // Native views attach to the same player. Web replaces the video element.
+    if (Platform.OS === "web" && webResumeTime.current === null) webResumeTime.current = player.currentTime;
+    setExpanded(next);
+  };
+  const onFirstFrame = () => {
+    if (Platform.OS !== "web" || webResumeTime.current === null) return;
+    const time = webResumeTime.current;
+    webResumeTime.current = null;
+    if (Number.isFinite(time) && time > 0) player.currentTime = time;
+    if (paused) player.pause();
+    else player.play();
+  };
+  const controlsBackground = { backgroundColor: c.card };
+  const content = status === "error" ? (
+    <View style={styles.center}><Text style={{ color: expanded ? "#fff" : c.foreground }}>{fr ? "Vidéo indisponible" : "Video unavailable"}</Text></View>
+  ) : (
     <>
-      <VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} playsInline contentFit="contain" surfaceType="textureView" />
+      <VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} playsInline contentFit="contain"
+        surfaceType="textureView" onFirstFrameRender={onFirstFrame} />
+      {!expanded && <Pressable testID="ad-expand-video" accessibilityRole="button"
+        accessibilityLabel={fr ? "Agrandir la vidéo" : "Enlarge video"}
+        onPress={() => changeView(true)} style={StyleSheet.absoluteFill}>
+        <View style={[styles.expand, controlsBackground]}>
+          <Feather name="maximize-2" size={17} color={c.foreground} />
+        </View>
+      </Pressable>}
       {(status === "idle" || status === "loading") && <View pointerEvents="none" style={styles.center}><ActivityIndicator color={c.primary} /></View>}
+      <Pressable accessibilityRole="button" accessibilityLabel={paused
+        ? (fr ? "Reprendre la publicité" : "Resume advertisement")
+        : (fr ? "Mettre la publicité en pause" : "Pause advertisement")}
+        onPress={onTogglePause} style={[styles.stop, controlsBackground]}>
+        <Feather name={paused ? "play" : "pause"} size={18} color={c.foreground} />
+      </Pressable>
       {status === "readyToPlay" && (
         <Pressable testID="ad-toggle-sound" accessibilityRole="button"
           onPress={() => {
@@ -40,7 +73,7 @@ function AdVideo({ path, fr, paused }: { path: string; fr: boolean; paused: bool
             player.muted = next;
             setMuted(next);
           }}
-          style={({ pressed }) => [styles.sound, { backgroundColor: c.card, opacity: pressed ? 0.85 : 1 }]}>
+          style={({ pressed }) => [styles.sound, controlsBackground, { opacity: pressed ? 0.85 : 1 }]}>
           <Feather name={muted ? "volume-x" : "volume-2"} size={17} color={c.foreground} />
           <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
             {muted ? (fr ? "Activer le son" : "Turn sound on") : (fr ? "Couper le son" : "Mute")}
@@ -48,6 +81,26 @@ function AdVideo({ path, fr, paused }: { path: string; fr: boolean; paused: bool
         </Pressable>
       )}
     </>
+  );
+  if (!expanded) return content;
+  const close = () => changeView(false);
+  return (
+    <Modal visible animationType="fade" presentationStyle="fullScreen" onRequestClose={close}>
+      <View testID="ad-expanded-video" style={[styles.expanded, {
+        paddingTop: Math.max(12, insets.top), paddingBottom: Math.max(12, insets.bottom),
+        paddingLeft: insets.left, paddingRight: insets.right,
+      }]}>
+        <View style={styles.expandedHeader}>
+          <Text accessibilityRole="header" numberOfLines={1} style={styles.expandedTitle}>{salonName}</Text>
+          <Pressable testID="ad-close-expanded-video" accessibilityRole="button"
+            accessibilityLabel={fr ? "Fermer la vidéo agrandie" : "Close enlarged video"}
+            onPress={close} style={[styles.close, controlsBackground]}>
+            <Feather name="x" size={21} color={c.foreground} />
+          </Pressable>
+        </View>
+        <View style={styles.expandedMedia}>{content}</View>
+      </View>
+    </Modal>
   );
 }
 
@@ -113,7 +166,8 @@ export function SalonAdsCarousel({ visible, onLayout }: { visible: boolean; onLa
           return (
             <View style={{ width: cardWidth }}>
               <View style={[styles.media, { backgroundColor: c.muted }]}>
-                {eligible ? <AdVideo key={ad.videoPath} path={ad.videoPath} fr={fr} paused={!playing} /> : (
+                {eligible ? <AdVideo key={ad.videoPath} path={ad.videoPath} salonName={ad.salonName}
+                  fr={fr} paused={!playing} onTogglePause={() => setPaused(ad.id, playing)} /> : (
                   <View style={styles.center}>
                     {poster && <>
                       <ShimmerImage source={{ uri: poster }} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -126,12 +180,6 @@ export function SalonAdsCarousel({ visible, onLayout }: { visible: boolean; onLa
                 <View pointerEvents="none" style={[styles.sponsored, { backgroundColor: c.card }]}>
                   <Text style={{ color: c.foreground, fontSize: 10, fontFamily: "Inter_600SemiBold" }}>{fr ? "Publicité" : "Advertisement"}</Text>
                 </View>
-                {eligible && <Pressable accessibilityRole="button" accessibilityLabel={playing
-                  ? (fr ? "Mettre la publicité en pause" : "Pause advertisement")
-                  : (fr ? "Reprendre la publicité" : "Resume advertisement")}
-                  onPress={() => setPaused(ad.id, playing)} style={[styles.stop, { backgroundColor: c.card }]}>
-                  <Feather name={playing ? "pause" : "play"} size={18} color={c.foreground} />
-                </Pressable>}
               </View>
               <Pressable accessibilityRole="link" accessibilityLabel={fr ? `Voir le salon ${ad.salonName}` : `View salon ${ad.salonName}`}
                 onPress={() => router.push(`/salon/${ad.salonId}`)}
@@ -158,6 +206,12 @@ const styles = StyleSheet.create({
   sponsored: { position: "absolute", top: 10, left: 10, borderRadius: 12, paddingVertical: 5, paddingHorizontal: 8 },
   play: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   stop: { position: "absolute", right: 8, top: 8, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  expand: { position: "absolute", left: 8, bottom: 8, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   sound: { position: "absolute", right: 8, bottom: 8, minHeight: 44, borderRadius: 22, paddingHorizontal: 12, gap: 7, flexDirection: "row", alignItems: "center" },
+  expanded: { flex: 1, backgroundColor: "#000" },
+  expandedHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 6 },
+  expandedTitle: { flex: 1, color: "#fff", fontSize: 17, fontFamily: "Inter_700Bold" },
+  expandedMedia: { flex: 1, backgroundColor: "#000" },
+  close: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   cta: { flexDirection: "row", alignItems: "center", minHeight: 48, paddingVertical: 7, paddingHorizontal: 2, gap: 8 },
 });
