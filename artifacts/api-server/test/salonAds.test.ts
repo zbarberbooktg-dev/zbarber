@@ -80,6 +80,30 @@ afterAll(async () => {
 });
 
 describe("salon video advertisements", () => {
+  it("finds approved salons beyond the first ad-picker page by name and location without accents", async () => {
+    const marker = `ad-picker-${id}`;
+    const district = `Bè ${marker}`;
+    const rows = await db.insert(barbersTable).values(Array.from({ length: 26 }, (_, index) => ({
+      userId: ownerId, salonName: index === 25 ? "L’Élégance Barber" : `Salon ${index}`,
+      city: "Lomé", neighborhood: district, status: "approved" as const,
+    }))).returning({ id: barbersTable.id });
+    const target = rows[25]!.id;
+    const picker = (search: string) => request(app).get("/api/barbers").set("Cookie", cookie)
+      .query({ search, page: 1, limit: 25, excludeDeleted: true });
+    try {
+      const firstPage = await picker(marker);
+      expect(firstPage.status).toBe(200);
+      expect(firstPage.body.total).toBe(26);
+      expect(firstPage.body.data).toHaveLength(25);
+      expect(firstPage.body.data).not.toContainEqual(expect.objectContaining({ id: target }));
+      const search = await picker(`LOME elegance be ${marker}`);
+      expect(search.status).toBe(200);
+      expect(search.body).toMatchObject({ total: 1, data: [{ id: target, status: "approved" }] });
+    } finally {
+      await db.delete(barbersTable).where(inArray(barbersTable.id, rows.map((row) => row.id)));
+    }
+  });
+
   it("excludes deleted salons before counting and paginating the ad picker results", async () => {
     const list = (excludeDeleted?: boolean) => request(app).get("/api/barbers").set("Cookie", cookie)
       .query({ city: testCity, limit: 1, sort: "newest", ...(excludeDeleted ? { excludeDeleted } : {}) });

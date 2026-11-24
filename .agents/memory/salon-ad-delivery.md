@@ -24,3 +24,9 @@ Exclude anonymized salons from ad target selection and reject new links to them.
 **Why:** account deletion preserves anonymized rows for historical records, and non-deleted salons can still have inactive draft ads.
 
 **How to apply:** filter the ad picker before pagination, using the account-deletion markers rather than a display-name test alone. Preserve the ability to manage ads already linked to a deleted salon.
+
+The ad picker must search the entire eligible catalog before pagination, not just the currently displayed options. Show the total result count so page size is not mistaken for catalog size.
+
+**Why:** the user reported that approved salons were hard to find in the advertisement form.
+
+**How to apply:** keep server-side matching by salon name, city and neighborhood, tolerate accents and mixed search terms, and test a match beyond the first page.
