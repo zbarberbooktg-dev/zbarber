@@ -3,6 +3,13 @@ const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
 
+// The shared design system is a workspace package outside the app directory.
+// Android/Metro builds using pnpm's hoisted linker (notably Windows) may not
+// resolve its package-export wildcard subpaths through the workspace junction.
+// Watch its source and map the package's documented source exports directly.
+const DESIGN_SYSTEM_ROOT = path.resolve(__dirname, "../zbarber-design");
+config.watchFolders = [...(config.watchFolders || []), DESIGN_SYSTEM_ROOT];
+
 // Force singleton resolution for React-context-bearing packages.
 //
 // Under pnpm's `node-linker=hoisted` layout (which we rely on for native Android
@@ -48,6 +55,20 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   const isSingleton = SINGLETONS.some(
     (name) => moduleName === name || moduleName.startsWith(name + "/"),
   );
+
+  const designSystemMatch = moduleName.match(
+    /^@workspace\/zbarber-design\/(components|hooks|lib)\/(.+)$/,
+  );
+  if (designSystemMatch) {
+    const [, group, subpath] = designSystemMatch;
+    const sourcePath = path.join(
+      DESIGN_SYSTEM_ROOT,
+      "src",
+      group,
+      `${subpath}.tsx`,
+    );
+    return resolver(context, sourcePath, platform);
+  }
 
   if (isSingleton) {
     // Hoisted layout (Windows native builds): re-rooting at the app dir collapses

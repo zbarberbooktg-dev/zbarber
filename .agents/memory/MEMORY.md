@@ -37,6 +37,7 @@
 - [Mobile package.json corruption](mobile-package-json-corruption.md) — bad Windows edit injects `$1 <sha>` sed-artifact + UTF-8 BOM; BOM passes pnpm but crashes Expo's json parser; fix = restore dep, regen lockfile, strip BOM.
 - [Onboarding FlatList web scroll](onboarding-flatlist-web-scroll.md) — react-native-web scrollToIndex doesn't visually paginate in headless test browsers even though state/DOM updates; not a real bug.
 - [Expo web visual checks](expo-web-visual-checks.md) — mounted controls can sit behind splash or retained screens; wait for the overlay and assert unique visible route controls.
+- [Metro workspace resolution](metro-workspace-resolution.md) — for Windows hoisted-pnpm failures, map sibling package subpaths explicitly and watch the workspace source in Metro.
 - [Expo dev login prompt on Replit](expo-dev-login-prompt.md) — expo start hangs on interactive "log in to Expo" (owner+projectId, no TTY); add EXPO_OFFLINE=1 to the mobile dev script so the QR works.
 - [useAuthedFetch unstable in deps](authed-fetch-unstable-deps.md) — never put the mobile fetcher/getToken in effect/callback/memo deps or a query key; fresh identity each render → "Maximum update depth exceeded" once authed.
 - [Layout self-redirect loop](layout-self-redirect-loop.md) — a group _layout must not <Redirect> to a child inside itself; guard with useSegments (skip when already there) or it loops → blank screen.
