@@ -9,7 +9,11 @@ Serve ad videos through a dedicated route that checks both the ad status and the
 
 **How to apply:** Preserve byte-range support without shared caching. When adding or changing native playback dependencies, use a new Expo runtime and build both profiles before publishing OTA updates for that runtime.
 
-Autoplay starts muted and only one visible ad should play. Let the viewer enable sound for the current video explicitly; don't carry that choice into autoplay for another video or when returning to the carousel. Preserve a viewer’s pause choice when they scroll away and come back. Admin preview is manual and should not mute its audio by default.
+Autoplay starts with sound enabled and only one visible ad should play. Show a speaker icon toggle without text; a viewer can mute the current video, but don't carry that choice into another video or when returning to the carousel. Preserve a viewer’s pause choice when they scroll away and come back. Admin preview is manual and should not mute its audio by default.
+
+**Why:** the user wants home advertisements audible by default while retaining a quick mute control; scrolling or leaving home must not start background playback or override an explicit pause.
+
+**How to apply:** keep playback visibility-checked, default the active ad to audible, and expose an accessible icon-only audio toggle per video.
 
 The expanded ad view should keep one player and one video surface. On web, capture playback time before moving the surface and restore it once the replacement element has loaded its first frame.
 
@@ -17,7 +21,7 @@ The expanded ad view should keep one player and one video surface. On web, captu
 
 On mobile home, place the ad carousel after L’Édito and before the new salons. Its heading is « Salon du mois », with the film icon.
 
-**Why:** the user asked for automatic playback, but scrolling or leaving home must not start background playback or override an explicit pause.
+**Why:** automatic playback should not start background playback when the home screen is not visible or override an explicit pause.
 
 Replacing or deleting a video should detach it before removing the old file, with a durable retry if storage is unavailable. Version public and admin video URLs on replacement.
 

@@ -59,29 +59,34 @@ type GalleryItem = { key: string; uri: string | null; src?: any; label: string }
 
 const ITEM_W = 154;
 const ITEM_GAP = 10;
-const ITEM_STRIDE = ITEM_W + ITEM_GAP;
-
 const MS_PER_PX = 42;
 
-function InfiniteGalleryCarousel({
+function InfiniteAutoCarousel<T>({
   items,
+  itemWidth,
+  itemGap,
+  keyForItem,
   onPressItem,
-  serifItalic,
-  palette,
+  accessibilityLabel,
+  renderItem,
 }: {
-  items: GalleryItem[];
-  onPressItem: (item: GalleryItem, allItems: GalleryItem[]) => void;
-  serifItalic: string;
-  palette: { text: string };
+  items: T[];
+  itemWidth: number;
+  itemGap: number;
+  keyForItem: (item: T) => string;
+  onPressItem: (item: T, allItems: T[]) => void;
+  accessibilityLabel?: (item: T) => string;
+  renderItem: (item: T) => React.ReactNode;
 }) {
   const translateX = useRef(new Animated.Value(0)).current;
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const currentX = useRef(0);
   const runRef = useRef<(() => void) | undefined>(undefined);
   const looped = useMemo(() => [...items, ...items, ...items], [items]);
-  const totalWidth = ITEM_STRIDE * items.length;
+  const totalWidth = (itemWidth + itemGap) * items.length;
 
   useEffect(() => {
+    if (totalWidth <= 0) return;
     const listenerId = translateX.addListener(({ value }) => { currentX.current = value; });
 
     const run = () => {
@@ -103,7 +108,7 @@ function InfiniteGalleryCarousel({
       translateX.removeListener(listenerId);
       animRef.current?.stop();
     };
-  }, [totalWidth]);
+  }, [totalWidth, translateX]);
 
   const handleTouchStart = () => {
     animRef.current?.stop();
@@ -123,29 +128,22 @@ function InfiniteGalleryCarousel({
   };
 
   return (
-    <View style={{ overflow: "hidden", marginBottom: 36 }}>
+    <View style={{ overflow: "hidden" }}>
       <Animated.View
         style={{ flexDirection: "row", paddingLeft: 20, paddingBottom: 4, transform: [{ translateX }] }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={handleTouchEnd}
       >
-        {looped.map((s, i) => (
+        {looped.map((item, index) => (
           <Pressable
-            key={`${s.key}-${i}`}
-            onPress={() => onPressItem(s, items)}
-            style={{ width: ITEM_W, marginRight: ITEM_GAP }}
+            key={`${keyForItem(item)}-${index}`}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel?.(item)}
+            onPress={() => onPressItem(item, items)}
+            style={{ width: itemWidth, marginRight: itemGap }}
           >
-            <ShimmerImage
-              source={s.uri ? { uri: s.uri } : s.src}
-              style={{ width: "100%", aspectRatio: 3 / 4, borderRadius: 16, overflow: "hidden" }}
-              contentFit="cover"
-            />
-            {s.label ? (
-              <Text style={{ marginTop: 7, color: palette.text, fontFamily: serifItalic, fontSize: 13 }}>
-                {s.label}
-              </Text>
-            ) : null}
+            {renderItem(item)}
           </Pressable>
         ))}
       </Animated.View>
@@ -153,6 +151,44 @@ function InfiniteGalleryCarousel({
   );
 }
 
+function InfiniteGalleryCarousel({
+  items,
+  onPressItem,
+  serifItalic,
+  palette,
+}: {
+  items: GalleryItem[];
+  onPressItem: (item: GalleryItem, allItems: GalleryItem[]) => void;
+  serifItalic: string;
+  palette: { text: string };
+}) {
+  return (
+    <View style={{ marginBottom: 36 }}>
+      <InfiniteAutoCarousel
+        items={items}
+        itemWidth={ITEM_W}
+        itemGap={ITEM_GAP}
+        keyForItem={(item) => item.key}
+        accessibilityLabel={(item) => item.label || item.key}
+        onPressItem={onPressItem}
+        renderItem={(item) => (
+          <View>
+            <ShimmerImage
+              source={item.uri ? { uri: item.uri } : item.src}
+              style={{ width: "100%", aspectRatio: 3 / 4, borderRadius: 16, overflow: "hidden" }}
+              contentFit="cover"
+            />
+            {item.label ? (
+              <Text style={{ marginTop: 7, color: palette.text, fontFamily: serifItalic, fontSize: 13 }}>
+                {item.label}
+              </Text>
+            ) : null}
+          </View>
+        )}
+      />
+    </View>
+  );
+}
 export default function PublicHome() {
   const router = useRouter();
   const pathname = usePathname();
@@ -595,19 +631,25 @@ export default function PublicHome() {
             ) : !newest?.data.length ? (
               <Text style={{ paddingHorizontal: 20, color: PALETTE.textMuted }}>{fr ? "Les nouveaux salons validés apparaîtront ici." : "Newly approved salons will appear here."}</Text>
             ) : (
-              <ScrollView horizontal testID="new-salons-carousel" showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
-                {newest.data.map((b) => (
-                  <Pressable key={b.id} accessibilityRole="button" accessibilityLabel={fr ? `Ouvrir ${b.salonName}` : `Open ${b.salonName}`}
-                    onPress={() => router.push(`/salon/${b.id}` as never)} style={({ pressed }) => ({ width: 190, opacity: pressed ? 0.85 : 1 })}>
-                    <SalonCardImage salon={b} style={{ width: "100%", height: 135, borderRadius: 18 }} />
-                    <View style={homeStyles.salonDetails}>
-                      <Text numberOfLines={1} style={{ color: PALETTE.text, fontFamily: serif, fontSize: 17 }}>{b.salonName}</Text>
-                      <Text numberOfLines={1} style={{ color: PALETTE.textMuted, fontSize: 12, marginTop: 4 }}>{[b.neighborhood, b.city].filter(Boolean).join(" • ")}</Text>
+              <View testID="new-salons-carousel">
+                <InfiniteAutoCarousel
+                  items={newest.data}
+                  itemWidth={190}
+                  itemGap={14}
+                  keyForItem={(salon) => String(salon.id)}
+                  accessibilityLabel={(salon) => fr ? `Ouvrir ${salon.salonName}` : `Open ${salon.salonName}`}
+                  onPressItem={(salon) => router.push(`/salon/${salon.id}` as never)}
+                  renderItem={(b) => (
+                    <View>
+                      <SalonCardImage salon={b} style={{ width: "100%", height: 135, borderRadius: 18 }} />
+                      <View style={homeStyles.salonDetails}>
+                        <Text numberOfLines={1} style={{ color: PALETTE.text, fontFamily: serif, fontSize: 17 }}>{b.salonName}</Text>
+                        <Text numberOfLines={1} style={{ color: PALETTE.textMuted, fontSize: 12, marginTop: 4 }}>{[b.neighborhood, b.city].filter(Boolean).join(" • ")}</Text>
+                      </View>
                     </View>
-                  </Pressable>
-                ))}
-              </ScrollView>
+                  )}
+                />
+              </View>
             )}
           </View>
         )}

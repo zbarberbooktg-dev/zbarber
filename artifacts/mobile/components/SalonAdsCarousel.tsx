@@ -17,12 +17,11 @@ function AdVideo({ path, salonName, fr, paused, onTogglePause }: {
 }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const webResumeTime = useRef<number | null>(null);
   const player = useVideoPlayer({ uri: apiUrl(path), useCaching: false }, (video) => {
-    // Autoplay starts silently; only a tap on this player's control enables sound.
-    video.muted = true;
+    video.muted = false;
     video.loop = true;
   });
   const { status } = useEvent(player, "statusChange", { status: player.status });
@@ -68,6 +67,8 @@ function AdVideo({ path, salonName, fr, paused, onTogglePause }: {
       </Pressable>
       {status === "readyToPlay" && (
         <Pressable testID="ad-toggle-sound" accessibilityRole="button"
+          accessibilityLabel={muted ? (fr ? "Activer le son" : "Turn sound on") : (fr ? "Couper le son" : "Mute")}
+          accessibilityState={{ selected: !muted }}
           onPress={() => {
             const next = !player.muted;
             player.muted = next;
@@ -75,9 +76,6 @@ function AdVideo({ path, salonName, fr, paused, onTogglePause }: {
           }}
           style={({ pressed }) => [styles.sound, controlsBackground, { opacity: pressed ? 0.85 : 1 }]}>
           <Feather name={muted ? "volume-x" : "volume-2"} size={17} color={c.foreground} />
-          <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
-            {muted ? (fr ? "Activer le son" : "Turn sound on") : (fr ? "Couper le son" : "Mute")}
-          </Text>
         </Pressable>
       )}
     </>
@@ -207,7 +205,7 @@ const styles = StyleSheet.create({
   play: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   stop: { position: "absolute", right: 8, top: 8, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   expand: { position: "absolute", left: 8, bottom: 8, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  sound: { position: "absolute", right: 8, bottom: 8, minHeight: 44, borderRadius: 22, paddingHorizontal: 12, gap: 7, flexDirection: "row", alignItems: "center" },
+  sound: { position: "absolute", right: 8, bottom: 8, width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   expanded: { flex: 1, backgroundColor: "#000" },
   expandedHeader: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 6 },
   expandedTitle: { flex: 1, color: "#fff", fontSize: 17, fontFamily: "Inter_700Bold" },
