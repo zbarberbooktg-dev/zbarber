@@ -30,7 +30,7 @@ export function Footer() {
               <li><a href="#features" className="text-muted-foreground hover:text-foreground text-sm transition-colors">{t.footer.forClients}</a></li>
               <li><a href="#barbers" className="text-muted-foreground hover:text-foreground text-sm transition-colors">{t.footer.forBarbers}</a></li>
               <li><a href="#pricing" className="text-muted-foreground hover:text-foreground text-sm transition-colors">{t.footer.pricing}</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground text-sm transition-colors">{t.footer.download}</a></li>
+              <li><a href={`${import.meta.env.BASE_URL}#appstore`} className="text-muted-foreground hover:text-foreground text-sm transition-colors">{t.footer.download}</a></li>
             </ul>
           </div>
 
