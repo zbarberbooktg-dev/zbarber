@@ -51,14 +51,18 @@ export default function Home() {
               <motion.p variants={fadeIn} className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto">
                 {t.hero.subtitle}
               </motion.p>
-              <motion.div variants={fadeIn} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button size="lg" className="w-full sm:w-auto h-14 px-8 bg-foreground text-background hover:bg-foreground/90 font-semibold text-lg flex items-center gap-2">
+              <motion.div id="appstore" variants={fadeIn} className="scroll-mt-24 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button asChild size="lg" className="w-full sm:w-auto h-14 px-8 bg-foreground text-background hover:bg-foreground/90 font-semibold text-lg flex items-center gap-2">
+                  <a href="https://apps.apple.com/us/app/zbarber/id6782415905" target="_blank" rel="noopener noreferrer">
                   <Smartphone className="w-5 h-5" />
                   App Store
+                  </a>
                 </Button>
-                <Button size="lg" className="w-full sm:w-auto h-14 px-8 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-lg flex items-center gap-2">
+                <Button asChild size="lg" className="w-full sm:w-auto h-14 px-8 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-lg flex items-center gap-2">
+                  <a href="https://play.google.com/store/apps/details?id=net.zbarber.app&hl=en" target="_blank" rel="noopener noreferrer">
                   <Smartphone className="w-5 h-5" />
                   Google Play
+                  </a>
                 </Button>
               </motion.div>
             </motion.div>

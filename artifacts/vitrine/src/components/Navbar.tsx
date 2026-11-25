@@ -50,7 +50,7 @@ export function Navbar() {
                 <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                 <span className="sr-only">{t.nav.toggleTheme}</span>
               </Button>
-              <a href="#appstore">
+              <a href={`${import.meta.env.BASE_URL}#appstore`}>
                 <Button className="font-semibold px-6 bg-primary text-primary-foreground hover:bg-primary/90">
                   {t.nav.download}
                 </Button>
@@ -95,7 +95,7 @@ export function Navbar() {
                 </a>
               ))}
               <div className="pt-4 pb-2">
-                <a href="#appstore" onClick={() => setIsMobileMenuOpen(false)}>
+                <a href={`${import.meta.env.BASE_URL}#appstore`} onClick={() => setIsMobileMenuOpen(false)}>
                   <Button className="w-full justify-center bg-primary text-primary-foreground">
                     {t.nav.download}
                   </Button>
